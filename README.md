@@ -62,6 +62,6 @@ En Windows, el separador del classpath es `;` en lugar de `:`.
 
 ## Seguridad
 
-Las contraseñas se almacenan cifradas con SHA-256, nunca en texto plano. La
+Las contraseñas se almacenan cifradas, nunca en texto plano. La
 visibilidad de los pagos está limitada por usuario, y el procedimiento de
 actualización verifica la autorización antes de modificar un registro.
