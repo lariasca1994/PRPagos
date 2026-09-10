@@ -1,0 +1,40 @@
+# Credenciales y configuracion local
+config.properties
+config.properties.*
+.env
+.env.*
+
+# Oracle Autonomous Database: Wallet, certificados y archivos sensibles
+wallet/
+Wallet_*/
+*.sso
+*.p12
+*.pem
+*.key
+*.jks
+*.keystore
+tnsnames.ora
+sqlnet.ora
+ewallet.pem
+cwallet.sso
+
+# Archivos locales y de los IDE
+.vscode/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Compilacion y distribucion
+*.class
+bin/
+out/
+target/
+build/
+dist/
+
+# Registros y archivos temporales
+*.log
+*.tmp
+*.temp
