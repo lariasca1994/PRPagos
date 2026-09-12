@@ -26,13 +26,21 @@ cwallet.sso
 .project
 .settings/
 
-# Compilacion y distribucion
+# Compilacion y distribucion (Java)
 *.class
 bin/
 out/
 target/
 build/
 dist/
+
+# web/ (Python/FastAPI) -- un patron sin "/" al inicio aplica en
+# cualquier subcarpeta, asi que estas reglas cubren web/ tambien
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
 
 # Registros y archivos temporales
 *.log

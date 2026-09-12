@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Crear usuario - PRPagos{% endblock %}
+{% block contenido %}
+<section class="tarjeta-formulario">
+    <h1>Crear usuario</h1>
+    {% if error %}<p class="aviso error">{{ error }}</p>{% endif %}
+    <form method="post" action="/registro">
+        <label for="usuario">Usuario (correo @EAN.com)</label>
+        <input type="email" id="usuario" name="usuario" required autofocus>
+
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" required>
+
+        <label for="contrasena">Contraseña</label>
+        <input type="password" id="contrasena" name="contrasena" required>
+
+        <button type="submit" class="boton">Crear usuario</button>
+    </form>
+    <p>¿Ya tienes cuenta? <a href="/login">Ingresa</a></p>
+</section>
+{% endblock %}

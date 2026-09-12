@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block titulo %}Modificar registro - PRPagos{% endblock %}
+{% block contenido %}
+<section class="tarjeta-formulario">
+    <h1>Modificar registro #{{ registro.id_pago }}</h1>
+    {% set qs = request.query_params.get('error') %}
+    {% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
+    <form method="post" action="/registros/{{ registro.id_pago }}/editar">
+        <label for="monto">Monto</label>
+        <input type="text" id="monto" name="monto" value="{{ registro.monto }}" required autofocus>
+
+        <label for="fecha">Fecha</label>
+        <input type="date" id="fecha" name="fecha" value="{{ registro.fecha }}" required>
+
+        <label for="concepto">Concepto</label>
+        <input type="text" id="concepto" name="concepto" value="{{ registro.concepto }}" required>
+
+        <button type="submit" class="boton">Guardar cambios</button>
+    </form>
+    <p><a href="/registros">Volver a consultar registros</a></p>
+    <p class="nota-permiso">
+        Solo puedes modificar registros que te pertenecen; si el registro fue
+        creado por otro usuario, el sistema rechaza el cambio.
+    </p>
+</section>
+{% endblock %}

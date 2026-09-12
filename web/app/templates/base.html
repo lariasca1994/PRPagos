@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}PRPagos{% endblock %}</title>
+    <link rel="stylesheet" href="/static/estilos.css">
+</head>
+<body>
+    <header class="barra">
+        {% include "fragmentos/cabecera.html" %}
+        <nav class="nav-principal">
+            {% if usuario %}
+                <a href="/registros">Consultar registros</a>
+                <a href="/registros/nuevo">Nuevo registro</a>
+                <a href="/logout">Salir ({{ usuario.nombre }})</a>
+            {% else %}
+                <a href="/login">Ingresar</a>
+                <a href="/registro">Registrarme</a>
+            {% endif %}
+        </nav>
+    </header>
+    <main>
+        {% block contenido %}{% endblock %}
+    </main>
+    <footer class="pie">
+        <p>PRPagos &mdash; proyecto de portafolio de Luis Felipe Arias.</p>
+    </footer>
+    <script src="/static/tema.js" defer></script>
+</body>
+</html>

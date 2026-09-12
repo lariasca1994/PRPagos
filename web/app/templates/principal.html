@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Inicio - PRPagos{% endblock %}
+{% block contenido %}
+<h1>Hola, {{ usuario.nombre }}</h1>
+<p class="subtitulo">¿Qué deseas hacer?</p>
+
+<div class="menu-principal">
+  <a class="tarjeta-menu" href="/pagos">
+    <h2>Consultar pagos</h2>
+    <p>Buscar, filtrar y exportar tus pagos registrados.</p>
+  </a>
+  <a class="tarjeta-menu" href="/pagos/nuevo">
+    <h2>Ingresar pago</h2>
+    <p>Registrar un nuevo pago.</p>
+  </a>
+  <a class="tarjeta-menu" href="/logout">
+    <h2>Salir</h2>
+    <p>Cerrar sesión.</p>
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Recuperar contraseña - PRPagos{% endblock %}
+{% block contenido %}
+<section class="tarjeta-formulario">
+    <h1>Recuperar contraseña</h1>
+    {% if error %}<p class="aviso error">{{ error }}</p>{% endif %}
+    <form method="post" action="/recuperar">
+        <label for="correo">Correo (@EAN.com)</label>
+        <input type="email" id="correo" name="correo" required autofocus>
+
+        <label for="nombre_registrado">Nombre registrado</label>
+        <input type="text" id="nombre_registrado" name="nombre_registrado" required>
+
+        <label for="nueva_contrasena">Nueva contraseña</label>
+        <input type="password" id="nueva_contrasena" name="nueva_contrasena" required>
+
+        <button type="submit" class="boton">Actualizar contraseña</button>
+    </form>
+    <p><a href="/login">Volver a ingresar</a></p>
+</section>
+{% endblock %}

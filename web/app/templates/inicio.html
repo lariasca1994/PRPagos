@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}PRPagos{% endblock %}
+{% block contenido %}
+<section class="hero">
+    <h1>PRPagos</h1>
+    <p>
+        Una aplicación para llevar tus registros: cada usuario ve
+        únicamente los suyos, puede filtrarlos por concepto, monto o fecha,
+        exportarlos a CSV y modificarlos &mdash; con cada operación quedando
+        en un registro de auditoría. Corre sobre Oracle Autonomous Database,
+        conectada por Wallet.
+    </p>
+    <div class="insignias">
+        <span class="insignia">FastAPI</span>
+        <span class="insignia">Oracle Autonomous Database</span>
+        <span class="insignia">Oracle Wallet</span>
+        <span class="insignia">Jinja2</span>
+    </div>
+    <div class="cta">
+        {% if usuario %}
+            <a class="boton" href="/registros">Consultar registros</a>
+            <a class="boton boton-secundario" href="/registros/nuevo">Nuevo registro</a>
+        {% else %}
+            <a class="boton" href="/registro">Crear cuenta</a>
+            <a class="boton boton-secundario" href="/login">Ya tengo cuenta</a>
+        {% endif %}
+    </div>
+</section>
+
+<section class="caracteristicas">
+    <div class="tarjeta">
+        <h3>Registro de movimientos</h3>
+        <p>Monto, fecha y concepto &mdash; cada registro queda asociado al usuario que lo creó.</p>
+    </div>
+    <div class="tarjeta">
+        <h3>Consulta con filtros</h3>
+        <p>Busca por concepto, rango de monto o rango de fechas, y ve el total de la búsqueda.</p>
+    </div>
+    <div class="tarjeta">
+        <h3>Exportar a CSV</h3>
+        <p>Descarga el resultado de cualquier búsqueda como archivo CSV.</p>
+    </div>
+    <div class="tarjeta">
+        <h3>Auditoría</h3>
+        <p>Cada registro creado o modificado queda registrado, y solo su dueño puede modificarlo.</p>
+    </div>
+</section>
+{% endblock %}

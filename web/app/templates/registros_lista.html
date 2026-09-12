@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}Consultar registros - PRPagos{% endblock %}
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>Consultar registros</h1>
+    <a class="boton" href="/registros/nuevo">Nuevo registro</a>
+</div>
+
+{% set qs = request.query_params.get('error') %}
+{% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
+
+<form method="get" action="/registros" class="filtros">
+    <div class="fila-filtros">
+        <label>Concepto contiene
+            <input type="text" name="concepto" value="{{ filtros.concepto }}">
+        </label>
+        <label>Monto mínimo
+            <input type="text" name="monto_min" value="{{ filtros.monto_min }}">
+        </label>
+        <label>Monto máximo
+            <input type="text" name="monto_max" value="{{ filtros.monto_max }}">
+        </label>
+    </div>
+    <div class="fila-filtros">
+        <label>Desde
+            <input type="date" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+        </label>
+        <label>Hasta
+            <input type="date" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+        </label>
+        <button type="submit" class="boton">Buscar</button>
+        <a class="boton boton-secundario" href="/registros">Limpiar</a>
+    </div>
+</form>
+
+<p class="total-pagado">Total: <strong>{{ "%.2f"|format(total) }}</strong></p>
+
+<table class="tabla">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Monto</th>
+            <th>Fecha</th>
+            <th>Concepto</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in registros %}
+        <tr>
+            <td>{{ r.id_pago }}</td>
+            <td>{{ "%.2f"|format(r.monto) }}</td>
+            <td>{{ r.fecha }}</td>
+            <td>{{ r.concepto }}</td>
+            <td><a href="/registros/{{ r.id_pago }}/editar">Modificar</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No hay registros para los filtros seleccionados.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p>
+    <a class="boton boton-secundario"
+       href="/registros/exportar.csv?concepto={{ filtros.concepto | urlencode }}&monto_min={{ filtros.monto_min | urlencode }}&monto_max={{ filtros.monto_max | urlencode }}&fecha_desde={{ filtros.fecha_desde | urlencode }}&fecha_hasta={{ filtros.fecha_hasta | urlencode }}">
+        Exportar a CSV
+    </a>
+</p>
+{% endblock %}

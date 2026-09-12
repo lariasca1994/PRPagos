@@ -1,67 +1,62 @@
 # PRPagos
 
-Aplicación de escritorio en Java para la gestión de pagos, con interfaz Swing y
-persistencia en Oracle. Desarrollada durante el curso de Desarrollo de Software
-de la Universidad EAN.
+Aplicación para la gestión de pagos, con persistencia en Oracle Autonomous
+Database. Desarrollada originalmente durante el curso de Desarrollo de
+Software de la Universidad EAN.
+
+El repositorio tiene dos versiones independientes de la misma aplicación,
+que comparten la misma base de datos:
+
+- **[`escritorio/`](./escritorio)** — la aplicación original en Java/Swing,
+  para quien prefiera correrla localmente.
+- **[`web/`](./web)** — versión web en FastAPI (Python), pensada para
+  desplegarse en la nube (OCI).
+
+Ver [`CHANGELOG-migracion.md`](./CHANGELOG-migracion.md) para el detalle de
+la migración de escritorio a web.
 
 ## Funcionalidades
 
 - Registro e inicio de sesión de usuarios
 - Registro, consulta y actualización de pagos
 - Cada usuario ve únicamente sus propios pagos
-- Selector de fechas mediante calendario
+- Exportar pagos a CSV
 - Registro de auditoría de las operaciones
 
-## Estructura
+## Estructura del repositorio
 
 ```
-src/
-├── vista/          Formularios Swing
-├── controlador/    Lógica de la interfaz
-├── modelo/         Entidades del dominio
-└── util/
-    └── ConexionBD  Punto único de conexión a la base
-sql/
-└── script.sql      Tablas, secuencias y procedimientos almacenados
+escritorio/    Aplicación de escritorio en Java (Swing)
+web/           Aplicación web en Python (FastAPI)
+sql/           Tablas, secuencias y procedimientos almacenados (compartido)
+wallet/        Wallet de Oracle Autonomous Database (compartido, no se sube a git)
+docs/          Documentación adicional (compartido)
 ```
 
-## Requisitos
+`sql/`, `wallet/` y `docs/` están en la raíz porque los usan tanto
+`escritorio/` como `web/`: ambas versiones hablan con la misma base de
+datos y usan el mismo Wallet para conectarse.
 
-- JDK 17 o superior
-- Una base de datos Oracle accesible (Oracle Autonomous Database tiene un plan
-  gratuito permanente)
-- Driver JDBC de Oracle (`ojdbc11`)
+## Base de datos
 
-## Configuración de la conexión
+Requiere una base Oracle accesible (Oracle Autonomous Database tiene un
+plan gratuito permanente). Ejecutar `sql/DBPagos.sql` crea las tablas, las
+secuencias, los procedimientos almacenados y la tabla de auditoría —
+solo hace falta hacerlo una vez, sin importar qué versión (escritorio o
+web) se vaya a usar.
 
-La conexión se centraliza en `util/ConexionBD`. Sus parámetros se leen de
-configuración externa, no están escritos en el código.
-
-Si la base es Oracle Autonomous Database, se conecta por TLS mediante un Wallet.
-Hay que descargarlo desde la consola de Oracle Cloud y apuntar la ruta en la
-configuración.
-
-## Preparación de la base
-
-Ejecutar `sql/script.sql` en la base de datos. Crea las tablas, las secuencias,
-los procedimientos almacenados y la tabla de auditoría.
-
-## Ejecución
-
-Desde un IDE: importar el proyecto, agregar `ojdbc11` al classpath y ejecutar la
-clase principal.
-
-Desde consola:
-
-```bash
-javac -d bin -cp lib/ojdbc11.jar $(find src -name "*.java")
-java -cp bin:lib/ojdbc11.jar Main
-```
-
-En Windows, el separador del classpath es `;` en lugar de `:`.
+Si la base es Oracle Autonomous Database, la conexión es por TLS mediante
+un Wallet: hay que descargarlo desde la consola de Oracle Cloud y ubicarlo
+en `wallet/` (o donde indique la configuración de cada versión).
 
 ## Seguridad
 
-Las contraseñas se almacenan cifradas, nunca en texto plano. La
-visibilidad de los pagos está limitada por usuario, y el procedimiento de
-actualización verifica la autorización antes de modificar un registro.
+Las contraseñas se almacenan con hash, nunca en texto plano, y ese hash es
+el mismo en ambas versiones para que una cuenta funcione desde cualquiera
+de las dos interfaces. La visibilidad de los pagos está limitada por
+usuario, y el procedimiento de actualización verifica la autorización
+antes de modificar un registro — esa regla vive en la base de datos, no en
+ninguna de las dos aplicaciones cliente.
+
+Para instrucciones de configuración y ejecución de cada versión, ver el
+`README.md` dentro de `escritorio/` y de `web/`.

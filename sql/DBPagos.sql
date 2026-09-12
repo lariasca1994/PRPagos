@@ -68,7 +68,6 @@ EXCEPTION
 END validar_login;
 /
 
--- Ahora recibe de quien es el pago, y registra la creacion en TBAuditoria.
 CREATE OR REPLACE PROCEDURE insertar_tbpago(
     p_monto IN NUMBER,
     p_fecha IN DATE,
@@ -90,10 +89,6 @@ BEGIN
 END insertar_tbpago;
 /
 
--- CORRECCION de seguridad real: antes cualquiera podia modificar
--- cualquier pago con solo saber su id_pago. Ahora el WHERE exige que el
--- pago le pertenezca al usuario que hace la peticion -- si no coincide,
--- la actualizacion simplemente no afecta ninguna fila.
 CREATE OR REPLACE PROCEDURE actualizar_tbpago(
     p_id_pago IN NUMBER,
     p_nuevo_monto IN NUMBER,
@@ -136,9 +131,6 @@ BEGIN
 END seleccionar_TBPagos;
 /
 
--- Busqueda con filtros opcionales (todos NULL = comportamiento igual a
--- seleccionar_TBPagos, sin filtrar nada). Los filtros se combinan con
--- AND: entre mas se llenen, mas se acota el resultado.
 CREATE OR REPLACE PROCEDURE buscar_tbpagos(
     p_usuario_id IN NUMBER,
     p_fecha_desde IN DATE DEFAULT NULL,
@@ -160,10 +152,3 @@ BEGIN
       AND (p_monto_max IS NULL OR monto <= p_monto_max)
     ORDER BY fecha DESC;
 END buscar_tbpagos;
-/
-
--- Para crear un usuario de prueba manualmente, el password debe ser el
--- hash SHA-256 del texto plano (no lo escribas en texto plano aqui).
--- INSERT INTO TBPLogin (id, usuario, nombre, password)
--- VALUES (tblogin_sequence.NEXTVAL, 'lufea@ean.com', 'Luis Arias', '<pega-aqui-el-hash>');
--- COMMIT;

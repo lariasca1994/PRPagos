@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo registro - PRPagos{% endblock %}
+{% block contenido %}
+<section class="tarjeta-formulario">
+    <h1>Nuevo registro</h1>
+    {% set qs = request.query_params.get('error') %}
+    {% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
+    <form method="post" action="/registros/nuevo">
+        <label for="monto">Monto</label>
+        <input type="text" id="monto" name="monto" required autofocus>
+
+        <label for="fecha">Fecha</label>
+        <input type="date" id="fecha" name="fecha" required>
+
+        <label for="concepto">Concepto</label>
+        <input type="text" id="concepto" name="concepto" required>
+
+        <button type="submit" class="boton">Guardar</button>
+    </form>
+    <p><a href="/registros">Volver a consultar registros</a></p>
+</section>
+{% endblock %}
