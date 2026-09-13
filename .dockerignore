@@ -1,0 +1,12 @@
+# Reduce lo que se sube a Cloud Build al desplegar (gcloud run deploy --source .)
+.git/
+escritorio/
+web/.venv/
+web/.env
+**/__pycache__/
+**/*.pyc
+*.md
+diagnostico.py
+actualizar_procedimientos.py
+install.ps1
+*.json

@@ -1,0 +1,17 @@
+# Este archivo reemplaza la lógica de exclusión basada en .gitignore para
+# "gcloud run deploy --source ." — sin este archivo, gcloud usa .gitignore
+# por defecto, lo cual excluiría wallet/ (correctamente ignorado en git,
+# pero necesario aquí para construir la imagen del contenedor).
+.git/
+.gcloudignore
+escritorio/
+web/.venv/
+web/.env
+**/__pycache__/
+**/*.pyc
+*.md
+web/diagnostico.py
+web/actualizar_procedimientos.py
+install.ps1
+web/*.json
+web/salida.txt

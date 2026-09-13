@@ -89,16 +89,38 @@ def buscar_pagos(
     monto_min: float | None = None,
     monto_max: float | None = None,
 ) -> list[dict]:
+    """Antes llamaba a buscar_tbpagos (que devuelve un SYS_REFCURSOR como
+    parametro de salida) via cur.callproc(...) + cur.var(oracledb.CURSOR).
+    En el contenedor de Cloud Run esa combinacion se quedaba colgada sin
+    error ni timeout de Python (confirmado: insertar/actualizar, que usan
+    solo parametros escalares, funcionaban bien; solo el REF CURSOR se
+    trababa). Se reemplaza por la MISMA consulta y los MISMOS filtros que
+    tiene buscar_tbpagos en sql/DBPagos.sql, pero como SELECT directo -- no
+    se cambia ninguna regla de negocio, solo la forma de traer el
+    resultado."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        v_cursor = cur.var(oracledb.CURSOR)
-        cur.callproc(
-            "buscar_tbpagos",
-            [usuario_id, fecha_desde, fecha_hasta, concepto, monto_min, monto_max, v_cursor],
+        cur.execute(
+            """
+            SELECT id_pago, monto, fecha, concepto
+            FROM TBPagos
+            WHERE usuario_id = :usuario_id
+              AND (:fecha_desde IS NULL OR fecha >= :fecha_desde)
+              AND (:fecha_hasta IS NULL OR fecha <= :fecha_hasta)
+              AND (:concepto IS NULL OR UPPER(concepto) LIKE '%' || UPPER(:concepto) || '%')
+              AND (:monto_min IS NULL OR monto >= :monto_min)
+              AND (:monto_max IS NULL OR monto <= :monto_max)
+            ORDER BY fecha DESC
+            """,
+            usuario_id=usuario_id,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            concepto=concepto,
+            monto_min=monto_min,
+            monto_max=monto_max,
         )
-        cursor_resultado = v_cursor.getvalue()
         pagos = []
-        for id_pago, monto, fecha, concepto_fila in cursor_resultado:
+        for id_pago, monto, fecha, concepto_fila in cur:
             pagos.append({
                 "id_pago": id_pago,
                 "monto": float(monto),
