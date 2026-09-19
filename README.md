@@ -1,5 +1,10 @@
 # PRPagos
 
+![Java](https://img.shields.io/badge/Java-ED8B00?style=flat&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat&logo=springboot&logoColor=white)
+![Oracle](https://img.shields.io/badge/Oracle-F80000?style=flat&logo=oracle&logoColor=white)
+![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=flat&logo=googlecloud&logoColor=white)
+
 Aplicación para la gestión de pagos, con persistencia en Oracle Autonomous
 Database. Desarrollada originalmente durante el curso de Desarrollo de
 Software de la Universidad EAN.
@@ -9,8 +14,8 @@ que comparten la misma base de datos:
 
 - **[`escritorio/`](./escritorio)** — la aplicación original en Java/Swing,
   para quien prefiera correrla localmente.
-- **[`web/`](./web)** — versión web en FastAPI (Python), pensada para
-  desplegarse en la nube (OCI).
+- **[`web/`](./web)** — versión web en Spring Boot (Java 21, Thymeleaf),
+  desplegada en Google Cloud Run.
 
 Ver [`CHANGELOG-migracion.md`](./CHANGELOG-migracion.md) para el detalle de
 la migración de escritorio a web.
@@ -20,6 +25,8 @@ la migración de escritorio a web.
 - Registro e inicio de sesión de usuarios
 - Registro, consulta y actualización de pagos
 - Cada usuario ve únicamente sus propios pagos
+- Rol Administrador de solo lectura: consulta los pagos de todos los
+  usuarios sin poder modificarlos
 - Exportar pagos a CSV
 - Registro de auditoría de las operaciones
 
@@ -27,7 +34,7 @@ la migración de escritorio a web.
 
 ```
 escritorio/    Aplicación de escritorio en Java (Swing)
-web/           Aplicación web en Python (FastAPI)
+web/           Aplicación web en Java (Spring Boot + Thymeleaf)
 sql/           Tablas, secuencias y procedimientos almacenados (compartido)
 wallet/        Wallet de Oracle Autonomous Database (compartido, no se sube a git)
 docs/          Documentación adicional (compartido)
@@ -60,3 +67,13 @@ ninguna de las dos aplicaciones cliente.
 
 Para instrucciones de configuración y ejecución de cada versión, ver el
 `README.md` dentro de `escritorio/` y de `web/`.
+
+## Despliegue
+
+La base de datos corre en Oracle Autonomous Database (OCI, plan Always
+Free). La aplicación web (`web/`) está desplegada en Google Cloud Run.
+
+## Autor
+
+**Luis Felipe Arias Carriazo**
+[GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1)
