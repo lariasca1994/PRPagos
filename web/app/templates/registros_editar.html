@@ -3,6 +3,7 @@
 {% block contenido %}
 <section class="tarjeta-formulario">
     <h1>Modificar registro #{{ registro.id_pago }}</h1>
+    {% if usuario.es_admin %}<p class="texto-suave">Gestionando como admin.</p>{% endif %}
     {% set qs = request.query_params.get('error') %}
     {% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
     <form method="post" action="/registros/{{ registro.id_pago }}/editar">
@@ -19,8 +20,12 @@
     </form>
     <p><a href="/registros">Volver a consultar registros</a></p>
     <p class="nota-permiso">
+        {% if usuario.es_admin %}
+        Como admin podés modificar el registro de cualquier usuario.
+        {% else %}
         Solo puedes modificar registros que te pertenecen; si el registro fue
         creado por otro usuario, el sistema rechaza el cambio.
+        {% endif %}
     </p>
 </section>
 {% endblock %}

@@ -25,8 +25,8 @@ la migración de escritorio a web.
 - Registro e inicio de sesión de usuarios
 - Registro, consulta y actualización de pagos
 - Cada usuario ve únicamente sus propios pagos
-- Rol Administrador de solo lectura: consulta los pagos de todos los
-  usuarios sin poder modificarlos
+- Rol Administrador: consulta, modifica y elimina los pagos de todos los
+  usuarios, y gestiona las cuentas (suspender, reactivar, eliminar)
 - Exportar pagos a CSV
 - Registro de auditoría de las operaciones
 
@@ -38,72 +38,6 @@ web/           Aplicación web en Java (Spring Boot + Thymeleaf)
 sql/           Tablas, secuencias y procedimientos almacenados (compartido)
 wallet/        Wallet de Oracle Autonomous Database (compartido, no se sube a git)
 docs/          Documentación adicional (compartido)
-```
-
-## Arquitectura
-
-```mermaid
-flowchart TB
-
-    subgraph Clientes["👥 Clientes"]
-        Browser["🌐 Navegador Web<br/>Versión principal"]
-        Desktop["🖥️ App de Escritorio<br/>Java Swing (legacy)"]
-    end
-
-    subgraph CloudRun["☁️ Google Cloud Run"]
-        subgraph WebApp["Aplicación Web — FastAPI + Uvicorn"]
-            Main["main.py<br/>Punto de entrada ASGI"]
-            Routers["routers/<br/>auth · registros"]
-            Templates["templates/<br/>Jinja2"]
-            Static["static/<br/>CSS · JS"]
-            Seguridad["seguridad.py<br/>JWT · SHA-256"]
-            Repositorio["repositorio.py<br/>oracledb"]
-            Database["database.py<br/>Pool de conexiones"]
-        end
-    end
-
-    subgraph OCI["🗄️ Oracle Cloud Infrastructure"]
-        Wallet["🔐 Wallet Oracle<br/>TLS / mTLS"]
-        ADB[("Oracle Autonomous Database<br/>TBPLogin · TBPagos · Auditoría")]
-        Procedures["⚙️ Procedimientos almacenados<br/>validar_login · insertar_tbpago<br/>actualizar_tbpago · buscar_tbpagos"]
-    end
-
-    %% ---- Flujo de datos ----
-    Browser -->|HTTPS| Main
-    Desktop -->|JDBC / TLS| ADB
-    Main --> Routers
-    Routers --> Templates
-    Routers --> Static
-    Routers --> Seguridad
-    Seguridad -->|Cookie JWT httponly| Browser
-    Routers --> Repositorio
-    Repositorio --> Database
-    Database -->|python-oracledb| Wallet
-    Wallet -->|TCPS| ADB
-    ADB --- Procedures
-    Repositorio -.->|callproc| Procedures
-
-    %% ---- Colores de marca (Brand Colors) ----
-    classDef fastapi fill:#009688,stroke:#004D40,stroke-width:2px,color:#FFFFFF,rx:12,ry:12;
-    classDef python fill:#3572A5,stroke:#1A3A5C,stroke-width:2px,color:#FFFFFF,rx:12,ry:12;
-    classDef oracle fill:#F80000,stroke:#7F0000,stroke-width:2px,color:#FFFFFF;
-    classDef gcp fill:#4285F4,stroke:#1A4B9C,stroke-width:2px,color:#FFFFFF,rx:12,ry:12;
-    classDef java fill:#ED8B00,stroke:#B36B00,stroke-width:2px,color:#FFFFFF,rx:12,ry:12;
-    classDef security fill:#333333,stroke:#000000,stroke-width:2px,color:#FFFFFF,rx:10,ry:10;
-    classDef neutral fill:#F5F5F5,stroke:#CCCCCC,stroke-width:1px,color:#333333,rx:10,ry:10;
-
-    class Browser neutral;
-    class Desktop java;
-    class Main,Routers,Templates,Static fastapi;
-    class Seguridad security;
-    class Repositorio,Database python;
-    class Wallet,ADB,Procedures oracle;
-
-    %% ---- Estilos de subgráficos ----
-    style Clientes fill:#FAFAFA,stroke:#DDDDDD,stroke-width:1px,rx:14,ry:14;
-    style CloudRun fill:#E1F5FE,stroke:#4285F4,stroke-width:2px,stroke-dasharray:6 4,rx:16,ry:16;
-    style WebApp fill:#E0F2F1,stroke:#009688,stroke-width:1px,rx:10,ry:10;
-    style OCI fill:#FFF0F0,stroke:#F80000,stroke-width:2px,stroke-dasharray:6 4,rx:16,ry:16;
 ```
 
 `sql/`, `wallet/` y `docs/` están en la raíz porque los usan tanto

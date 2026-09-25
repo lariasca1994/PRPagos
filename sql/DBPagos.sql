@@ -11,12 +11,35 @@
 --   DROP SEQUENCE tbauditoria_sequence;
 -- antes de volver a correr este script completo, o los CREATE fallaran
 -- porque los objetos ya existen.
+--
+-- SI YA TENES UNA BASE EN PRODUCCION CON DATOS QUE NO QUERES PERDER (el
+-- caso normal a partir de ahora), NO corras el DROP/CREATE de arriba.
+-- Corre en cambio, una sola vez, este bloque aditivo -- no borra ni toca
+-- ningun dato existente, solo agrega las 2 columnas nuevas que necesita el
+-- rol de administrador (las filas ya existentes quedan como
+-- rol='usuario', activo=1, por el DEFAULT):
+--
+--   ALTER TABLE TBPLogin ADD (
+--       rol VARCHAR2(20) DEFAULT 'usuario' NOT NULL,
+--       activo NUMBER(1) DEFAULT 1 NOT NULL
+--   );
+--
+-- Despues corre tambien el CREATE OR REPLACE PROCEDURE validar_login de
+-- mas abajo (podes pegar solo ese bloque) -- ese si conviene reaplicarlo,
+-- porque ahora exige activo = 1 para dejar entrar.
 
 CREATE TABLE TBPLogin (
     id NUMBER PRIMARY KEY,
     usuario VARCHAR2(100) UNIQUE,
     nombre VARCHAR2(100),
-    password VARCHAR2(100)
+    password VARCHAR2(100),
+    -- Rol y estado de la cuenta: solo los usa la app web (routers/usuarios.py
+    -- y dependencias.py) para el panel de administracion -- la version de
+    -- escritorio no las lee ni las escribe, y validar_login() (mas abajo)
+    -- no cambia de firma para no romper ConexionBD.java, que sigue
+    -- llamandolo con los mismos 4 parametros de siempre.
+    rol VARCHAR2(20) DEFAULT 'usuario' NOT NULL,
+    activo NUMBER(1) DEFAULT 1 NOT NULL
 );
 
 -- CORRECCION: TBPagos ahora sabe de quien es cada pago (usuario_id).
@@ -48,6 +71,12 @@ CREATE SEQUENCE tbauditoria_sequence START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE
 -- Compara el hash de la contrasena recibida contra el hash guardado, y
 -- ahora tambien devuelve el id del usuario (antes solo el nombre) --
 -- hace falta ese id para filtrar sus pagos y para la auditoria.
+--
+-- Firma SIN CAMBIOS (misma cantidad y tipo de parametros que siempre) para
+-- no romper la llamada que hace ConexionBD.java en la version de
+-- escritorio -- lo unico nuevo es "AND activo = 1" en el WHERE: una
+-- cuenta suspendida por el admin ya no puede iniciar sesion desde
+-- NINGUNA de las dos interfaces, sin tocar el contrato de la funcion.
 CREATE OR REPLACE PROCEDURE validar_login(
     p_usuario IN VARCHAR2,
     p_contrasena_hash IN VARCHAR2,
@@ -60,7 +89,8 @@ BEGIN
     INTO p_nombre, p_usuario_id
     FROM TBPLogin
     WHERE usuario = p_usuario
-      AND password = p_contrasena_hash;
+      AND password = p_contrasena_hash
+      AND activo = 1;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         p_nombre := NULL;
