@@ -3,6 +3,7 @@
 {% block contenido %}
 <div class="cabecera-seccion">
     <h1>Consultar registros</h1>
+    {% if usuario.es_admin %}<span class="texto-suave">Viendo los registros de todos los usuarios</span>{% endif %}
     <a class="boton" href="/registros/nuevo">Nuevo registro</a>
 </div>
 
@@ -39,6 +40,7 @@
     <thead>
         <tr>
             <th>ID</th>
+            {% if usuario.es_admin %}<th>Usuario</th>{% endif %}
             <th>Monto</th>
             <th>Fecha</th>
             <th>Concepto</th>
@@ -49,13 +51,21 @@
         {% for r in registros %}
         <tr>
             <td>{{ r.id_pago }}</td>
+            {% if usuario.es_admin %}<td>{{ r.nombre }} ({{ r.usuario }})</td>{% endif %}
             <td>{{ "%.2f"|format(r.monto) }}</td>
             <td>{{ r.fecha }}</td>
             <td>{{ r.concepto }}</td>
-            <td><a href="/registros/{{ r.id_pago }}/editar">Modificar</a></td>
+            <td class="acciones">
+                <a href="/registros/{{ r.id_pago }}/editar">Modificar</a>
+                {% if usuario.es_admin %}
+                <form method="post" action="/registros/{{ r.id_pago }}/eliminar" class="en-linea">
+                    <button type="submit" class="enlace-boton">Eliminar</button>
+                </form>
+                {% endif %}
+            </td>
         </tr>
         {% else %}
-        <tr><td colspan="5">No hay registros para los filtros seleccionados.</td></tr>
+        <tr><td colspan="{{ 6 if usuario.es_admin else 5 }}">No hay registros para los filtros seleccionados.</td></tr>
         {% endfor %}
     </tbody>
 </table>

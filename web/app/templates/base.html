@@ -13,6 +13,7 @@
             {% if usuario %}
                 <a href="/registros">Consultar registros</a>
                 <a href="/registros/nuevo">Nuevo registro</a>
+                {% if usuario.es_admin %}<a href="/admin/usuarios">Usuarios (admin)</a>{% endif %}
                 <a href="/logout">Salir ({{ usuario.nombre }})</a>
             {% else %}
                 <a href="/login">Ingresar</a>

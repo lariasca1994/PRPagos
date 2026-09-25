@@ -17,7 +17,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import repositorio
-from ..dependencias import UsuarioActual, exigir_login
+from ..dependencias import UsuarioActual, exigir_admin, exigir_login
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -66,13 +66,20 @@ def listar_registros(
     fecha_hasta: str | None = None,
 ):
     filtros = _parsear_filtros(concepto, monto_min, monto_max, fecha_desde, fecha_hasta)
-    registros = repositorio.buscar_pagos(usuario.usuario_id, **{
+    kwargs_filtros = {
         "fecha_desde": filtros["fecha_desde"],
         "fecha_hasta": filtros["fecha_hasta"],
         "concepto": filtros["concepto"],
         "monto_min": filtros["monto_min"],
         "monto_max": filtros["monto_max"],
-    })
+    }
+    # El admin ve los pagos de TODOS los usuarios (con el dueño de cada uno
+    # visible en la tabla); un usuario normal solo ve los suyos, igual que
+    # siempre.
+    if usuario.es_admin:
+        registros = repositorio.buscar_todos_los_pagos(**kwargs_filtros)
+    else:
+        registros = repositorio.buscar_pagos(usuario.usuario_id, **kwargs_filtros)
     total = sum(p["monto"] for p in registros)
     return templates.TemplateResponse(
         "registros_lista.html",
@@ -102,19 +109,28 @@ def exportar_csv(
     fecha_hasta: str | None = None,
 ):
     filtros = _parsear_filtros(concepto, monto_min, monto_max, fecha_desde, fecha_hasta)
-    registros = repositorio.buscar_pagos(usuario.usuario_id, **{
+    kwargs_filtros = {
         "fecha_desde": filtros["fecha_desde"],
         "fecha_hasta": filtros["fecha_hasta"],
         "concepto": filtros["concepto"],
         "monto_min": filtros["monto_min"],
         "monto_max": filtros["monto_max"],
-    })
+    }
+    if usuario.es_admin:
+        registros = repositorio.buscar_todos_los_pagos(**kwargs_filtros)
+    else:
+        registros = repositorio.buscar_pagos(usuario.usuario_id, **kwargs_filtros)
 
     buffer = io.StringIO()
     escritor = csv.writer(buffer)
-    escritor.writerow(["ID", "Monto", "Fecha", "Concepto"])
-    for p in registros:
-        escritor.writerow([p["id_pago"], p["monto"], p["fecha"], p["concepto"]])
+    if usuario.es_admin:
+        escritor.writerow(["ID", "Usuario", "Nombre", "Monto", "Fecha", "Concepto"])
+        for p in registros:
+            escritor.writerow([p["id_pago"], p["usuario"], p["nombre"], p["monto"], p["fecha"], p["concepto"]])
+    else:
+        escritor.writerow(["ID", "Monto", "Fecha", "Concepto"])
+        for p in registros:
+            escritor.writerow([p["id_pago"], p["monto"], p["fecha"], p["concepto"]])
     buffer.seek(0)
 
     return StreamingResponse(
@@ -153,7 +169,13 @@ def crear_registro(
 def form_editar_registro(
     id_pago: int, request: Request, usuario: UsuarioActual = Depends(exigir_login)
 ):
-    registro = repositorio.obtener_pago_de_usuario(id_pago, usuario.usuario_id)
+    # El admin puede abrir el formulario de editar el pago de cualquiera;
+    # un usuario normal solo el suyo (obtener_pago_de_usuario ya filtra
+    # por dueño).
+    if usuario.es_admin:
+        registro = repositorio.obtener_pago_por_id(id_pago)
+    else:
+        registro = repositorio.obtener_pago_de_usuario(id_pago, usuario.usuario_id)
     if registro is None:
         return RedirectResponse(url="/registros", status_code=303)
     return templates.TemplateResponse(
@@ -176,15 +198,31 @@ def procesar_editar_registro(
             url=f"/registros/{id_pago}/editar?error={quote('Monto inválido')}", status_code=303
         )
 
-    # Misma verificacion que actualizar_tbpago: si el registro no es del
-    # usuario logueado, el UPDATE no afecta filas -- no es un error de
-    # SQL, es la forma en que el procedimiento impide modificar registros
-    # ajenos.
-    filas = repositorio.actualizar_pago(
-        id_pago, monto_val, date.fromisoformat(fecha), concepto, usuario.usuario_id
-    )
+    if usuario.es_admin:
+        # Sin filtro de dueño -- ver actualizar_pago_admin en repositorio.py.
+        exito = repositorio.actualizar_pago_admin(
+            id_pago, monto_val, date.fromisoformat(fecha), concepto, usuario.usuario_id
+        )
+        filas = 1 if exito else 0
+    else:
+        # Misma verificacion que actualizar_tbpago: si el registro no es del
+        # usuario logueado, el UPDATE no afecta filas -- no es un error de
+        # SQL, es la forma en que el procedimiento impide modificar registros
+        # ajenos.
+        filas = repositorio.actualizar_pago(
+            id_pago, monto_val, date.fromisoformat(fecha), concepto, usuario.usuario_id
+        )
     if filas == 0:
         return RedirectResponse(
             url=f"/registros?error={quote('No autorizado')}", status_code=303
         )
+    return RedirectResponse(url="/registros", status_code=303)
+
+
+@router.post("/registros/{id_pago}/eliminar")
+def eliminar_registro(id_pago: int, usuario: UsuarioActual = Depends(exigir_admin)):
+    # Eliminar un pago es exclusivo del admin -- no existía ni siquiera en
+    # la versión de escritorio. Un usuario normal ni ve este botón (ver
+    # registros_lista.html) ni puede llamar a esta ruta (exigir_admin).
+    repositorio.eliminar_pago(id_pago, usuario.usuario_id)
     return RedirectResponse(url="/registros", status_code=303)

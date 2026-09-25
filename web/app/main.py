@@ -11,8 +11,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .config import settings
-from .dependencias import RedireccionLogin, obtener_usuario_opcional, respuesta_redireccion_login
-from .routers import auth, registros
+from .dependencias import (
+    RedireccionLogin,
+    RedireccionSinPermiso,
+    obtener_usuario_opcional,
+    respuesta_redireccion_login,
+    respuesta_redireccion_sin_permiso,
+)
+from .routers import auth, registros, usuarios
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 logger = logging.getLogger("prpagos")
@@ -25,6 +31,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
 app.include_router(registros.router)
+app.include_router(usuarios.router)
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -36,6 +43,13 @@ def manejar_redireccion_login(request: Request, exc: RedireccionLogin):
     # Depends() devuelva una Response en rutas que tambien renderizan HTML,
     # asi que se resuelve aca con un exception handler.
     return respuesta_redireccion_login()
+
+
+@app.exception_handler(RedireccionSinPermiso)
+def manejar_redireccion_sin_permiso(request: Request, exc: RedireccionSinPermiso):
+    # exigir_admin() lanza esta excepcion cuando SI hay sesion valida pero
+    # el usuario no es admin -- mismo mecanismo que RedireccionLogin.
+    return respuesta_redireccion_sin_permiso()
 
 
 @app.exception_handler(oracledb.Error)
