@@ -110,7 +110,7 @@ Para instrucciones de configuración y ejecución de cada versión, ver el
    ```bash
    cd web
    python -m venv .venv
-   .venv\Scriptsctivate          # Windows  (Linux/Mac: source .venv/bin/activate)
+   .venv\Scripts\activate          # Windows  (Linux/Mac: source .venv/bin/activate)
    pip install -r requirements.txt
    cp .env.example .env            # contraseña de la base y JWT_SECRET
    uvicorn app.main:app --reload
