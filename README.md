@@ -80,8 +80,8 @@ datos y usan el mismo Wallet para conectarse.
 
 ## Base de datos
 
-Requiere una base Oracle accesible (Oracle Autonomous Database tiene un
-plan gratuito permanente). Ejecutar `sql/DBPagos.sql` crea las tablas, las
+Requiere una base Oracle accesible (por ejemplo, Oracle Autonomous
+Database). Ejecutar `sql/DBPagos.sql` crea las tablas, las
 secuencias, los procedimientos almacenados y la tabla de auditoría —
 solo hace falta hacerlo una vez, sin importar qué versión (escritorio o
 web) se vaya a usar.
@@ -123,8 +123,7 @@ Para instrucciones de configuración y ejecución de cada versión, ver el
 
 ## Despliegue
 
-La base de datos corre en Oracle Autonomous Database (OCI, plan Always
-Free). La aplicación web (`web/`) está desplegada en Google Cloud Run.
+La base de datos corre en Oracle Autonomous Database (OCI). La aplicación web (`web/`) está desplegada en Google Cloud Run.
 
 ## Autor
 
