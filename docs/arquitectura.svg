@@ -7,11 +7,10 @@
 <rect width="1480" height="760" rx="26" fill="url(#bg)"/>
 <text x="36" y="46" font-size="21" font-weight="800" fill="#F8FAFC">PRPagos</text>
 <text x="36" y="70" font-size="12.5" fill="#94A3B8">Gestión de pagos con dos clientes —web y escritorio— sobre la misma base Oracle y las mismas reglas de negocio</text>
-<rect x="245" y="130" width="470" height="250" rx="26" fill="#4285F4" fill-opacity=".07" stroke="#4285F4" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="7 6"/><rect x="263" y="118" width="254.7" height="24" rx="12" fill="#4285F4"/><text x="390.4" y="134" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Google Cloud Run · southamerica-east1</text>
+<rect x="245" y="130" width="470" height="250" rx="26" fill="#4285F4" fill-opacity=".07" stroke="#4285F4" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="7 6"/><rect x="263" y="118" width="134.4" height="24" rx="12" fill="#4285F4"/><text x="330.2" y="134" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Google Cloud Run</text>
 <text x="697" y="366" text-anchor="end" font-size="10.5" fill="#4285F4" fill-opacity=".9">contenedor Docker</text>
 <rect x="245" y="450" width="470" height="190" rx="26" fill="#475569" fill-opacity=".07" stroke="#475569" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="7 6"/><rect x="263" y="438" width="99.9" height="24" rx="12" fill="#475569"/><text x="313.0" y="454" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Equipo local</text>
 <rect x="860" y="130" width="560" height="510" rx="26" fill="#C74634" fill-opacity=".07" stroke="#C74634" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="7 6"/><rect x="878" y="118" width="236.5" height="24" rx="12" fill="#C74634"/><text x="996.2" y="134" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Oracle Cloud · Autonomous Database</text>
-<text x="1402" y="626" text-anchor="end" font-size="10.5" fill="#C74634" fill-opacity=".9">Always Free</text>
 <path d="M142.0,190.0 C240.2,190.0 276.8,210.0 375.0,210.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a7C8BA1)"/>
 <circle r="2.6" fill="#7C8BA1"><animateMotion dur="3.0s" repeatCount="indefinite" path="M142.0,190.0 C240.2,190.0 276.8,210.0 375.0,210.0"/></circle>
 <path d="M480.0,239.0 C480.0,264.0 480.0,266.0 480.0,291.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a7C8BA1)"/>

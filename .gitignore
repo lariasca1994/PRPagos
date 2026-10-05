@@ -3,6 +3,9 @@ config.properties
 config.properties.*
 .env
 .env.*
+# Las plantillas de ejemplo SI se suben (solo tienen valores de relleno)
+!config.properties.example
+!.env.example
 
 # Oracle Autonomous Database: Wallet, certificados y archivos sensibles
 wallet/

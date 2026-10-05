@@ -1,0 +1,12 @@
+# Copia este archivo como config.properties (sin el .example) y completa
+# tus datos reales. config.properties NUNCA se sube a git (ver .gitignore).
+
+# Ruta a la carpeta donde descomprimiste el Wallet de Oracle Cloud
+wallet.path=../wallet
+
+# Alias de conexion tomado de wallet/tnsnames.ora (usa el que termina en _tp)
+db.alias=TU_BASE_tp
+
+# Usuario y password de tu Autonomous Database (el que creaste al provisionarla)
+db.usuario=ADMIN
+db.password=TU_PASSWORD_AQUI
