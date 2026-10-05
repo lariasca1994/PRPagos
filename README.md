@@ -30,7 +30,7 @@ la migración de escritorio a web.
 ### En pocas palabras
 
 - **Qué hace:** permite registrar, consultar, modificar y exportar pagos. Cada
-  persona ve solo sus propios pagos; el administrador ve y gestiona todos.
+  persona ve solo sus propios pagos.
 - **Qué lo hace interesante:** hay dos aplicaciones (web y escritorio) que usan
   **la misma base de datos y las mismas reglas**, porque la autorización y la
   auditoría viven en procedimientos almacenados de Oracle, no en el código de
@@ -58,10 +58,6 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 - Filtros por concepto, monto y rango de fechas
 - Exportar pagos a CSV
 - Cada usuario ve únicamente sus propios pagos
-
-**Administración**
-- Rol Administrador: consulta, modifica y elimina los pagos de todos los
-  usuarios, y gestiona las cuentas (suspender, reactivar, eliminar)
 
 **Auditoría**
 - Registro de auditoría de las operaciones, hecho por la base de datos
