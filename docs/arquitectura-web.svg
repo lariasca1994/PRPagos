@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 680" width="1480" height="680" font-family="Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" role="img" aria-label="Arquitectura de PRPagos Web">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#16233F"/><stop offset="1" stop-color="#0A1020"/></radialGradient>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/></filter>
+  <marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7C8BA1"/></marker>
+</defs>
+<rect width="1480" height="680" rx="26" fill="url(#bg)"/>
+<text x="36" y="46" font-size="21" font-weight="800" fill="#F8FAFC">PRPagos Web</text>
+<text x="36" y="70" font-size="12.5" fill="#94A3B8">FastAPI en Google Cloud Run; las reglas de negocio viven en los procedimientos almacenados de Oracle</text>
+<rect x="245" y="130" width="580" height="470" rx="26" fill="#4285F4" fill-opacity=".07" stroke="#4285F4" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="7 6"/><rect x="263" y="118" width="134.4" height="24" rx="12" fill="#4285F4"/><text x="330.2" y="134" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Google Cloud Run</text>
+<text x="807" y="586" text-anchor="end" font-size="10.5" fill="#4285F4" fill-opacity=".9">contenedor Docker (Dockerfile en la raíz)</text>
+<rect x="900" y="130" width="520" height="470" rx="26" fill="#C74634" fill-opacity=".07" stroke="#C74634" stroke-opacity=".6" stroke-width="1.6" stroke-dasharray="7 6"/><rect x="918" y="118" width="258.6" height="24" rx="12" fill="#C74634"/><text x="1047.3" y="134" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Oracle Cloud · Autonomous Database</text>
+<path d="M142.0,229.0 C200.0,229.0 220.0,229.0 275.0,229.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a)"/>
+<circle r="2.6" fill="#7C8BA1"><animateMotion dur="3.0s" repeatCount="indefinite" path="M142.0,229.0 C200.0,229.0 220.0,229.0 275.0,229.0"/></circle>
+<path d="M395.0,258.0 C395.0,290.0 395.0,318.0 395.0,350.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a)"/>
+<circle r="2.6" fill="#7C8BA1"><animateMotion dur="2.5s" repeatCount="indefinite" path="M395.0,258.0 C395.0,290.0 395.0,318.0 395.0,350.0"/></circle>
+<path d="M515.0,229.0 C530.0,229.0 540.0,229.0 555.0,229.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a)"/>
+<circle r="2.6" fill="#7C8BA1"><animateMotion dur="2.0s" repeatCount="indefinite" path="M515.0,229.0 C530.0,229.0 540.0,229.0 555.0,229.0"/></circle>
+<path d="M675.0,350.0 C675.0,320.0 675.0,290.0 675.0,258.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" stroke-dasharray="6 6" marker-end="url(#a)"/>
+<path d="M795.0,229.0 C880.0,229.0 940.0,229.0 1020.0,229.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a)"/>
+<circle r="2.6" fill="#7C8BA1"><animateMotion dur="3.2s" repeatCount="indefinite" path="M795.0,229.0 C880.0,229.0 940.0,229.0 1020.0,229.0"/></circle>
+<path d="M1170.0,258.0 C1170.0,300.0 1170.0,330.0 1170.0,371.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" marker-end="url(#a)"/>
+<circle r="2.6" fill="#7C8BA1"><animateMotion dur="2.7s" repeatCount="indefinite" path="M1170.0,258.0 C1170.0,300.0 1170.0,330.0 1170.0,371.0"/></circle>
+<path d="M142.0,470.0 C230.0,470.0 210.0,229.0 275.0,229.0" fill="none" stroke="#7C8BA1" stroke-width="2.2" stroke-opacity=".9" stroke-dasharray="6 6" marker-end="url(#a)"/>
+<g filter="url(#sh)"><circle cx="110" cy="229" r="32" fill="#64748B" stroke="#E2E8F0" stroke-opacity=".35" stroke-width="2"/><g transform="translate(110,229) scale(1.15)"><circle cx="0" cy="-5" r="4.6" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-8.5,9 c0,-6 3.8,-8.5 8.5,-8.5 s8.5,2.5 8.5,8.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g><text x="110" y="279" text-anchor="middle" font-size="13" font-weight="700" fill="#F1F5F9">Usuario</text><text x="110" y="295" text-anchor="middle" font-size="11" fill="#94A3B8">navegador</text>
+<g filter="url(#sh)"><circle cx="110" cy="470" r="32" fill="#2EAD33" stroke="#E2E8F0" stroke-opacity=".35" stroke-width="2"/><g transform="translate(110,470) scale(1.15)"><circle r="9" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-4.2,0.2 l2.8,3 l5.6,-6.2" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g><text x="110" y="520" text-anchor="middle" font-size="13" font-weight="700" fill="#F1F5F9">qa-evidencia</text><text x="110" y="536" text-anchor="middle" font-size="11" fill="#94A3B8">AWS · E2E</text>
+<g filter="url(#sh)"><rect x="275" y="200" width="240" height="58" rx="18" fill="#162033" stroke="#009688" stroke-width="2"/><circle cx="304" cy="229" r="17" fill="#009688"/><g transform="translate(304,229)"><rect x="-10" y="-8" width="20" height="16" rx="3" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-10,-3.2 h20" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="-6.8" cy="-5.6" r=".9" fill="#FFFFFF"/><circle cx="-4" cy="-5.6" r=".9" fill="#FFFFFF"/></g></g>
+<text x="331" y="227" font-size="13.5" font-weight="700" fill="#F1F5F9">PRPagos Web</text>
+<text x="331" y="244" font-size="11" fill="#94A3B8">FastAPI · Jinja2 · app/routers</text>
+<g filter="url(#sh)"><rect x="275" y="350" width="240" height="58" rx="18" fill="#162033" stroke="#D63AFF" stroke-width="2"/><circle cx="304" cy="379" r="17" fill="#D63AFF"/><g transform="translate(304,379)"><rect x="-7.5" y="-2" width="15" height="11" rx="2.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-4.5,-2 v-3.5 a4.5,4.5 0 0 1 9,0 v3.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<text x="331" y="377" font-size="13.5" font-weight="700" fill="#F1F5F9">Sesión</text>
+<text x="331" y="394" font-size="11" fill="#94A3B8">JWT en cookie httponly</text>
+<g filter="url(#sh)"><rect x="555" y="200" width="240" height="58" rx="18" fill="#162033" stroke="#3776AB" stroke-width="2"/><circle cx="584" cy="229" r="17" fill="#3776AB"/><g transform="translate(584,229)"><path d="M-3.5,-7 L-10,0 L-3.5,7 M3.5,-7 L10,0 L3.5,7" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<text x="611" y="227" font-size="13.5" font-weight="700" fill="#F1F5F9">repositorio.py</text>
+<text x="611" y="244" font-size="11" fill="#94A3B8">python-oracledb (modo thin)</text>
+<g filter="url(#sh)"><rect x="555" y="350" width="240" height="58" rx="18" fill="#162033" stroke="#C74634" stroke-width="2"/><circle cx="584" cy="379" r="17" fill="#C74634"/><g transform="translate(584,379)"><rect x="-7.5" y="-2" width="15" height="11" rx="2.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-4.5,-2 v-3.5 a4.5,4.5 0 0 1 9,0 v3.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<text x="611" y="377" font-size="13.5" font-weight="700" fill="#F1F5F9">wallet/</text>
+<text x="611" y="394" font-size="11" fill="#94A3B8">copiado a la imagen por el Dockerfile</text>
+<g filter="url(#sh)"><rect x="1020" y="200" width="300" height="58" rx="18" fill="#162033" stroke="#F80000" stroke-width="2"/><circle cx="1049" cy="229" r="17" fill="#F80000"/><g transform="translate(1049,229)"><path d="M-4,-9 v5 M4,-9 v5 M-7.5,-4 h15 v3 a7.5,7.5 0 0 1 -15,0 z M0,6.5 v3.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+<text x="1076" y="227" font-size="13.5" font-weight="700" fill="#F1F5F9">Procedimientos almacenados</text>
+<text x="1076" y="244" font-size="11" fill="#94A3B8">autorización · auditoría</text>
+<g filter="url(#sh)"><path d="M1040,380 v54 a130.0,9 0 0 0 260,0 v-54" fill="#162033" stroke="#F80000" stroke-width="2"/><ellipse cx="1170.0" cy="380" rx="130.0" ry="9" fill="#F80000" stroke="#F80000" stroke-width="2"/></g><g transform="translate(1064,413)"><ellipse cx="0" cy="-6.5" rx="8.5" ry="3" fill="none" stroke="#F80000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-8.5,-6.5 v13 c0,1.7 3.8,3 8.5,3 s8.5,-1.3 8.5,-3 v-13 M-8.5,0 c0,1.7 3.8,3 8.5,3 s8.5,-1.3 8.5,-3" fill="none" stroke="#F80000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g><text x="1084" y="412" font-size="13.5" font-weight="700" fill="#F1F5F9">Oracle DB</text><text x="1084" y="428" font-size="11" fill="#94A3B8">pagos · usuarios · auditoría</text>
+<rect x="184.2" y="219.0" width="47.5" height="20" rx="10" fill="#0F172A" stroke="#7C8BA1" stroke-opacity=".7"/><text x="208.0" y="232.8" text-anchor="middle" font-size="10.5" font-weight="600" fill="#E2E8F0">HTTPS</text>
+<rect x="854.9" y="219.0" width="104.2" height="20" rx="10" fill="#0F172A" stroke="#7C8BA1" stroke-opacity=".7"/><text x="907.0" y="232.8" text-anchor="middle" font-size="10.5" font-weight="600" fill="#E2E8F0">TLS con Wallet</text>
+<rect x="314.6" y="294.0" width="160.9" height="20" rx="10" fill="#0F172A" stroke="#7C8BA1" stroke-opacity=".7"/><text x="395.0" y="307.8" text-anchor="middle" font-size="10.5" font-weight="600" fill="#E2E8F0">valida en cada petición</text>
+<rect x="616.6" y="294.0" width="116.8" height="20" rx="10" fill="#0F172A" stroke="#7C8BA1" stroke-opacity=".7"/><text x="675.0" y="307.8" text-anchor="middle" font-size="10.5" font-weight="600" fill="#E2E8F0">certificados TLS</text>
+<rect x="147.9" y="340.0" width="104.2" height="20" rx="10" fill="#0F172A" stroke="#7C8BA1" stroke-opacity=".7"/><text x="200.0" y="353.8" text-anchor="middle" font-size="10.5" font-weight="600" fill="#E2E8F0">2 veces al día</text>
+<path d="M36,650 h30" stroke="#7C8BA1" stroke-width="2.2"/><circle cx="51" cy="650" r="2.6" fill="#7C8BA1"/>
+<text x="74" y="654" font-size="11.5" fill="#94A3B8">Flujo de datos / petición</text>
+<path d="M257.18,650 h30" stroke="#7C8BA1" stroke-width="2.2" stroke-dasharray="6 5"/>
+<text x="295.18" y="654" font-size="11.5" fill="#94A3B8">Despliegue, tarea programada o proceso asíncrono</text>
+<rect x="618.55" y="641" width="30" height="18" rx="9" fill="#64748B" fill-opacity=".15" stroke="#64748B" stroke-dasharray="4 3"/>
+<text x="656.55" y="654" font-size="11.5" fill="#94A3B8">Plataforma o entorno donde corre</text>
+</svg>
