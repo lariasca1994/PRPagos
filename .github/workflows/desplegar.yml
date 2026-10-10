@@ -53,7 +53,9 @@ jobs:
 
       - name: Traer la billetera de Oracle
         run: |
-          gcloud secrets versions access latest --secret prpagos-wallet --project "$PROYECTO" > wallet.tgz
+          # --out-file y no "> wallet.tgz": por la salida estándar gcloud
+          # altera los bytes y el .tgz deja de ser un gzip válido.
+          gcloud secrets versions access latest --secret prpagos-wallet --project "$PROYECTO" --out-file wallet.tgz
           tar -xzf wallet.tgz
           rm wallet.tgz
           ls wallet
