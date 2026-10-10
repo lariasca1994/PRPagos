@@ -39,17 +39,19 @@ env:
 
 jobs:
   desplegar:
-    runs-on: ubuntu-latest
+    # Versión fija (no ubuntu-latest) para que un cambio de imagen del runner
+    # no altere el despliegue sin aviso.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@v3
 
       - name: Traer la billetera de Oracle
         run: |
