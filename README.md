@@ -34,7 +34,8 @@ El repositorio tiene dos versiones independientes de la misma aplicación,
 que comparten la misma base de datos:
 
 - **[`web/`](./web)** — versión web en Python (FastAPI + Jinja2),
-  desplegada en Google Cloud Run.
+  desplegada en Google Cloud Run. Es además una **PWA**: se instala como app
+  en Android, iPhone/iPad, Windows, macOS y Linux desde el navegador.
 - **[`escritorio/`](./escritorio)** — la aplicación original en Java/Swing,
   para quien prefiera correrla localmente.
 
@@ -76,6 +77,10 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 **Auditoría**
 - Registro de auditoría de las operaciones, hecho por la base de datos
 
+**App instalable (PWA)**
+- La versión web se instala como app en cualquier plataforma desde el
+  navegador, con ícono y ventana propios
+
 ### Stack
 
 | Capa | Web | Escritorio |
@@ -88,6 +93,7 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 | Sesiones | JWT en cookie httponly | Sesión en memoria de la aplicación |
 | Contraseñas | SHA-256 | SHA-256 |
 | Despliegue | Docker en Google Cloud Run | Equipo local |
+| App instalable | PWA (Android, iOS, Windows, macOS, Linux) | — |
 
 ---
 
@@ -157,6 +163,7 @@ Las dos versiones comparten las mismas cuentas y los mismos datos: lo que regist
 una aparece en la otra. El paso a paso detallado está en cada carpeta:
 
 - **Versión web:** [`web/README.md`](./web/README.md#5-cómo-usar-la-plataforma)
+  (incluye cómo [instalarla como app](./web/README.md#56-instalar-la-app-pwa))
 - **Versión de escritorio:** [`escritorio/README.md`](./escritorio/README.md#5-cómo-usar-la-plataforma)
 
 Resumen del flujo, igual en ambas:

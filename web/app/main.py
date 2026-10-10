@@ -95,6 +95,24 @@ def favicon():
     return FileResponse("app/static/iconos/favicon.ico")
 
 
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifiesto():
+    # Manifiesto de la PWA: nombre, iconos y modo de pantalla al instalarla.
+    return FileResponse("app/static/manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    # Se sirve desde la raiz (no desde /static) para que su alcance cubra
+    # toda la app; no-cache para que el navegador tome siempre la ultima
+    # version desplegada.
+    return FileResponse(
+        "app/static/sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
 @app.get("/")
 def raiz(request: Request):
     # La portada de acceso es la primera pantalla, igual que en el resto

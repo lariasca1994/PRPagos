@@ -8,6 +8,9 @@
     <link rel="icon" href="/favicon.ico" sizes="48x48">
     <link rel="apple-touch-icon" href="/static/iconos/apple-touch-icon.png">
     <meta name="theme-color" content="#C74634">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="PRPagos">
     <script>
         // El tema se aplica antes de pintar para que no destelle el claro
         // al cargar en modo oscuro; tema.js maneja luego el botón.
@@ -47,5 +50,13 @@
     </footer>
     {% endblock %}
     <script src="/static/tema.js" defer></script>
+    <script>
+        // PWA: registra el service worker que hace instalable la app.
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("/sw.js").catch(function () {});
+            });
+        }
+    </script>
 </body>
 </html>

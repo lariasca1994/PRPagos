@@ -32,6 +32,10 @@ almacenados que la versión de escritorio ([`../escritorio`](../escritorio)):
 no es una reescritura de las reglas de negocio, es la misma aplicación
 expuesta como páginas web en vez de ventanas Swing.
 
+Además es una **PWA** (aplicación web progresiva): se puede instalar como app
+en Android, iPhone/iPad, Windows, macOS y Linux desde el navegador, con su
+propio ícono y ventana, sin pasar por ninguna tienda de aplicaciones.
+
 Ver el [`README.md`](../README.md) de la raíz para la descripción general del
 proyecto y [`CHANGELOG-migracion.md`](../CHANGELOG-migracion.md) para el
 detalle de la migración.
@@ -39,7 +43,8 @@ detalle de la migración.
 ### En pocas palabras
 
 - **Qué hace:** permite registrar, consultar, modificar y exportar pagos desde
-  el navegador. Cada persona ve solo sus propios pagos.
+  el navegador o desde la app instalada (PWA). Cada persona ve solo sus propios
+  pagos.
 - **Qué lo hace interesante:** la capa web no reimplementa las reglas: la
   autorización y la auditoría viven en procedimientos almacenados de Oracle,
   los mismos que usa la versión de escritorio.
@@ -69,6 +74,11 @@ detalle de la migración.
 **Auditoría**
 - Cada operación queda registrada por la base de datos
 
+**App instalable (PWA)**
+- Se instala en el celular, la tablet o el computador desde el navegador
+- Abre en su propia ventana, con ícono y nombre propios
+- Muestra una página propia cuando no hay conexión
+
 Las rutas de pagos usan `/registros` en la URL en lugar de `/pagos`: algunos
 antivirus con protección de banca en línea interceptan los formularios con
 contraseña cuando la URL contiene "pagos".
@@ -84,6 +94,7 @@ contraseña cuando la URL contiene "pagos".
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
 | Sesiones | JWT (HS256) en cookie httponly |
 | Contraseñas | SHA-256, compatible con la versión de escritorio |
+| App instalable | PWA: manifiesto web y service worker |
 | Despliegue | Docker en Google Cloud Run |
 
 ---
@@ -103,7 +114,8 @@ web/
     ├── dependencias.py   Identificación del usuario en cada petición
     ├── routers/          Rutas de autenticación y de pagos
     ├── templates/        Plantillas Jinja2
-    └── static/           Hoja de estilos y tema
+    └── static/           Hoja de estilos, tema, íconos y PWA
+                          (manifest.webmanifest, sw.js, offline.html)
 ```
 
 Las tablas y procedimientos (`../sql/`), el Wallet (`../wallet/`) y el
@@ -139,6 +151,10 @@ escritorio.
   se reimplementa en la capa web.
 - Los errores de base de datos muestran un mensaje genérico; el detalle queda
   solo en el log del servidor.
+- El service worker de la PWA solo guarda en caché archivos estáticos
+  (estilos, scripts, íconos) y la página sin conexión: las páginas con pagos,
+  la sesión y los CSV siempre van a la red y no quedan guardados en el
+  dispositivo.
 - El Wallet y el `.env` no se suben al repositorio.
 
 ---
@@ -194,6 +210,20 @@ escritorio.
 1. En el inicio de sesión, pulsa **Olvidé mi contraseña**.
 2. Escribe tu **Correo (@EAN.com)**, el **Nombre registrado** y la **Nueva
    contraseña**, y pulsa **Actualizar contraseña**.
+
+### 5.6 Instalar la app (PWA)
+
+Abre la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app) y:
+
+| Plataforma | Cómo instalarla |
+|---|---|
+| Android (Chrome) | Menú **⋮** → **Instalar app** (o **Agregar a la pantalla principal**). |
+| iPhone / iPad (Safari) | Botón **Compartir** → **Agregar a inicio**. |
+| Windows, macOS y Linux (Chrome o Edge) | Ícono de instalar en la barra de direcciones, o menú → **Instalar PRPagos**. |
+
+La app queda con su ícono junto a las demás y abre en su propia ventana. Usa
+la misma cuenta y los mismos datos que la versión web y la de escritorio, y
+necesita conexión para consultar y guardar pagos.
 
 ---
 
@@ -259,19 +289,21 @@ resuelven desde ahí.
 ### Despliegue
 
 La aplicación corre en Google Cloud Run, con Oracle Autonomous Database como
-base de datos.
+base de datos. El despliegue es continuo: cada push a `main` que cambie
+`web/`, el `Dockerfile` o el propio flujo ejecuta
+[`.github/workflows/desplegar.yml`](../.github/workflows/desplegar.yml), que:
 
-La imagen se construye con el `Dockerfile` de la **raíz** del repositorio,
-porque necesita copiar tanto `web/app/` como `wallet/`. Desde la raíz:
+1. Construye la imagen con el `Dockerfile` de la **raíz** del repositorio
+   (necesita copiar tanto `web/app/` como `wallet/`).
+2. La publica en Artifact Registry.
+3. Actualiza el servicio de Cloud Run, conservando sus variables de entorno.
 
-```bash
-gcloud run deploy NOMBRE_DEL_SERVICIO --source . --region REGION
-```
-
-- `.gcloudignore` decide qué se sube a Cloud Build. Sin él, `gcloud` usaría
-  `.gitignore` y dejaría afuera `wallet/`, que la imagen necesita.
-- Las variables del `.env` se configuran como variables de entorno del
-  servicio en Cloud Run, nunca como un archivo dentro de la imagen.
+- El Wallet no está en Git: el flujo lo toma de Secret Manager al construir
+  la imagen.
+- GitHub se autentica en Google Cloud por federación de identidades, sin
+  llaves guardadas en el repositorio.
+- Las variables del `.env` viven como variables de entorno del servicio en
+  Cloud Run, nunca como un archivo dentro de la imagen.
 
 ---
 
