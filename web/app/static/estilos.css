@@ -49,7 +49,8 @@ a { color: var(--acento); }
 }
 
 .marca-grupo { display: flex; align-items: center; gap: 0.75rem; }
-.marca { font-weight: 700; font-size: 1.2rem; text-decoration: none; color: var(--texto); }
+.marca { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.2rem; text-decoration: none; color: var(--texto); }
+.marca-icono { width: 1.75rem; height: 1.75rem; }
 
 .boton-tema {
     border: 1px solid var(--borde);
@@ -160,3 +161,33 @@ form .boton { margin-top: 1rem; }
 
 .total-pagado { font-size: 1.05rem; margin: 0 0 1rem; }
 .nota-permiso { margin-top: 1rem; font-size: 0.8rem; color: var(--texto-suave); }
+
+/* ───── Responsive: tablet (1050), celular (760) y angosto (360) ───── */
+@media (max-width: 760px) {
+    .barra {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left));
+    }
+    .nav-principal {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    main { padding: 1.25rem 1rem; }
+    .tarjeta-formulario { padding: 1.25rem; }
+
+    /* La tabla se desplaza dentro de su propio marco en vez de ensanchar la página. */
+    .tabla { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+
+    .fila-filtros { flex-direction: column; align-items: stretch; }
+    .fila-filtros label { width: 100%; }
+    .fila-filtros .boton, .fila-filtros .boton-secundario { text-align: center; }
+
+    .cabecera-seccion h1 { font-size: 1.5rem; margin: 0; }
+}
+
+@media (max-width: 360px) {
+    main { padding-inline: 0.75rem; }
+}

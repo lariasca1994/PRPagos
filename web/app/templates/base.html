@@ -2,11 +2,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block titulo %}PRPagos{% endblock %}</title>
+    <link rel="icon" href="/static/iconos/icono.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link rel="apple-touch-icon" href="/static/iconos/apple-touch-icon.png">
+    <meta name="theme-color" content="#C74634">
+    <script>
+        // El tema se aplica antes de pintar para que no destelle el claro
+        // al cargar en modo oscuro; tema.js maneja luego el botón.
+        (function () {
+            var tema = null;
+            try { tema = localStorage.getItem("prpagos-tema"); } catch (e) {}
+            if (!tema) {
+                tema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+            }
+            document.documentElement.setAttribute("data-tema", tema);
+        })();
+    </script>
     <link rel="stylesheet" href="/static/estilos.css">
+    {% block cabeza %}{% endblock %}
 </head>
-<body>
+<body class="{% block clase_body %}{% endblock %}">
+    {% block cuerpo %}
     <header class="barra">
         {% include "fragmentos/cabecera.html" %}
         <nav class="nav-principal">
@@ -27,6 +45,7 @@
     <footer class="pie">
         <p>PRPagos &mdash; proyecto de portafolio de Luis Felipe Arias.</p>
     </footer>
+    {% endblock %}
     <script src="/static/tema.js" defer></script>
 </body>
 </html>
