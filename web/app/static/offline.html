@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sin conexión · PRPagos</title>
+    <link rel="icon" href="/static/iconos/icono.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#C74634">
+    <script>
+        (function () {
+            var tema = null;
+            try { tema = localStorage.getItem("prpagos-tema"); } catch (e) {}
+            if (!tema) {
+                tema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+            }
+            document.documentElement.setAttribute("data-tema", tema);
+        })();
+    </script>
+    <link rel="stylesheet" href="/static/estilos.css">
+    <style>
+        .sin-conexion { max-width: 28rem; margin: 18vh auto 0; padding: 0 1rem; text-align: center; }
+        .sin-conexion img { width: 64px; height: 64px; }
+        .sin-conexion button { margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <main class="sin-conexion">
+        <img src="/static/iconos/icono.svg" alt="">
+        <h1>Sin conexión</h1>
+        <p>PRPagos necesita internet para consultar y guardar pagos. Revisa tu conexión e intenta de nuevo.</p>
+        <button type="button" onclick="location.reload()">Reintentar</button>
+    </main>
+</body>
+</html>
