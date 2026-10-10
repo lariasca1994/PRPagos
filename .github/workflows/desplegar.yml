@@ -1,0 +1,72 @@
+# Despliegue continuo: cada push a main construye la imagen, la publica en
+# Artifact Registry y actualiza el servicio de Cloud Run "prpagos-web".
+# Nada se despliega a mano; las variables de entorno del servicio se
+# conservan.
+#
+# La billetera de Oracle (wallet/) no está en Git a propósito: se guarda en
+# Secret Manager como "prpagos-wallet" (wallet/ empaquetada en .tgz) y solo
+# la cuenta de despliegue puede leerla.
+#
+# Autenticación: federación de identidades GitHub -> Google (sin llaves
+# guardadas en GitHub). El proveedor solo acepta tokens de ESTE repo y de
+# la rama main; la cuenta "github-deploy" solo puede desplegar este
+# servicio, publicar en este registro y leer la billetera.
+# Configuración en GitHub: variables GCP_WIF_PROVIDER y GCP_SERVICE_ACCOUNT.
+name: Desplegar en Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'Dockerfile'
+      - '.github/workflows/desplegar.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: produccion
+  cancel-in-progress: false
+
+env:
+  PROYECTO: prpagos
+  REGION: southamerica-east1
+  SERVICIO: prpagos-web
+  IMAGEN: southamerica-east1-docker.pkg.dev/prpagos/cloud-run-source-deploy/prpagos-web
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Traer la billetera de Oracle
+        run: |
+          gcloud secrets versions access latest --secret prpagos-wallet --project "$PROYECTO" > wallet.tgz
+          tar -xzf wallet.tgz
+          rm wallet.tgz
+          ls wallet
+
+      - name: Construir y publicar la imagen
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -t "$IMAGEN:${{ github.sha }}" .
+          docker push "$IMAGEN:${{ github.sha }}"
+
+      - name: Actualizar el servicio
+        run: |
+          gcloud run deploy "$SERVICIO" \
+            --image "$IMAGEN:${{ github.sha }}" \
+            --region "$REGION" --project "$PROYECTO" --quiet \
+            --format "value(status.url)"
