@@ -1,0 +1,488 @@
+/* Portada de acceso (ingresar, registrarse, recuperar contraseña).
+   Identidad propia: rojo Oracle sobre papel de seguridad; el motivo es un
+   recibo que se imprime renglón a renglón y termina con el sello de
+   auditoría. El formulario va a la izquierda y la marca a la derecha. */
+
+:root {
+  --a-acento: #C74634;
+  --a-acento-fuerte: #A83A2B;
+  --a-acento-suave: rgba(199, 70, 52, 0.14);
+  --a-enlace: #A83A2B;
+
+  --a-fondo: #F7F5F4;
+  --a-superficie: #FFFFFF;
+  --a-borde: #E6E0DE;
+  --a-texto: #1F2430;
+  --a-suave: #5A6072;
+
+  --a-marca-fondo: #FBEEEB;
+  --a-marca-texto: #2A1714;
+  --a-marca-suave: #7B5A55;
+  --a-trama: rgba(199, 70, 52, 0.07);
+  --a-papel: #FFFFFF;
+  --a-papel-borde: #EBD9D5;
+  --a-sombra: 0 1px 2px rgba(42, 23, 20, 0.05), 0 22px 44px -22px rgba(120, 30, 20, 0.35);
+
+  --a-exito-fondo: #ECFDF3;
+  --a-exito-texto: #067647;
+  --a-error-fondo: #FDEAEA;
+  --a-error-texto: #A8221A;
+}
+
+[data-tema="oscuro"] {
+  --a-acento-suave: rgba(240, 138, 122, 0.18);
+  --a-enlace: #F08A7A;
+
+  --a-fondo: #14161F;
+  --a-superficie: #1D2130;
+  --a-borde: #2C3145;
+  --a-texto: #E9EBF3;
+  --a-suave: #A3A9BD;
+
+  --a-marca-fondo: #1A1218;
+  --a-marca-texto: #F6EDEB;
+  --a-marca-suave: #B9A3A0;
+  --a-trama: rgba(240, 138, 122, 0.06);
+  --a-papel: #231C24;
+  --a-papel-borde: #3A2C33;
+  --a-sombra: 0 1px 2px rgba(0, 0, 0, 0.4), 0 22px 44px -22px rgba(0, 0, 0, 0.8);
+
+  --a-exito-fondo: rgba(6, 118, 71, 0.2);
+  --a-exito-texto: #75E0A7;
+  --a-error-fondo: rgba(168, 34, 26, 0.22);
+  --a-error-texto: #FDA29B;
+}
+
+body.acceso {
+  display: block;
+  background: var(--a-fondo);
+  color: var(--a-texto);
+}
+
+.portada {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(0, 1.1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ───── Lado del formulario (izquierda) ───── */
+/* estilos.css limita y centra todo <main>; aquí ocupa su columna completa. */
+.acceso main.lado {
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+
+.lado {
+  display: flex;
+  flex-direction: column;
+  padding: 1.75rem clamp(1.5rem, 5vw, 4rem);
+}
+
+.lado-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lado-barra .marca {
+  font-size: 1.15rem;
+}
+
+.lado-centro {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding-block: 2rem;
+}
+
+.formulario-acceso {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.acceso-paso {
+  margin: 0 0 0.5rem;
+  color: var(--a-enlace);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.acceso-titulo {
+  margin: 0 0 0.4rem;
+  font-size: 1.85rem;
+  letter-spacing: -0.025em;
+}
+
+.acceso-subtitulo {
+  margin: 0 0 1.5rem;
+  color: var(--a-suave);
+  line-height: 1.5;
+}
+
+.formulario-acceso form {
+  gap: 0.35rem;
+}
+
+.formulario-acceso label {
+  margin-top: 0.6rem;
+  color: var(--a-texto);
+  font-weight: 600;
+}
+
+.formulario-acceso input {
+  padding: 0.7rem 0.85rem;
+  border-color: var(--a-borde);
+  border-radius: 0.6rem;
+  background: var(--a-superficie);
+  font-size: 1rem;
+}
+
+.formulario-acceso input:focus {
+  border-color: var(--a-acento);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--a-acento-suave);
+}
+
+.formulario-acceso .boton {
+  margin-top: 1.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.6rem;
+  background: var(--a-acento);
+  font-weight: 700;
+}
+
+.formulario-acceso .boton:hover {
+  background: var(--a-acento-fuerte);
+}
+
+.aviso-acceso {
+  margin: 0 0 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.aviso-acceso.error {
+  background: var(--a-error-fondo);
+  color: var(--a-error-texto);
+}
+
+.aviso-acceso.exito {
+  background: var(--a-exito-fondo);
+  color: var(--a-exito-texto);
+}
+
+.enlaces-acceso {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  color: var(--a-suave);
+  font-size: 0.9rem;
+}
+
+.enlaces-acceso a {
+  color: var(--a-enlace);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.enlaces-acceso a:hover {
+  text-decoration: underline;
+}
+
+.lado-pie {
+  margin: 0;
+  color: var(--a-suave);
+  font-size: 0.8rem;
+}
+
+/* ───── Panel de marca (derecha) ───── */
+.marca-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.25rem;
+  overflow: hidden;
+  padding: 3rem clamp(1.75rem, 5vw, 4.5rem);
+  background:
+    radial-gradient(80% 60% at 0% 0%, var(--a-acento-suave) 0%, transparent 60%),
+    var(--a-marca-fondo);
+  color: var(--a-marca-texto);
+  isolation: isolate;
+}
+
+/* Trama cruzada de papel de seguridad, como en un cheque. */
+.marca-panel::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    repeating-linear-gradient(45deg, var(--a-trama) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, var(--a-trama) 0 1px, transparent 1px 9px);
+  content: "";
+}
+
+.marca-etiqueta {
+  margin: 0 0 0.9rem;
+  color: var(--a-enlace);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.marca-titular {
+  max-width: 30rem;
+  margin: 0 0 1rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 3.4vw, 2.9rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.marca-titular em {
+  color: var(--a-acento);
+  font-style: italic;
+}
+
+[data-tema="oscuro"] .marca-titular em {
+  color: var(--a-enlace);
+}
+
+.marca-bajada {
+  max-width: 30rem;
+  margin: 0;
+  color: var(--a-marca-suave);
+  line-height: 1.6;
+}
+
+/* Recibo */
+.recibo {
+  position: relative;
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.25rem 1.4rem 1.75rem;
+  border: 1px solid var(--a-papel-borde);
+  border-bottom: 0;
+  background: var(--a-papel);
+  box-shadow: var(--a-sombra);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.8rem;
+  transform: rotate(-1.5deg);
+}
+
+/* Borde inferior en zigzag, como el papel cortado de una caja. */
+.recibo::after {
+  position: absolute;
+  right: 0;
+  bottom: -10px;
+  left: 0;
+  height: 10px;
+  background:
+    linear-gradient(-45deg, transparent 7px, var(--a-papel) 0) 0 0 / 14px 10px repeat-x,
+    linear-gradient(45deg, transparent 7px, var(--a-papel) 0) 0 0 / 14px 10px repeat-x;
+  content: "";
+}
+
+.recibo-cabecera {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px dashed var(--a-papel-borde);
+  color: var(--a-marca-suave);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.recibo ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recibo li,
+.recibo-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+}
+
+.recibo li span:last-child,
+.recibo-total span:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+.recibo li {
+  opacity: 0;
+  animation: imprimir 0.45s ease-out forwards;
+}
+
+.recibo li:nth-child(1) { animation-delay: 0.3s; }
+.recibo li:nth-child(2) { animation-delay: 0.75s; }
+.recibo li:nth-child(3) { animation-delay: 1.2s; }
+.recibo li:nth-child(4) { animation-delay: 1.65s; }
+
+.recibo-total {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--a-papel-borde);
+  font-weight: 700;
+}
+
+.sello {
+  position: absolute;
+  z-index: 1;
+  right: 1rem;
+  bottom: -1.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 2px solid var(--a-acento);
+  border-radius: 0.4rem;
+  background: var(--a-papel);
+  color: var(--a-acento);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  opacity: 0;
+  transform: rotate(-8deg) scale(1.6);
+  animation: sellar 0.35s ease-in 2.3s forwards;
+}
+
+[data-tema="oscuro"] .sello {
+  border-color: var(--a-enlace);
+  color: var(--a-enlace);
+}
+
+@keyframes imprimir {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sellar {
+  to { opacity: 0.9; transform: rotate(-8deg) scale(1); }
+}
+
+.marca-puntos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marca-puntos li {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--a-papel-borde);
+  border-radius: 999px;
+  background: var(--a-papel);
+  color: var(--a-marca-suave);
+  font-size: 0.8rem;
+}
+
+.marca-puntos strong {
+  color: var(--a-marca-texto);
+}
+
+/* ───── Responsive: 1050 / 760 / 360, como el resto del portafolio ───── */
+@media (max-width: 1050px) {
+  .portada {
+    grid-template-columns: minmax(380px, 1fr) minmax(0, 1fr);
+  }
+
+  .marca-puntos {
+    display: none;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 640px) {
+  .recibo {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* En celular la marca va arriba, compacta, y el formulario debajo. */
+  .portada {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .marca-panel {
+    order: -1;
+    gap: 0;
+    padding: calc(4.25rem + env(safe-area-inset-top, 0px)) 1.25rem 1.5rem;
+  }
+
+  .marca-bajada,
+  .recibo,
+  .marca-puntos {
+    display: none;
+  }
+
+  .marca-titular {
+    margin: 0;
+    font-size: 1.7rem;
+  }
+
+  .lado {
+    padding: 0 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* La barra (logo y tema) se fija arriba, sobre el panel de marca. */
+  .lado-barra {
+    position: absolute;
+    z-index: 2;
+    top: calc(1rem + env(safe-area-inset-top, 0px));
+    right: 1.25rem;
+    left: 1.25rem;
+  }
+
+  .lado-centro {
+    place-items: start center;
+    padding-block: 1.5rem;
+  }
+
+  .lado-pie {
+    text-align: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .marca-panel,
+  .lado {
+    padding-inline: 1rem;
+  }
+
+  .lado-barra {
+    right: 1rem;
+    left: 1rem;
+  }
+
+  .marca-titular {
+    font-size: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recibo li,
+  .sello {
+    opacity: 1;
+    animation: none;
+  }
+
+  .sello {
+    opacity: 0.9;
+    transform: rotate(-8deg);
+  }
+}

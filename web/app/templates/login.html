@@ -1,19 +1,20 @@
-{% extends "base.html" %}
+{% extends "acceso_base.html" %}
 {% block titulo %}Iniciar sesión - PRPagos{% endblock %}
-{% block contenido %}
-<section class="tarjeta-formulario">
-    <h1>Iniciar sesión</h1>
-    {% if error %}<p class="aviso error">{{ error }}</p>{% endif %}
-    <form method="post" action="/login">
-        <label for="usuario">Usuario (correo @EAN.com)</label>
-        <input type="email" id="usuario" name="usuario" required autofocus>
+{% block paso %}Acceso{% endblock %}
+{% block titulo_form %}Iniciar sesión{% endblock %}
+{% block subtitulo %}Ingresa con tu usuario para consultar y registrar tus pagos.{% endblock %}
+{% block formulario %}
+<form method="post" action="/login">
+    <label for="usuario">Usuario (correo @EAN.com)</label>
+    <input type="email" id="usuario" name="usuario" autocomplete="username" placeholder="nombre@ean.com" required autofocus>
 
-        <label for="contrasena">Contraseña</label>
-        <input type="password" id="contrasena" name="contrasena" required>
+    <label for="contrasena">Contraseña</label>
+    <input type="password" id="contrasena" name="contrasena" autocomplete="current-password" required>
 
-        <button type="submit" class="boton">Ingresar</button>
-    </form>
-    <p>¿No tienes cuenta? <a href="/registro">Regístrate</a></p>
-    <p><a href="/recuperar">Olvidé mi contraseña</a></p>
-</section>
+    <button type="submit" class="boton">Ingresar</button>
+</form>
+{% endblock %}
+{% block enlaces %}
+<span>¿No tienes cuenta? <a href="/registro">Regístrate</a></span>
+<a href="/recuperar">Olvidé mi contraseña</a>
 {% endblock %}

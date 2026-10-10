@@ -1,21 +1,22 @@
-{% extends "base.html" %}
+{% extends "acceso_base.html" %}
 {% block titulo %}Crear usuario - PRPagos{% endblock %}
-{% block contenido %}
-<section class="tarjeta-formulario">
-    <h1>Crear usuario</h1>
-    {% if error %}<p class="aviso error">{{ error }}</p>{% endif %}
-    <form method="post" action="/registro">
-        <label for="usuario">Usuario (correo @EAN.com)</label>
-        <input type="email" id="usuario" name="usuario" required autofocus>
+{% block paso %}Cuenta nueva{% endblock %}
+{% block titulo_form %}Crear usuario{% endblock %}
+{% block subtitulo %}El usuario es tu correo @EAN.com; con él verás únicamente tus propios pagos.{% endblock %}
+{% block formulario %}
+<form method="post" action="/registro">
+    <label for="usuario">Usuario (correo @EAN.com)</label>
+    <input type="email" id="usuario" name="usuario" autocomplete="username" placeholder="nombre@ean.com" required autofocus>
 
-        <label for="nombre">Nombre completo</label>
-        <input type="text" id="nombre" name="nombre" required>
+    <label for="nombre">Nombre completo</label>
+    <input type="text" id="nombre" name="nombre" autocomplete="name" required>
 
-        <label for="contrasena">Contraseña</label>
-        <input type="password" id="contrasena" name="contrasena" required>
+    <label for="contrasena">Contraseña</label>
+    <input type="password" id="contrasena" name="contrasena" autocomplete="new-password" required>
 
-        <button type="submit" class="boton">Crear usuario</button>
-    </form>
-    <p>¿Ya tienes cuenta? <a href="/login">Ingresa</a></p>
-</section>
+    <button type="submit" class="boton">Crear usuario</button>
+</form>
+{% endblock %}
+{% block enlaces %}
+<span>¿Ya tienes cuenta? <a href="/login">Ingresa</a></span>
 {% endblock %}

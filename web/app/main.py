@@ -7,6 +7,7 @@ import logging
 
 import oracledb
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -88,12 +89,18 @@ def manejar_error_generico(request: Request, exc: Exception):
     )
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    # Los navegadores lo piden en la raiz aunque la pagina declare otro icono.
+    return FileResponse("app/static/iconos/favicon.ico")
+
+
 @app.get("/")
 def raiz(request: Request):
-    # Pantalla de explicacion publica, igual que el resto del portafolio
-    # (ver gestor-casos-qa): no exige login, pero cambia el llamado a la
-    # accion segun si hay sesion o no.
-    usuario = obtener_usuario_opcional(request)
+    # La portada de acceso es la primera pantalla, igual que en el resto
+    # del portafolio; con sesion abierta se va directo a los registros.
+    if obtener_usuario_opcional(request):
+        return RedirectResponse(url="/registros", status_code=303)
     return templates.TemplateResponse(
-        "inicio.html", {"request": request, "usuario": usuario}
+        "login.html", {"request": request, "error": None}
     )

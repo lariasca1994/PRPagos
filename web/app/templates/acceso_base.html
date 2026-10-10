@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{# Portada común de ingreso, registro y recuperación. Las hijas definen
+   paso, titulo_form, subtitulo, formulario y enlaces. Los avisos llegan
+   como ?error=..., también los de éxito (ver routers/auth.py): esos se
+   reconocen por su texto para mostrarlos en verde. #}
+{% block cabeza %}<link rel="stylesheet" href="/static/acceso.css">{% endblock %}
+{% block clase_body %}acceso{% endblock %}
+{% block cuerpo %}
+{% set exito = error and (error.startswith("Usuario creado") or error.startswith("Contraseña actualizada")) %}
+<div class="portada">
+    <main class="lado">
+        <div class="lado-barra">
+            {% include "fragmentos/cabecera.html" %}
+        </div>
+
+        <div class="lado-centro">
+            <section class="formulario-acceso" aria-labelledby="titulo-acceso">
+                <p class="acceso-paso">{% block paso %}{% endblock %}</p>
+                <h1 id="titulo-acceso" class="acceso-titulo">{% block titulo_form %}{% endblock %}</h1>
+                <p class="acceso-subtitulo">{% block subtitulo %}{% endblock %}</p>
+
+                {% if error %}
+                <p class="aviso-acceso {{ 'exito' if exito else 'error' }}" role="{{ 'status' if exito else 'alert' }}">{{ error }}</p>
+                {% endif %}
+
+                {% block formulario %}{% endblock %}
+
+                <div class="enlaces-acceso">{% block enlaces %}{% endblock %}</div>
+            </section>
+        </div>
+
+        <p class="lado-pie">PRPagos &mdash; proyecto de portafolio de Luis Felipe Arias.</p>
+    </main>
+
+    <aside class="marca-panel">
+        <div>
+            <p class="marca-etiqueta">Gestión de pagos · Oracle</p>
+            <h2 class="marca-titular">Cada pago, <em>con su rastro.</em></h2>
+            <p class="marca-bajada">
+                Registra pagos por monto, fecha y concepto; búscalos, expórtalos
+                a CSV y conserva la auditoría de cada cambio. Cada usuario ve
+                solo los suyos.
+            </p>
+        </div>
+
+        <div class="recibo" aria-hidden="true">
+            <div class="recibo-cabecera"><span>REGISTRO DE PAGOS</span><span>N.º 0427</span></div>
+            <ol>
+                <li><span>Arriendo oficina</span><span>1.850.000,00</span></li>
+                <li><span>Servicios públicos</span><span>312.400,00</span></li>
+                <li><span>Proveedor papelería</span><span>96.750,00</span></li>
+                <li><span>Mantenimiento equipos</span><span>240.000,00</span></li>
+            </ol>
+            <div class="recibo-total"><span>TOTAL</span><span>2.499.150,00</span></div>
+            <span class="sello">AUDITADO</span>
+        </div>
+
+        <ul class="marca-puntos">
+            <li><strong>Filtra</strong> por concepto, monto o fecha</li>
+            <li><strong>Exporta</strong> a CSV</li>
+            <li><strong>Audita</strong> cada cambio</li>
+        </ul>
+    </aside>
+</div>
+{% endblock %}
