@@ -12,6 +12,20 @@
 ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white)
 ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 
+## Contenido
+
+1. [Presentación](#1-presentación)
+2. [Estructura del proyecto](#2-estructura-del-proyecto)
+3. [Arquitectura](#3-arquitectura)
+4. [Plataformas y su función](#4-plataformas-y-su-función)
+5. [Cómo usar la plataforma](#5-cómo-usar-la-plataforma)
+6. [Instalación para pruebas](#6-instalación-para-pruebas)
+7. [Autor y licencia](#7-autor-y-licencia)
+
+---
+
+## 1. Presentación
+
 Aplicación para la gestión de pagos, con persistencia en Oracle Autonomous
 Database. Desarrollada originalmente durante el curso de Desarrollo de
 Software de la Universidad EAN.
@@ -37,16 +51,16 @@ la migración de escritorio a web.
   cada cliente.
 - **Cómo probarlo:** entra a la [demo web](https://prpagos-web-1087929107584.southamerica-east1.run.app)
   y crea un usuario. Para correrlo en tu equipo, ve a
-  [Instalación](#instalación) y [Ejecución](#ejecución).
+  [Instalación para pruebas](#6-instalación-para-pruebas).
 
-## Demo en vivo
+### Demo en vivo
 
 **Aplicación web:** [abrir la demo en vivo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
 
 La versión de escritorio no tiene demo en línea: se ejecuta en el equipo de
 cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 
-## Funcionalidades
+### Funcionalidades
 
 **Cuentas**
 - Registro e inicio de sesión de usuarios
@@ -62,7 +76,7 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 **Auditoría**
 - Registro de auditoría de las operaciones, hecho por la base de datos
 
-## Stack
+### Stack
 
 | Capa | Web | Escritorio |
 |---|---|---|
@@ -75,35 +89,9 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 | Contraseñas | SHA-256 | SHA-256 |
 | Despliegue | Docker en Google Cloud Run | Equipo local |
 
-## Conexiones externas
+---
 
-| Servicio | Uso | Obligatorio |
-|---|---|---|
-| Oracle Autonomous Database | Persistencia, reglas de negocio y auditoría | Sí |
-
-La conexión es por TLS con el Wallet de Oracle. No requiere ningún otro
-servicio, cuenta ni clave de API.
-
-## Arquitectura
-
-<p align="center">
-  <img src="docs/arquitectura.svg" alt="Diagrama de arquitectura: PRPagos Web (FastAPI) en Google Cloud Run y PRPagos Escritorio (Java Swing) en local, ambos conectados por TLS con Wallet a los procedimientos almacenados de Oracle Autonomous Database" width="100%">
-</p>
-
-- **Google Cloud Run** corre la versión web (FastAPI + Jinja2) en un contenedor
-  Docker; la sesión viaja en un JWT dentro de una cookie.
-- La **versión de escritorio** (Java Swing) corre en el equipo del usuario y se
-  conecta por JDBC.
-- Ambas llegan a **Oracle Autonomous Database** con TLS y Wallet, y llaman a los
-  mismos procedimientos almacenados, que verifican la autorización y registran
-  la auditoría.
-- **qa-evidencia** prueba la versión web automáticamente dos veces al día.
-
-Cada versión tiene su propio diagrama detallado en
-[`web/README.md`](./web/README.md#arquitectura) y
-[`escritorio/README.md`](./escritorio/README.md#arquitectura).
-
-## Estructura
+## 2. Estructura del proyecto
 
 ```
 web/           Aplicación web en Python (FastAPI + Jinja2)
@@ -118,14 +106,79 @@ Dockerfile     Imagen de la versión web para Cloud Run (se construye desde la r
 `escritorio/` como `web/`: ambas versiones hablan con la misma base de
 datos y usan el mismo Wallet para conectarse.
 
-## Requisitos
+---
+
+## 3. Arquitectura
+
+<p align="center">
+  <img src="docs/arquitectura.svg" alt="Diagrama de arquitectura: PRPagos Web (FastAPI) en Google Cloud Run y PRPagos Escritorio (Java Swing) en local, ambos conectados por TLS con Wallet a los procedimientos almacenados de Oracle Autonomous Database" width="100%">
+</p>
+
+- La versión web (FastAPI + Jinja2) corre en un contenedor Docker; la sesión
+  viaja en un JWT dentro de una cookie.
+- La **versión de escritorio** (Java Swing) corre en el equipo del usuario y se
+  conecta por JDBC.
+- Ambas llegan a la base con TLS y Wallet, y llaman a los mismos procedimientos
+  almacenados, que verifican la autorización y registran la auditoría.
+
+Cada versión tiene su propio diagrama detallado en
+[`web/README.md`](./web/README.md#3-arquitectura) y
+[`escritorio/README.md`](./escritorio/README.md#3-arquitectura).
+
+### Seguridad
+
+- Las contraseñas se almacenan con hash, nunca en texto plano, y ese hash es
+  el mismo en ambas versiones para que una cuenta funcione desde cualquiera
+  de las dos interfaces.
+- La visibilidad de los pagos está limitada por usuario, y el procedimiento
+  de actualización verifica la autorización antes de modificar un registro.
+  Esa regla vive en la base de datos, no en ninguna de las dos aplicaciones
+  cliente.
+- Conexión a la base por TLS con Wallet.
+- El Wallet, `.env` y `config.properties` no se suben al repositorio; solo
+  sus plantillas de ejemplo.
+
+---
+
+## 4. Plataformas y su función
+
+| Plataforma | Función en el proyecto |
+|---|---|
+| ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Corre la versión web (FastAPI + Jinja2) en un contenedor Docker. |
+| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda usuarios y pagos, y ejecuta los procedimientos almacenados con las reglas de negocio y la auditoría. La conexión es por TLS con el Wallet; no requiere ningún otro servicio, cuenta ni clave de API. |
+| ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La versión de escritorio corre en el equipo de cada usuario, sin servidor. |
+| ![qa-evidencia](https://img.shields.io/badge/qa--evidencia-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) | Prueba la versión web automáticamente dos veces al día y publica la evidencia. |
+
+---
+
+## 5. Cómo usar la plataforma
+
+Las dos versiones comparten las mismas cuentas y los mismos datos: lo que registras en
+una aparece en la otra. El paso a paso detallado está en cada carpeta:
+
+- **Versión web:** [`web/README.md`](./web/README.md#5-cómo-usar-la-plataforma)
+- **Versión de escritorio:** [`escritorio/README.md`](./escritorio/README.md#5-cómo-usar-la-plataforma)
+
+Resumen del flujo, igual en ambas:
+
+1. **Crear cuenta:** usuario (correo `@EAN.com`), nombre completo y contraseña.
+2. **Iniciar sesión** con ese usuario y contraseña.
+3. **Ingresar un pago:** monto, fecha y concepto.
+4. **Consultar pagos:** filtra por concepto, monto mínimo y máximo, y rango de fechas.
+5. **Modificar** un pago propio o **exportar** la consulta a CSV.
+6. Si olvidaste la contraseña, **recupérala** con tu correo y el nombre con el que te
+   registraste.
+
+---
+
+## 6. Instalación para pruebas
+
+### Requisitos
 
 - Una base Oracle accesible (por ejemplo, Oracle Autonomous Database)
 - El Wallet de esa base, descargado desde la consola de Oracle Cloud
 - Para la versión web: Python 3.11 o superior
 - Para la versión de escritorio: JDK 17 o superior
-
-## Instalación
 
 ### Base de datos (una sola vez)
 
@@ -160,7 +213,7 @@ y completa el alias y las credenciales de la base. Agrega `lib/ojdbc17.jar` y
 `lib/oraclepki.jar` al classpath. Detalle en
 [`escritorio/README.md`](./escritorio/README.md#configuración).
 
-## Ejecución
+### Ejecución
 
 | Versión | Comando | Dónde |
 |---|---|---|
@@ -170,26 +223,17 @@ y completa el alias y las credenciales de la base. Agrega `lib/ojdbc17.jar` y
 Los comandos de consola para compilar y ejecutar la versión de escritorio
 están en [`escritorio/README.md`](./escritorio/README.md#ejecución).
 
-## Seguridad
-
-- Las contraseñas se almacenan con hash, nunca en texto plano, y ese hash es
-  el mismo en ambas versiones para que una cuenta funcione desde cualquiera
-  de las dos interfaces.
-- La visibilidad de los pagos está limitada por usuario, y el procedimiento
-  de actualización verifica la autorización antes de modificar un registro.
-  Esa regla vive en la base de datos, no en ninguna de las dos aplicaciones
-  cliente.
-- Conexión a la base por TLS con Wallet.
-- El Wallet, `.env` y `config.properties` no se suben al repositorio; solo
-  sus plantillas de ejemplo.
-
-## Despliegue
+### Despliegue
 
 La base de datos corre en Oracle Autonomous Database (OCI). La aplicación web
 (`web/`) está desplegada en Google Cloud Run. La versión de escritorio se
 ejecuta localmente.
 
-## Autor
+---
+
+## 7. Autor y licencia
 
 **Luis Felipe Arias Carriazo**
 [GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1)
+
+Licencia: MIT.
