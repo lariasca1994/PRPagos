@@ -27,6 +27,9 @@ import com.prpagos.seguridad.Recuperacion;
 import com.prpagos.seguridad.Totp;
 import com.prpagos.seguridad.Verificacion;
 import com.prpagos.datos.RepositorioFinanzas;
+import com.prpagos.datos.RepositorioLlaves;
+import com.prpagos.seguridad.LlavesAcceso;
+import com.prpagos.seguridad.WindowsHello;
 import com.prpagos.finanzas.Correo;
 import com.prpagos.finanzas.Finanzas;
 import java.util.ArrayList;
@@ -54,6 +57,7 @@ public class VentanaLogin extends JFrame {
     private final JTextField correo = Ui.campo("nombre@dominio.com");
     private final JPasswordField contrasena = Ui.clave();
     private final Ui.Aviso avisoIngreso = new Ui.Aviso();
+    private final Ui.Aviso avisoLlave = new Ui.Aviso();
     // Código
     private final JTextField codigo = Ui.campoCodigo();
     private final JTextArea subtituloCodigo = Ui.suave("");
@@ -216,8 +220,49 @@ public class VentanaLogin extends JFrame {
                 Ui.etiqueta("Correo"), correo,
                 Ui.etiqueta("Contraseña"), contrasena,
                 (JComponent) Ui.espacio(20), continuar,
+                separador(), avisoLlave, botonLlave(), ayudaLlave(),
                 enlaces(conTexto("¿No tienes cuenta?", Ui.enlace("Regístrate", e -> mostrar("registro"))),
                         Ui.enlace("Olvidé mi contraseña", e -> mostrar("recuperar"))));
+    }
+
+    /** Línea con una "o" en el centro, como .separador-acceso de la web. */
+    private JPanel separador() {
+        JPanel p = new JPanel(new java.awt.GridBagLayout());
+        p.setOpaque(false);
+        p.setBorder(BorderFactory.createEmptyBorder(16, 0, 4, 0));
+        java.awt.GridBagConstraints g = new java.awt.GridBagConstraints();
+        g.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        g.weightx = 1;
+        javax.swing.JSeparator izquierda = new javax.swing.JSeparator();
+        javax.swing.JSeparator derecha = new javax.swing.JSeparator();
+        JLabel o = new JLabel("o");
+        o.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+        Tema.alCambiar(() -> o.setForeground(Tema.c().textoSuave()));
+        p.add(izquierda, g);
+        g.weightx = 0;
+        p.add(o, g);
+        g.weightx = 1;
+        p.add(derecha, g);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        return p;
+    }
+
+    private JButton botonLlave() {
+        JButton b = botonAncho(Ui.secundario("Ingresar con llave de acceso", e -> ingresarConLlave()));
+        if (!WindowsHello.disponible()) {
+            b.setEnabled(false);
+            avisoLlave.error("Este equipo no tiene Windows Hello configurado.");
+        }
+        return b;
+    }
+
+    private JComponent ayudaLlave() {
+        JLabel l = new JLabel("Windows Hello, huella, rostro o PIN del dispositivo", javax.swing.SwingConstants.CENTER);
+        l.setFont(l.getFont().deriveFont(12f));
+        l.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+        l.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+        Tema.alCambiar(() -> l.setForeground(Tema.c().textoSuave()));
+        return l;
     }
 
     private JPanel formCodigo() {
@@ -315,7 +360,7 @@ public class VentanaLogin extends JFrame {
 
     private void mostrar(String tarjeta) {
         for (Ui.Aviso a : new Ui.Aviso[] {avisoIngreso, avisoCodigo, avisoConfig, avisoRegistro, avisoRecuperar,
-            avisoCorreo}) {
+            avisoCorreo, avisoLlave}) {
             a.ocultar();
         }
         tarjetas.show(formularios, tarjeta);
@@ -417,6 +462,56 @@ public class VentanaLogin extends JFrame {
                 abrirPrincipal();
             }
         }, e -> avisoCodigo.error(Ui.mensajeError("verificar el código").apply(e)));
+    }
+
+    // ─────────────── Ingresar con una llave de acceso (Windows Hello) ───────────────
+
+    /** Reemplaza los dos pasos; mismas reglas y mensajes que /login/llave de la web. */
+    private void ingresarConLlave() {
+        avisoLlave.ocultar();
+        avisoIngreso.ocultar();
+        Tarea.ejecutar(this, () -> {
+            byte[] datosCliente = LlavesAcceso.datosCliente("webauthn.get", LlavesAcceso.reto());
+            WindowsHello.Asercion asercion;
+            try {
+                asercion = WindowsHello.obtener(this, datosCliente);
+            } catch (LlavesAcceso.ErrorLlave e) {
+                return e.getMessage();
+            }
+            RepositorioLlaves.Guardada llave = RepositorioLlaves.porCredencial(LlavesAcceso.b64(asercion.credencialId()));
+            if (llave == null) {
+                return "Esta llave de acceso no está registrada en PRPagos.";
+            }
+            Credenciales cred = RepositorioUsuarios.porId(llave.usuarioId());
+            if (cred == null) {
+                return "Usuario o contraseña incorrectos";
+            }
+            if (cred.bloqueada()) {
+                return MENSAJE_BLOQUEO;
+            }
+            long contador;
+            try {
+                if (asercion.idUsuario().length > 0
+                        && !java.util.Arrays.equals(asercion.idUsuario(), LlavesAcceso.idUsuario(cred.usuarioId()))) {
+                    throw new LlavesAcceso.ErrorLlave("La llave de acceso no es válida.");
+                }
+                contador = LlavesAcceso.verificarIngreso(asercion.datosAutenticador(), datosCliente, asercion.firma(),
+                        llave.clavePublica(), llave.contador());
+            } catch (LlavesAcceso.ErrorLlave e) {
+                RepositorioUsuarios.registrarFallo(cred.usuarioId(), "FALLO_LLAVE");
+                return e.getMessage();
+            }
+            RepositorioLlaves.usar(llave.id(), cred.usuarioId(), contador);
+            pendiente = cred;
+            pendienteAdmin = esAdmin(cred.usuarioId());
+            return null;
+        }, error -> {
+            if (error != null) {
+                avisoLlave.error(error);
+            } else {
+                abrirPrincipal();
+            }
+        }, e -> avisoLlave.error(Ui.mensajeError("ingresar con la llave de acceso").apply(e)));
     }
 
     // ─────────────────── Paso 2b: configurar el autenticador ───────────────────

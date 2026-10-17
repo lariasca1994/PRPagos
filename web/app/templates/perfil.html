@@ -94,6 +94,37 @@
         </form>
     </section>
 
+    <section class="tarjeta tarjeta-ancha" id="llaves">
+        <h2>Llaves de acceso</h2>
+        <p class="texto-ayuda">Ingresa sin contraseña ni código con Windows Hello, la huella, el rostro o el PIN de este dispositivo. Tu huella nunca sale del dispositivo: PRPagos solo guarda una clave pública.</p>
+        <table class="tabla tabla-compacta">
+            <thead><tr><th>Dispositivo</th><th>Agregada</th><th>Último uso</th><th></th></tr></thead>
+            <tbody>
+            {% for llave in llaves %}
+            <tr>
+                <td>{{ llave.nombre }}</td>
+                <td>{{ llave.creada }}</td>
+                <td>{{ llave.ultimo_uso or "—" }}</td>
+                <td class="acciones">
+                    <form method="post" action="/perfil/llaves/{{ llave.id }}/eliminar" class="en-linea">
+                        <button type="submit" class="enlace-boton">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="texto-suave">Todavía no tienes llaves de acceso.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <p id="aviso-llave" class="aviso error" role="alert" hidden></p>
+        <form id="form-llave" class="fila-filtros formulario-categoria">
+            <label>Nombre del dispositivo<input type="text" name="nombre" maxlength="60" placeholder="Portátil, celular…" required></label>
+            <label>Código de la app o de respaldo<input type="text" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required></label>
+            <button type="submit" class="boton boton-secundario">Agregar este dispositivo</button>
+        </form>
+    </section>
+    <script src="/static/llaves.js" defer></script>
+
     <section class="tarjeta tarjeta-ancha">
         <h2>Cambiar contraseña</h2>
         <form method="post" action="/perfil/contrasena" class="formulario-dos-columnas">

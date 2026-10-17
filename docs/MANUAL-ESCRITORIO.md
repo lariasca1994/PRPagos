@@ -56,6 +56,7 @@ febrero, el último día). Funciona y se ve igual que la versión web, con los m
 | **Huella SHA-256** | "Firma" de un archivo: si cambia un solo byte, cambia la huella. Se usa para comprobar que una actualización es la publicada. |
 | **Base de datos** | Lugar donde la aplicación guarda la información de forma ordenada y permanente. |
 | **Cifrado / TLS** | Protección que codifica la información mientras viaja, para que nadie en el camino pueda leerla. |
+| **Llave de acceso (passkey)** | Forma de ingresar sin contraseña ni código: Windows Hello la desbloquea con tu PIN, huella o rostro. La huella nunca sale del equipo. |
 | **Código de respaldo** | Código de un solo uso (formato `ABCD-EFGH`) para entrar si no tienes el teléfono. |
 | **CSV** | Archivo de texto con datos en columnas, que se abre en Excel o Google Sheets. |
 | **TOTP (código de verificación)** | Código de 6 dígitos que cambia cada 30 segundos en tu app autenticadora; se pide además de la contraseña. |
@@ -103,6 +104,7 @@ oscuro.
 | 1 | Correo | Tu correo |
 | 2 | Contraseña | Tu contraseña (el ojo la muestra u oculta) |
 | 3 | Continuar | Pasa al código de verificación |
+| 4 | Ingresar con llave de acceso | Entra directo con Windows Hello (PIN, huella o rostro), sin contraseña ni código (ver 4.16) |
 
 ### 4.3 Crear una cuenta
 
@@ -209,7 +211,8 @@ en la auditoría.
 | 3 | Categorías | Ver las sugeridas y **agregar** las tuyas (nombre, tipo y grupo del plan); las tuyas se pueden eliminar si no tienen registros |
 | 4 | Verificación en dos pasos | **Cambiar autenticador** (teléfono nuevo o perdido) con un código de la app o de respaldo |
 | 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
-| 6 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
+| 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.16) |
+| 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
 
 ### 4.11 Resúmenes por correo
 
@@ -267,7 +270,31 @@ avisa:
 Si algo falla (sin internet, descarga incompleta, archivo que no coincide), sigues con la versión
 que tenías y se reintenta más tarde. El registro queda en `%APPDATA%\PRPagos\logs\actualizador.log`.
 
-### 4.16 Preguntas frecuentes
+### 4.16 Llaves de acceso (Windows Hello)
+
+![Sección Llaves de acceso en Perfil](img/manual-escritorio/15-llaves.png)
+
+Con una llave de acceso entras sin escribir la contraseña ni el código: Windows Hello te pide tu
+PIN, huella o rostro. Requiere Windows 10 u 11 con Windows Hello configurado (**Configuración →
+Cuentas → Opciones de inicio de sesión**); si no lo está, el botón aparece desactivado con un aviso.
+
+**Agregar este equipo** (en **Perfil → Llaves de acceso**):
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Nombre del dispositivo | Un nombre para reconocerlo (por ejemplo, "Portátil") |
+| 2 | Código de la app o de respaldo | Un código vigente, para confirmar que eres tú |
+| 3 | Agregar este dispositivo | Windows pide tu PIN, huella o rostro y guarda la llave |
+
+**Ingresar:** en la portada pulsa **Ingresar con llave de acceso** y confirma en la ventana de
+Windows Hello. Abre el **Dashboard** directamente.
+
+- La llave es la misma de la web: si la creaste en Edge o Chrome en este Windows, también sirve
+  aquí (y al revés). En otro equipo necesitas agregar otra.
+- Si cambias de equipo, elimina su llave en **Perfil**. La contraseña + código y los códigos de
+  respaldo siguen funcionando.
+
+### 4.17 Preguntas frecuentes
 
 **¿Tengo que configurar el autenticador otra vez si ya lo uso en la web?** No. Es uno solo por
 cuenta, igual que los códigos de respaldo.
@@ -294,6 +321,7 @@ página de Releases del proyecto.
 | Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella SHA-256 | Nadie los ve después de mostrarlos |
 | Ingresos, gastos, categorías y plan | Tu presupuesto | Oracle, marcados con tu cuenta | Solo tú |
 | Configuración de conexión | Conectarse a la base y enviar correos | `%APPDATA%\PRPagos\config.properties`, con las claves cifradas por DPAPI | Solo tu usuario de Windows en ese equipo |
+| Llaves de acceso | Ingresar con Windows Hello | Oracle, solo la clave pública y un contador | Nadie: el PIN, la huella y la clave privada nunca salen del equipo |
 | Sesión | Mantenerte conectado | En memoria, mientras la aplicación está abierta | Nadie; se borra al cerrar |
 
 ### Cómo se protege tu información
@@ -301,6 +329,9 @@ página de Releases del proyecto.
 - **Configuración cifrada con DPAPI:** la contraseña de la base, la clave del autenticador y la de
   correo quedan como `dpapi:…`. Si alguien copia el archivo a otro equipo, o lo pega en un chat,
   no puede descifrarlas.
+- **Llaves de acceso con Windows Hello:** la aplicación usa la misma API de Windows que Edge y
+  Chrome (webauthn.dll), exige la verificación (PIN, huella o rostro) y comprueba cada firma con la
+  clave pública guardada, el sitio de PRPagos y un reto nuevo en cada ingreso.
 - **Actualizaciones verificadas:** solo se descargan por HTTPS desde GitHub; la huella SHA-256
   esperada viene de la base de datos (no del sitio de descarga), y el paquete se descarta si la
   huella o la versión no coinciden.

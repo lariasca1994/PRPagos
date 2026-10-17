@@ -182,7 +182,7 @@ def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
             "DELETE FROM TBAuditoria WHERE usuario_id = :id AND id_pago IS NULL", id=usuario_id
         )
         # Lo que cuelga de la cuenta (no tiene registros, así que tampoco usa sus categorías).
-        for tabla in ("TBCodigosRespaldo", "TBPresupuestos", "TBEnviosResumen", "TBCategorias"):
+        for tabla in ("TBCodigosRespaldo", "TBPresupuestos", "TBEnviosResumen", "TBCategorias", "TBLlavesAcceso"):
             cur.execute(f"DELETE FROM {tabla} WHERE usuario_id = :id", id=usuario_id)
         cur.execute("DELETE FROM TBPLogin WHERE id = :id", id=usuario_id)
         afectadas = cur.rowcount
@@ -555,3 +555,42 @@ def publicar_version_escritorio(version: str, url: str, sha256: str) -> None:
             v=version, u=url, s=sha256,
         )
         conn.commit()
+
+
+# ───────────────────────── Llaves de acceso ─────────────────────────
+
+
+def llaves(usuario_id: int) -> list[dict]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("llaves_usuario"), usuario_id=usuario_id)
+        return [{"id": int(i), "nombre": n, "creada": c, "ultimo_uso": u, "credencial_id": cid}
+                for i, n, c, u, cid in cur]
+
+
+def llave_por_credencial(credencial_id: str) -> dict | None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("llave_por_credencial"), credencial_id=credencial_id)
+        fila = cur.fetchone()
+        if fila is None:
+            return None
+        return {"id": int(fila[0]), "usuario_id": int(fila[1]), "clave_publica": fila[2],
+                "contador": int(fila[3])}
+
+
+def guardar_llave(usuario_id: int, credencial_id: str, clave_publica: str, contador: int,
+                  nombre: str) -> None:
+    with obtener_conexion() as conn:
+        conn.cursor().execute(consulta("llave_nueva"), usuario_id=usuario_id, credencial_id=credencial_id,
+                              clave_publica=clave_publica, contador=contador, nombre=nombre)
+
+
+def usar_llave(llave_id: int, usuario_id: int, contador: int) -> None:
+    with obtener_conexion() as conn:
+        conn.cursor().execute(consulta("llave_usada"), id=llave_id, usuario_id=usuario_id, contador=contador)
+
+
+def eliminar_llave(usuario_id: int, llave_id: int) -> None:
+    with obtener_conexion() as conn:
+        conn.cursor().execute(consulta("llave_eliminar"), id=llave_id, usuario_id=usuario_id)

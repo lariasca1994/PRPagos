@@ -7,3 +7,4 @@ pyjwt==2.9.0
 python-dotenv==1.0.1
 cryptography==50.0.1
 qrcode==8.2
+webauthn==3.0.1

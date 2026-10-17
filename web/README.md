@@ -77,6 +77,8 @@ detalle de la migración.
 - Ingreso en dos pasos obligatorio: contraseña y código TOTP; el autenticador
   se configura una sola vez y sirve también en el escritorio
 - 10 **códigos de respaldo** de un solo uso y **código por correo** si se pierde el teléfono
+- **Llaves de acceso (passkeys):** **Ingresar con llave de acceso** con Windows Hello, huella,
+  rostro o PIN, en Windows, Android (también en la PWA) y iPhone; se agregan desde Perfil
 - **Perfil**: datos, resúmenes, plan, categorías, autenticador, códigos de
   respaldo y contraseña
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
@@ -107,6 +109,7 @@ con contraseña cuando la URL contiene "pagos".
 | Sesiones | JWT (HS256) en cookie httponly; 6 h sin uso, máximo 8 h |
 | Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única), igual que el escritorio |
 | Verificación en dos pasos | TOTP (RFC 6238); QR en SVG; secreto cifrado con AES-256-GCM |
+| Llaves de acceso | WebAuthn: librería `webauthn` (servidor) y `static/llaves.js` (navegador) |
 | App instalable | PWA: manifiesto web y service worker |
 | Despliegue | Docker en Google Cloud Run |
 
@@ -131,6 +134,7 @@ web/
     ├── resumenes.py      Arma y envía los resúmenes; tarea diaria
     ├── correo.py         Cliente de la API de Brevo
     ├── seguridad.py      PBKDF2, TOTP, cifrado AES-GCM, códigos de respaldo y JWT
+    ├── llaves.py         Llaves de acceso (WebAuthn): opciones, reto firmado y verificación
     ├── qr.py             Código QR del autenticador (SVG)
     ├── dependencias.py   Identificación del usuario en cada petición
     ├── routers/          Ingreso en dos pasos, dashboard, registros, perfil y tareas
@@ -174,6 +178,9 @@ están en la raíz del repositorio, compartidos con la versión de escritorio.
 - Verificación en dos pasos obligatoria (TOTP); un código no se puede usar dos
   veces. El secreto se guarda cifrado con AES-256-GCM; la clave (`TOTP_CLAVE`)
   vive fuera de la base.
+- Llaves de acceso: verificación del dispositivo obligatoria, solo para el dominio de la web, reto
+  nuevo en una cookie firmada de 5 minutos y firma comprobada con la clave pública guardada (ES256
+  o RS256); un contador que no avanza se rechaza. Agregar una pide un código vigente.
 - Códigos de respaldo y código por correo: solo se guarda su huella SHA-256,
   sirven una vez (el de correo vence en 15 minutos) y cada uso queda auditado.
 - Cinco intentos fallidos seguidos bloquean la cuenta 5 minutos; lo decide la
@@ -218,7 +225,8 @@ El paso a paso con capturas de cada pantalla está en el
 3. **Primera vez:** escanea el QR con tu app autenticadora, escribe el código y
    pulsa **Activar e ingresar**; guarda los 10 **códigos de respaldo** que
    aparecen. Si ya lo configuraste en el escritorio, este paso no aparece.
-4. **Siguientes veces:** escribe el código de 6 dígitos (o uno de respaldo).
+4. **Siguientes veces:** escribe el código de 6 dígitos (o uno de respaldo), o pulsa **Ingresar
+   con llave de acceso** si agregaste este dispositivo en Perfil.
 
 ### 5.2 Dashboard
 
@@ -235,7 +243,7 @@ el resumen semanal o del mes por correo.
 ### 5.4 Perfil y recuperación
 
 - **Perfil:** nombre y resúmenes por correo, porcentajes del plan, categorías
-  propias, cambio de autenticador, códigos de respaldo nuevos y contraseña.
+  propias, cambio de autenticador, códigos de respaldo nuevos, llaves de acceso y contraseña.
 - **Perdí mi teléfono** (paso del código): usa un código de respaldo o pide un
   código al correo para configurar un autenticador nuevo.
 - **Olvidé mi contraseña** (portada): correo, nombre registrado, un código del
@@ -323,6 +331,7 @@ pueden repetir; sin `--aplicar` solo muestran el SQL:
 python migrar.py seguridad --aplicar        # verificación en dos pasos
 python migrar.py finanzas --aplicar         # ingresos, categorías, plan, respaldo y resúmenes
 python migrar.py actualizaciones --aplicar  # versiones del escritorio
+python migrar.py llaves --aplicar           # llaves de acceso
 ```
 
 ### Ejecución

@@ -18,14 +18,15 @@ Cinco intentos fallidos seguidos (contraseña, código o datos de
 recuperación) bloquean la cuenta 5 minutos: lo decide la base, en los
 procedimientos de sql/seguridad.sql, igual para la web y el escritorio.
 """
+import json
 from urllib.parse import quote
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Body, Form, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import correo as servicio_correo
-from .. import finanzas, repositorio
+from .. import finanzas, llaves, repositorio
 from ..seguridad import (
     MENSAJES_CIERRE,
     MINUTOS_CODIGO_CORREO,
@@ -55,6 +56,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 COOKIE_SESION = "sesion"
 COOKIE_ACCESO = "acceso"
+COOKIE_RETO = "reto_llave"
 MENSAJE_BLOQUEO = "Demasiados intentos fallidos. Espera 5 minutos e inténtalo de nuevo."
 # Con un correo inexistente se verifica contra este hash igual, para que el
 # tiempo de respuesta no delate qué correos tienen cuenta.
@@ -168,6 +170,51 @@ def procesar_codigo(request: Request, codigo: str = Form(...)):
     if not verificar_segundo_factor(cred, codigo, "INGRESO"):
         return _redirigir("/login/codigo", "Código incorrecto o ya usado")
     return _abrir_sesion(cred)
+
+
+# ─────────────── Ingresar con una llave de acceso (WebAuthn) ───────────────
+#
+# Reemplaza los dos pasos: la llave exige la huella, el rostro o el PIN del
+# dispositivo. Mismas reglas que VentanaLogin.ingresarConLlave() del escritorio.
+
+
+def _error_llave(mensaje: str) -> JSONResponse:
+    return JSONResponse({"error": mensaje}, status_code=400)
+
+
+@router.post("/login/llave/opciones")
+def opciones_llave():
+    reto, token = llaves.crear_reto("ingreso")
+    respuesta = JSONResponse(json.loads(llaves.opciones_ingreso(reto)))
+    respuesta.set_cookie(COOKIE_RETO, token, httponly=True, secure=True, samesite="strict", max_age=300)
+    return respuesta
+
+
+@router.post("/login/llave")
+def ingresar_con_llave(request: Request, credencial: dict = Body(...)):
+    datos = llaves.leer_reto(request.cookies.get(COOKIE_RETO), "ingreso")
+    if datos is None:
+        return _error_llave("La solicitud expiró; inténtalo de nuevo.")
+    llave = repositorio.llave_por_credencial(str(credencial.get("id", "")))
+    if llave is None:
+        return _error_llave("Esta llave de acceso no está registrada en PRPagos.")
+    cred = repositorio.obtener_credenciales(usuario_id=llave["usuario_id"])
+    if cred is None:
+        return _error_llave("Usuario o contraseña incorrectos")
+    if cred["bloqueada"]:
+        return _error_llave(MENSAJE_BLOQUEO)
+    manejador = (credencial.get("response") or {}).get("userHandle")
+    try:
+        if manejador and llaves.base64url_to_bytes(manejador) != llaves.id_usuario(cred["usuario_id"]):
+            raise llaves.ErrorLlave("La llave de acceso no es válida.")
+        contador = llaves.verificar_ingreso(credencial, datos["reto"], llave["clave_publica"], llave["contador"])
+    except llaves.ErrorLlave as error:
+        repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_LLAVE")
+        return _error_llave(str(error))
+    repositorio.usar_llave(llave["id"], cred["usuario_id"], contador)
+    respuesta = _abrir_sesion(cred, JSONResponse({"ir": "/dashboard"}))
+    respuesta.delete_cookie(COOKIE_RETO)
+    return respuesta
 
 
 # ─────────────────── Paso 2b: configurar el autenticador ───────────────────

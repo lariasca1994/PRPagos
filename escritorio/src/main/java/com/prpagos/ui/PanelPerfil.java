@@ -24,10 +24,13 @@ import javax.swing.JTextField;
 
 import com.prpagos.datos.Credenciales;
 import com.prpagos.datos.RepositorioFinanzas;
+import com.prpagos.datos.RepositorioLlaves;
 import com.prpagos.datos.RepositorioUsuarios;
 import com.prpagos.datos.Sesion;
 import com.prpagos.finanzas.Finanzas;
 import com.prpagos.seguridad.CifradoTotp;
+import com.prpagos.seguridad.LlavesAcceso;
+import com.prpagos.seguridad.WindowsHello;
 import com.prpagos.seguridad.Recuperacion;
 import com.prpagos.seguridad.Seguridad;
 import com.prpagos.seguridad.Totp;
@@ -65,6 +68,12 @@ class PanelPerfil extends JPanel {
     private final JLabel restantes = pastilla();
     private final JTextField codigoCambio = Ui.campoCodigo();
     private final JTextField codigoRespaldo = Ui.campoCodigo();
+    // Llaves de acceso
+    private final JPanel listaLlaves = new JPanel(new GridLayout(0, 4, 0, 0));
+    private final JTextField nombreLlave = Ui.campo("Portátil, celular…");
+    private final JTextField codigoLlave = Ui.campoCodigo();
+    private final Ui.Aviso avisoLlaves = new Ui.Aviso();
+    private JButton agregarLlave;
     // Contraseña
     private final JPasswordField actual = Ui.clave();
     private final JPasswordField nueva = Ui.clave();
@@ -198,6 +207,25 @@ class PanelPerfil extends JPanel {
         p.add(par(totp, respaldoTarjeta));
         p.add(Ui.espacio(16));
 
+        JPanel llaves = Ui.tarjeta();
+        listaLlaves.setOpaque(false);
+        JPanel nuevaLlave = new JPanel(new GridLayout(1, 3, 12, 0));
+        nuevaLlave.setOpaque(false);
+        nuevaLlave.add(conEtiqueta("Nombre del dispositivo", nombreLlave));
+        nuevaLlave.add(conEtiqueta("Código de la app o de respaldo", codigoLlave));
+        JPanel botonLlave = new JPanel(new BorderLayout());
+        botonLlave.setOpaque(false);
+        botonLlave.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
+        agregarLlave = Ui.secundario("Agregar este dispositivo", e -> agregarLlave());
+        botonLlave.add(agregarLlave, BorderLayout.NORTH);
+        nuevaLlave.add(botonLlave);
+        agregar(llaves, Ui.titulo("Llaves de acceso", 17f), Ui.espacio(6),
+                ayuda("Ingresa sin contraseña ni código con Windows Hello, la huella, el rostro o el PIN de este "
+                        + "dispositivo. Tu huella nunca sale del dispositivo: PRPagos solo guarda una clave pública."),
+                Ui.espacio(8), listaLlaves, Ui.espacio(8), avisoLlaves, Ui.espacio(4), nuevaLlave);
+        p.add(llaves);
+        p.add(Ui.espacio(16));
+
         JPanel clave = Ui.tarjeta();
         JPanel columnas = new JPanel(new GridLayout(1, 2, 16, 0));
         columnas.setOpaque(false);
@@ -291,7 +319,7 @@ class PanelPerfil extends JPanel {
     // ───────────────────────── Carga ─────────────────────────
 
     private record Estado(RepositorioFinanzas.Perfil perfil, boolean totp, Map<String, Double> pcts,
-                          List<RepositorioFinanzas.Categoria> categorias) {
+                          List<RepositorioFinanzas.Categoria> categorias, List<RepositorioLlaves.Llave> llaves) {
     }
 
     void recargar() {
@@ -302,7 +330,7 @@ class PanelPerfil extends JPanel {
         Tarea.ejecutar(this, () -> {
             Credenciales cred = RepositorioUsuarios.porId(id);
             return new Estado(RepositorioFinanzas.perfil(id), cred != null && cred.totpActivo(),
-                    RepositorioFinanzas.plan(id), RepositorioFinanzas.categorias(id));
+                    RepositorioFinanzas.plan(id), RepositorioFinanzas.categorias(id), RepositorioLlaves.deUsuario(id));
         }, e -> {
             nombre.setText(e.perfil().nombre());
             correo.setText(e.perfil().usuario());
@@ -314,6 +342,7 @@ class PanelPerfil extends JPanel {
             respaldo = e.perfil().respaldoRestantes();
             pintarEstados();
             llenarCategorias(e.categorias());
+            llenarLlaves(e.llaves());
         }, e -> aviso.error(Ui.mensajeError("leer el perfil").apply(e)));
     }
 
@@ -342,8 +371,7 @@ class PanelPerfil extends JPanel {
             listaCategorias.add(fila("INGRESO".equals(c.tipo()) ? "Ingreso" : "Gasto"));
             listaCategorias.add(fila(c.grupo() == null ? "—" : Finanzas.NOMBRE_GRUPO.get(c.grupo())));
             if (c.propia()) {
-                JButton eliminar = Ui.enlace("Eliminar", ev -> eliminarCategoria(c.id()));
-                listaCategorias.add(eliminar);
+                listaCategorias.add(celdaEnlace(Ui.enlace("Eliminar", ev -> eliminarCategoria(c.id()))));
             } else {
                 JLabel sugerida = fila("Sugerida");
                 sugerida.setForeground(p.textoSuave());
@@ -352,6 +380,48 @@ class PanelPerfil extends JPanel {
         }
         listaCategorias.revalidate();
         listaCategorias.repaint();
+    }
+
+    private void llenarLlaves(List<RepositorioLlaves.Llave> lista) {
+        listaLlaves.removeAll();
+        Tema.Paleta p = Tema.c();
+        for (String e : new String[] {"Dispositivo", "Agregada", "Último uso", ""}) {
+            JLabel l = new JLabel(e);
+            l.setFont(l.getFont().deriveFont(Font.BOLD, 12.5f));
+            l.setForeground(p.textoSuave());
+            l.setBorder(BorderFactory.createEmptyBorder(6, 2, 6, 2));
+            listaLlaves.add(l);
+        }
+        if (lista.isEmpty()) {
+            JLabel vacio = fila("Todavía no tienes llaves de acceso.");
+            vacio.setForeground(p.textoSuave());
+            listaLlaves.add(vacio);
+            for (int i = 0; i < 3; i++) {
+                listaLlaves.add(new JLabel());
+            }
+        }
+        for (RepositorioLlaves.Llave llave : lista) {
+            listaLlaves.add(fila(llave.nombre()));
+            listaLlaves.add(fila(llave.creada()));
+            listaLlaves.add(fila(llave.ultimoUso() == null ? "—" : llave.ultimoUso()));
+            listaLlaves.add(celdaEnlace(Ui.enlace("Eliminar", ev -> eliminarLlave(llave.id()))));
+        }
+        avisoLlaves.ocultar();
+        boolean hello = WindowsHello.disponible();
+        agregarLlave.setEnabled(hello);
+        if (!hello) {
+            avisoLlaves.error("Este equipo no tiene Windows Hello configurado.");
+        }
+        listaLlaves.revalidate();
+        listaLlaves.repaint();
+    }
+
+    /** Enlace a su tamaño dentro de una celda de la rejilla (como en la tabla de la web). */
+    private static JPanel celdaEnlace(JButton enlace) {
+        JPanel celda = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 3));
+        celda.setOpaque(false);
+        celda.add(enlace);
+        return celda;
     }
 
     private static JLabel fila(String texto) {
@@ -558,5 +628,59 @@ class PanelPerfil extends JPanel {
             }
             resultado(error, "Contraseña actualizada");
         }, e -> aviso.error(Ui.mensajeError("cambiar la contraseña").apply(e)));
+    }
+
+    // ───────────────────────── Llaves de acceso (mismas reglas que /perfil/llaves de la web) ─────────────────────────
+
+    private void agregarLlave() {
+        String nombreDispositivo = LlavesAcceso.nombreValido(nombreLlave.getText());
+        String codigo = codigoLlave.getText();
+        avisoLlaves.ocultar();
+        if (nombreDispositivo == null) {
+            avisoLlaves.error("Escribe un nombre para este dispositivo");
+            return;
+        }
+        Sesion s = sesion();
+        java.awt.Window ventanaActual = javax.swing.SwingUtilities.getWindowAncestor(this);
+        Tarea.ejecutar(this, () -> {
+            String error = verificarCuentaYCodigo(codigo);
+            if (error != null) {
+                return error;
+            }
+            List<byte[]> existentes = new ArrayList<>();
+            for (RepositorioLlaves.Llave llave : RepositorioLlaves.deUsuario(s.usuarioId())) {
+                existentes.add(LlavesAcceso.deB64(llave.credencialId()));
+            }
+            byte[] datosCliente = LlavesAcceso.datosCliente("webauthn.create", LlavesAcceso.reto());
+            try {
+                byte[] datos = WindowsHello.crear(ventanaActual, LlavesAcceso.idUsuario(s.usuarioId()), s.correo(),
+                        s.nombre(), datosCliente, existentes);
+                LlavesAcceso.Registrada nueva = LlavesAcceso.verificarRegistro(datos);
+                if (!RepositorioLlaves.guardar(s.usuarioId(), nueva.credencialId(), nueva.clavePublica(),
+                        nueva.contador(), nombreDispositivo)) {
+                    return "Esa llave de acceso ya está registrada";
+                }
+            } catch (LlavesAcceso.ErrorLlave e) {
+                return e.getMessage();
+            }
+            return null;
+        }, error -> {
+            codigoLlave.setText("");
+            if (error != null) {
+                avisoLlaves.error(error);
+            } else {
+                nombreLlave.setText("");
+                resultado(null, "Llave de acceso guardada");
+            }
+        }, e -> avisoLlaves.error(Ui.mensajeError("guardar la llave de acceso").apply(e)));
+    }
+
+    private void eliminarLlave(long llaveId) {
+        long id = sesion().usuarioId();
+        Tarea.ejecutar(this, () -> {
+            RepositorioLlaves.eliminar(id, llaveId);
+            return null;
+        }, r -> resultado(null, "Llave de acceso eliminada"),
+                e -> aviso.error(Ui.mensajeError("eliminar la llave de acceso").apply(e)));
     }
 }

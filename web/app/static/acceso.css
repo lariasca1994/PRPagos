@@ -491,3 +491,45 @@ body.acceso {
     transform: rotate(-8deg);
   }
 }
+
+/* Ingresar con llave de acceso (Windows Hello, huella, rostro o PIN). */
+.separador-acceso {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.1rem 0 0;
+  color: var(--a-suave);
+  font-size: 0.85rem;
+}
+
+.separador-acceso::before,
+.separador-acceso::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--a-borde);
+}
+
+.formulario-acceso .boton-llave {
+  display: block;
+  width: 100%;
+  margin-top: 0.9rem;
+  background: transparent;
+  color: var(--a-plataforma);
+  border: 1px solid var(--a-plataforma);
+}
+
+.formulario-acceso .boton-llave:hover {
+  background: var(--a-plataforma-suave);
+}
+
+.formulario-acceso .boton-llave:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ayuda-llave {
+  margin: 0.4rem 0 0;
+  text-align: center;
+  color: var(--a-suave);
+  font-size: 0.8rem;
+}
