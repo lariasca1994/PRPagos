@@ -2,7 +2,7 @@
 {% block titulo %}Recuperar contraseña - PRPagos{% endblock %}
 {% block paso %}Recuperar acceso{% endblock %}
 {% block titulo_form %}Recuperar contraseña{% endblock %}
-{% block subtitulo %}Confirma tu correo, el nombre con el que te registraste y el código de tu autenticador para definir una contraseña nueva.{% endblock %}
+{% block subtitulo %}Confirma tu correo, el nombre con el que te registraste y un código de tu autenticador (o de respaldo) para definir una contraseña nueva.{% endblock %}
 {% block formulario %}
 <form method="post" action="/recuperar">
     <label for="correo">Correo</label>
@@ -11,8 +11,8 @@
     <label for="nombre_registrado">Nombre registrado</label>
     <input type="text" id="nombre_registrado" name="nombre_registrado" autocomplete="name" required>
 
-    <label for="codigo">Código del autenticador</label>
-    <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456">
+    <label for="codigo">Código del autenticador o de respaldo</label>
+    <input type="text" id="codigo" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456">
     <small class="ayuda-campo">Si todavía no configuraste tu autenticador, déjalo vacío.</small>
 
     <label for="nueva_contrasena">Nueva contraseña (mínimo 8 caracteres)</label>

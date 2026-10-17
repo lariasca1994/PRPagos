@@ -4,18 +4,9 @@
 <section class="tarjeta-formulario">
     <h1>Modificar registro #{{ registro.id_pago }}</h1>
     {% if usuario.es_admin %}<p class="texto-suave">Gestionando como admin.</p>{% endif %}
-    {% set qs = request.query_params.get('error') %}
-    {% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
+    {% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% endif %}
     <form method="post" action="/registros/{{ registro.id_pago }}/editar">
-        <label for="monto">Monto</label>
-        <input type="text" id="monto" name="monto" value="{{ registro.monto }}" required autofocus>
-
-        <label for="fecha">Fecha</label>
-        <input type="date" id="fecha" name="fecha" value="{{ registro.fecha }}" required>
-
-        <label for="concepto">Concepto</label>
-        <input type="text" id="concepto" name="concepto" value="{{ registro.concepto }}" required>
-
+        {% include "fragmentos/formulario_registro.html" %}
         <button type="submit" class="boton">Guardar cambios</button>
     </form>
     <p><a href="/registros">Volver a consultar registros</a></p>
@@ -28,4 +19,5 @@
         {% endif %}
     </p>
 </section>
+<script src="/static/registros.js" defer></script>
 {% endblock %}

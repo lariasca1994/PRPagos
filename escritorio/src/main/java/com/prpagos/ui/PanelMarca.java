@@ -22,16 +22,16 @@ import javax.swing.JPanel;
 
 /**
  * Panel de marca de la portada de acceso (lado derecho), copia del
- * .marca-panel de la web: trama de papel de seguridad, titular "Cada pago,
- * con su rastro.", el recibo con el sello AUDITADO y los tres puntos.
+ * .marca-panel de la web: trama de papel de seguridad, titular "Cada peso,
+ * con su plan.", el recibo con el sello EN EL PLAN y los tres puntos.
  */
 public class PanelMarca extends JPanel {
 
     private static final String[][] RENGLONES = {
-        {"Arriendo oficina", "1.850.000,00"},
-        {"Servicios públicos", "312.400,00"},
-        {"Proveedor papelería", "96.750,00"},
-        {"Mantenimiento equipos", "240.000,00"},
+        {"Vivienda", "1.250.000,00"},
+        {"Mercado", "620.000,00"},
+        {"Ocio", "310.000,00"},
+        {"Ahorro", "840.000,00"},
     };
 
     public PanelMarca() {
@@ -39,15 +39,15 @@ public class PanelMarca extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(48, 56, 48, 56));
         setOpaque(true);
 
-        JLabel etiqueta = new JLabel("GESTIÓN DE PAGOS · ORACLE");
+        JLabel etiqueta = new JLabel("PRESUPUESTO PERSONAL · ORACLE");
         etiqueta.setFont(etiqueta.getFont().deriveFont(Font.BOLD, 11.5f));
 
         JLabel titular = new JLabel();
         titular.setFont(new Font("Georgia", Font.BOLD, 36));
 
         javax.swing.JTextArea bajada = Ui.suave(
-                "Registra pagos por monto, fecha y concepto; búscalos, expórtalos a CSV y conserva "
-                + "la auditoría de cada cambio. Cada usuario ve solo los suyos.");
+                "Registra ingresos y gastos por categoría, sigue tu plan 50/30/20 en el dashboard y recibe "
+                + "un resumen por correo cada semana y cada mes. Cada usuario ve solo lo suyo.");
         bajada.setFont(bajada.getFont().deriveFont(14.5f));
         bajada.setMaximumSize(new Dimension(460, 120));
 
@@ -76,13 +76,13 @@ public class PanelMarca extends JPanel {
             String acento = Tema.esOscuro() ? hex(p.enlace()) : hex(p.acento());
             etiqueta.setForeground(p.plataforma());
             titular.setForeground(p.marcaTexto());
-            titular.setText("<html>Cada pago,<br><i style='color:" + acento + "'>con su rastro.</i></html>");
+            titular.setText("<html>Cada peso,<br><i style='color:" + acento + "'>con su plan.</i></html>");
             bajada.setForeground(p.marcaSuave());
             puntos.setForeground(p.marcaSuave());
             String fuerte = "<b style='color:" + hex(p.marcaTexto()) + "'>";
-            puntos.setText("<html>" + fuerte + "Filtra</b> por concepto, monto o fecha &nbsp;·&nbsp; "
-                    + fuerte + "Exporta</b> a CSV &nbsp;·&nbsp; " + fuerte
-                    + "Protege</b> tu cuenta en dos pasos</html>");
+            puntos.setText("<html>" + fuerte + "Registra</b> ingresos y gastos &nbsp;·&nbsp; "
+                    + fuerte + "Sigue</b> tu plan 50/30/20 &nbsp;·&nbsp; " + fuerte
+                    + "Recibe</b> tu resumen por correo</html>");
             repaint();
         });
     }
@@ -118,12 +118,50 @@ public class PanelMarca extends JPanel {
         private static final int ANCHO = 352;
         private static final int ALTO = 250;
 
+        // Animación de la web (acceso.css): cada renglón "se imprime" (0,45 s, bajando 6 px)
+        // a los 0,3 / 0,75 / 1,2 / 1,65 s y el sello cae a los 2,3 s (0,35 s, de escala 1,6 a 1).
+        private static final double[] INICIO_RENGLON = {0.30, 0.75, 1.20, 1.65};
+        private static final double DURACION_RENGLON = 0.45;
+        private static final double INICIO_SELLO = 2.30;
+        private static final double DURACION_SELLO = 0.35;
+        private long inicio = -1;
+        private final javax.swing.Timer animacion = new javax.swing.Timer(16, e -> {
+            repaint();
+            if (segundos() > INICIO_SELLO + DURACION_SELLO + 0.1) {
+                ((javax.swing.Timer) e.getSource()).stop();
+            }
+        });
+
         Recibo() {
             setAlignmentX(Component.LEFT_ALIGNMENT);
             Dimension d = new Dimension(ANCHO + 20, ALTO + 30);
             setPreferredSize(d);
             setMaximumSize(d);
             setMinimumSize(d);
+        }
+
+        /** La animación empieza cuando el recibo aparece en pantalla, como al cargar la página. */
+        @Override
+        public void addNotify() {
+            super.addNotify();
+            inicio = System.nanoTime();
+            animacion.restart();
+        }
+
+        @Override
+        public void removeNotify() {
+            animacion.stop();
+            super.removeNotify();
+        }
+
+        private double segundos() {
+            return inicio < 0 ? 99 : (System.nanoTime() - inicio) / 1e9;
+        }
+
+        /** 0..1 con aceleración de salida (ease-out), como la curva de la web. */
+        private static double progreso(double t, double desde, double duracion) {
+            double x = Math.max(0, Math.min(1, (t - desde) / duracion));
+            return 1 - Math.pow(1 - x, 3);
         }
 
         @Override
@@ -164,27 +202,46 @@ public class PanelMarca extends JPanel {
             int y = 30;
             g2.setFont(monoChica);
             g2.setColor(p.marcaSuave());
-            g2.drawString("REGISTRO DE PAGOS", izq, y);
-            derecha(g2, "N.º 0427", der, y);
+            g2.drawString("GASTOS DEL MES", izq, y);
+            derecha(g2, "PLAN 50/30/20", der, y);
             y += 12;
             punteada(g2, p, izq, der, y);
             y += 26;
             g2.setFont(mono);
             g2.setColor(p.marcaTexto());
-            for (String[] r : RENGLONES) {
-                g2.drawString(r[0], izq, y);
-                derecha(g2, r[1], der, y);
+            double t = segundos();
+            java.awt.Composite normal = g2.getComposite();
+            for (int i = 0; i < RENGLONES.length; i++) {
+                double a = progreso(t, INICIO_RENGLON[i], DURACION_RENGLON);
+                if (a > 0) {
+                    int caida = (int) Math.round(-6 * (1 - a));
+                    g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, (float) a));
+                    g2.drawString(RENGLONES[i][0], izq, y + caida);
+                    derecha(g2, RENGLONES[i][1], der, y + caida);
+                }
                 y += 26;
             }
+            g2.setComposite(normal);
             y -= 6;
             punteada(g2, p, izq, der, y);
             y += 24;
             g2.setFont(mono.deriveFont(Font.BOLD));
             g2.drawString("TOTAL", izq, y);
-            derecha(g2, "2.499.150,00", der, y);
+            derecha(g2, "3.020.000,00", der, y);
 
-            // Sello AUDITADO sobre el borde inferior, como en la web (.sello).
+            // Sello EN EL PLAN sobre el borde inferior, como en la web (.sello): aparece al final
+            // con un "golpe" de escala 1,6 -> 1 y queda con opacidad 0,9.
+            double s = progreso(t, INICIO_SELLO, DURACION_SELLO);
+            if (s <= 0) {
+                g2.dispose();
+                return;
+            }
+            g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, (float) (0.9 * s)));
+            double escala = 1.6 - 0.6 * s;
             g2.rotate(Math.toRadians(-8), der - 56, ALTO);
+            g2.translate(der - 56, ALTO);
+            g2.scale(escala, escala);
+            g2.translate(-(der - 56), -ALTO);
             g2.setColor(p.papel());
             g2.fillRoundRect(der - 112, ALTO - 16, 112, 32, 8, 8);
             Color sello = Tema.esOscuro() ? p.enlace() : p.acento();
@@ -193,7 +250,7 @@ public class PanelMarca extends JPanel {
             g2.drawRoundRect(der - 112, ALTO - 16, 112, 32, 8, 8);
             g2.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString("AUDITADO", der - 56 - fm.stringWidth("AUDITADO") / 2, ALTO + 5);
+            g2.drawString("EN EL PLAN", der - 56 - fm.stringWidth("EN EL PLAN") / 2, ALTO + 5);
             g2.dispose();
         }
 

@@ -1,14 +1,25 @@
 # =====================================================================
 # PRPagos Escritorio — configuración (escritorio/config.properties.example)
 #
-# La lee conexion/ConexionBD.java al conectarse. Plantilla: cópiala sin el .example y completa tus datos reales.
+# La lee conexion/ConexionBD.java al conectarse. Plantilla: cópiala sin el
+# .example y completa tus datos reales.
+#
+# Dónde va:
+#   - Desde el código: escritorio/config.properties.
+#   - Aplicación instalada (PRPagos.exe): %APPDATA%\PRPagos\config.properties,
+#     con wallet.path como ruta absoluta (o relativa a esa carpeta).
+#
+# Protección: en Windows, la primera vez que la aplicación lee el archivo
+# cifra db.password, totp.clave y brevo.api.key con DPAPI (quedan como
+# "dpapi:..."), atados a tu usuario de Windows en este equipo. Para cambiar
+# uno, vuelve a escribirlo en claro y la aplicación lo cifrará de nuevo.
 # =====================================================================
 
 # ── Base de datos: Oracle Autonomous Database ────────────────────────
 # Las mismas que web/.env (WALLET_PATH, DB_ALIAS, DB_USUARIO, DB_PASSWORD).
 
-# Carpeta del Wallet descargado de Oracle Cloud (el Wallet está en la raíz
-# del repositorio). El escritorio usa el Wallet SSO: no necesita contraseña.
+# Carpeta del Wallet descargado de Oracle Cloud (relativa a este archivo o
+# absoluta). El escritorio usa el Wallet SSO: no necesita contraseña.
 wallet.path=../wallet
 # Alias de conexión de wallet/tnsnames.ora (el que termina en _tp).
 db.alias=TU_BASE_tp
@@ -26,3 +37,7 @@ totp.clave=TU_CLAVE_BASE64_DE_32_BYTES
 # API de Brevo para enviar correos desde el escritorio. Es la MISMA clave
 # que BREVO_API_KEY de web/.env (una sola cuenta de Brevo para las dos).
 brevo.api.key=TU_API_KEY_DE_BREVO_AQUI
+# Correo remitente verificado en Brevo (el mismo BREVO_REMITENTE de la web).
+brevo.remitente=tu-correo-verificado@dominio.com
+# Opcional: dirección pública de la web para el enlace de los correos.
+# url.publica=https://tu-servicio.run.app

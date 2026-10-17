@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard - PRPagos{% endblock %}
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>Dashboard</h1>
+    <form method="get" action="/dashboard" class="selector-mes">
+        <label for="mes" class="oculto-visual">Mes</label>
+        <select id="mes" name="mes" onchange="this.form.submit()">
+            {% for valor, texto in meses %}
+            <option value="{{ valor }}" {% if valor == mes.strftime('%Y-%m') %}selected{% endif %}>{{ texto }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% elif ok %}<p class="aviso exito" role="status">{{ ok }}</p>{% endif %}
+
+<div class="tarjetas-resumen">
+    <div class="tarjeta tarjeta-cifra"><span>Ingresos</span><strong class="cifra-ingreso">{{ moneda(d.ingresos) }}</strong></div>
+    <div class="tarjeta tarjeta-cifra"><span>Gastos</span><strong class="cifra-gasto">{{ moneda(d.gastos) }}</strong></div>
+    <div class="tarjeta tarjeta-cifra"><span>Balance</span><strong class="{{ 'cifra-bien' if d.balance >= 0 else 'cifra-mal' }}">{{ moneda(d.balance) }}</strong></div>
+    <div class="tarjeta tarjeta-cifra"><span>Ahorro del mes</span><strong>{{ d.tasa_ahorro }}</strong><small>{{ d.movimientos }} movimientos</small></div>
+</div>
+
+<div class="rejilla-graficas">
+    <section class="tarjeta grafica grafica-ancha">
+        <h2>Ingresos vs. gastos · últimos 6 meses</h2>
+        <div class="lienzo"><canvas id="grafica-meses" aria-label="Ingresos y gastos de los últimos 6 meses" role="img"></canvas></div>
+    </section>
+    <section class="tarjeta grafica">
+        <h2>Gastos por categoría · {{ nombre_mes }}</h2>
+        {% if d.categorias %}
+        <div class="lienzo"><canvas id="grafica-categorias" aria-label="Gastos por categoría" role="img"></canvas></div>
+        {% else %}
+        <p class="texto-ayuda vacio-grafica">No hay gastos en este mes.</p>
+        {% endif %}
+    </section>
+    <section class="tarjeta grafica">
+        <h2>Plan {{ texto_pct(d.pcts.NECESIDADES) }}/{{ texto_pct(d.pcts.DESEOS) }}/{{ texto_pct(d.pcts.AHORRO) }} · {{ nombre_mes }}</h2>
+        <div class="lienzo"><canvas id="grafica-plan" aria-label="Presupuesto frente a gasto real por grupo" role="img"></canvas></div>
+    </section>
+</div>
+
+<section class="tarjeta">
+    <h2>Plan {{ texto_pct(d.pcts.NECESIDADES) }}/{{ texto_pct(d.pcts.DESEOS) }}/{{ texto_pct(d.pcts.AHORRO) }}</h2>
+    <p class="texto-ayuda">Presupuesto calculado sobre los ingresos del mes. Los porcentajes se cambian en Perfil.</p>
+    <table class="tabla tabla-plan">
+        <thead><tr><th>Grupo</th><th>Presupuesto</th><th>Real</th><th>Usado</th><th>Estado</th></tr></thead>
+        <tbody>
+            {% for f in d.plan %}
+            <tr>
+                <td><span class="punto" style="background:{{ d.graficas.colores_grupo[loop.index0] }}"></span>{{ nombre_grupo[f.grupo] }} ({{ texto_pct(f.pct) }}%)</td>
+                <td>{{ moneda(f.presupuesto) }}</td>
+                <td>{{ moneda(f.real) }}</td>
+                <td>{{ f.usado|round|int }} %</td>
+                <td class="estado-plan {{ clase_estado[f.color] }}">{{ f.estado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="tarjeta resumenes-correo">
+    <h2>Resúmenes por correo</h2>
+    <p class="texto-ayuda">Cada viernes recibes el resumen de la semana y cada día 29 (en febrero, el último día) el resumen general del mes. Puedes pedirlos ahora:</p>
+    <div class="botones-resumen">
+        <form method="post" action="/dashboard/enviar-resumen" class="en-linea"><input type="hidden" name="tipo" value="semanal"><button type="submit" class="boton boton-secundario" {% if not correo_disponible %}disabled{% endif %}>Enviarme el resumen semanal</button></form>
+        <form method="post" action="/dashboard/enviar-resumen" class="en-linea"><input type="hidden" name="tipo" value="mensual"><button type="submit" class="boton boton-secundario" {% if not correo_disponible %}disabled{% endif %}>Enviarme el resumen del mes</button></form>
+    </div>
+</section>
+
+<script id="datos-graficas" type="application/json">{{ graficas_json | safe }}</script>
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/dashboard.js"></script>
+{% endblock %}

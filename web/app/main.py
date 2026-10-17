@@ -19,7 +19,7 @@ from .dependencias import (
     respuesta_redireccion_login,
     respuesta_redireccion_sin_permiso,
 )
-from .routers import auth, registros, seguridad, usuarios
+from .routers import auth, dashboard, perfil, registros, tareas, usuarios
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 logger = logging.getLogger("prpagos")
@@ -31,9 +31,11 @@ app = FastAPI(title="PRPagos Web")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
+app.include_router(dashboard.router)
 app.include_router(registros.router)
-app.include_router(seguridad.router)
+app.include_router(perfil.router)
 app.include_router(usuarios.router)
+app.include_router(tareas.router)
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -132,7 +134,7 @@ def raiz(request: Request):
     # La portada de acceso es la primera pantalla, igual que en el resto
     # del portafolio; con sesion abierta se va directo a los registros.
     if obtener_usuario_opcional(request):
-        return RedirectResponse(url="/registros", status_code=303)
+        return RedirectResponse(url="/dashboard", status_code=303)
     motivo = getattr(request.state, "motivo_cierre", None)
     if motivo:
         return respuesta_redireccion_login(motivo)

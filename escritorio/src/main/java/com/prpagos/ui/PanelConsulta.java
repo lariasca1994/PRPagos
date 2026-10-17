@@ -43,6 +43,8 @@ class PanelConsulta extends JPanel {
     private static final String ELIMINAR = "Eliminar";
 
     private final VentanaPrincipal ventana;
+    private final javax.swing.JComboBox<String> tipoFiltro =
+            new javax.swing.JComboBox<>(new String[] {"Todos", "Gastos", "Ingresos"});
     private final JTextField concepto = Ui.campo(null);
     private final JTextField montoMin = Ui.campo(null);
     private final JTextField montoMax = Ui.campo(null);
@@ -101,12 +103,15 @@ class PanelConsulta extends JPanel {
     private JPanel filtros() {
         JPanel tarjeta = Ui.tarjeta();
         tarjeta.setBorder(BorderFactory.createEmptyBorder(14, 18, 16, 18));
-        JPanel fila1 = new JPanel(new GridLayout(1, 3, 14, 0));
+        JPanel fila1 = new JPanel(new GridLayout(1, 4, 14, 0));
         fila1.setOpaque(false);
+        tipoFiltro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        tipoFiltro.setAlignmentX(LEFT_ALIGNMENT);
+        fila1.add(campoConEtiqueta("Tipo", tipoFiltro));
         fila1.add(campoConEtiqueta("Concepto contiene", concepto));
         fila1.add(campoConEtiqueta("Monto mínimo", montoMin));
         fila1.add(campoConEtiqueta("Monto máximo", montoMax));
-        JPanel fila2 = new JPanel(new GridLayout(1, 3, 14, 0));
+        JPanel fila2 = new JPanel(new GridLayout(1, 4, 14, 0));
         fila2.setOpaque(false);
         fila2.add(campoConEtiqueta("Desde", desde));
         fila2.add(campoConEtiqueta("Hasta", hasta));
@@ -115,6 +120,7 @@ class PanelConsulta extends JPanel {
         botones.add(Ui.primario("Buscar", e -> buscar()));
         botones.add(Ui.secundario("Limpiar", e -> limpiar()));
         fila2.add(botones);
+        fila2.add(new JLabel());
         for (JPanel f : new JPanel[] {fila1, fila2}) {
             f.setAlignmentX(LEFT_ALIGNMENT);
             tarjeta.add(f);
@@ -153,6 +159,11 @@ class PanelConsulta extends JPanel {
                 setForeground(accion ? Tema.c().plataforma() : Tema.c().texto());
                 if (accion) {
                     setText("<html><u>" + v + "</u></html>");
+                }
+                // Tipo con el color de la web: Ingreso en azul, Gasto en rojo (.etiqueta-tipo).
+                if ("Ingreso".equals(v) || "Gasto".equals(v)) {
+                    setForeground("Ingreso".equals(v) ? Tema.c().plataforma() : Tema.c().acento());
+                    setFont(getFont().deriveFont(java.awt.Font.BOLD));
                 }
                 return this;
             }
@@ -215,6 +226,7 @@ class PanelConsulta extends JPanel {
     }
 
     private void limpiar() {
+        tipoFiltro.setSelectedIndex(0);
         concepto.setText("");
         montoMin.setText("");
         montoMax.setText("");
@@ -232,11 +244,15 @@ class PanelConsulta extends JPanel {
         LocalDate fDesde = desde.getFechaSeleccionada();
         LocalDate fHasta = hasta.getFechaSeleccionada();
         String filtroConcepto = textoConcepto.isEmpty() ? null : textoConcepto;
+        String tipo = switch (tipoFiltro.getSelectedIndex()) {
+            case 1 -> "GASTO";
+            case 2 -> "INGRESO";
+            default -> null;
+        };
         boolean admin = sesion().admin();
         long usuarioId = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> admin
-                ? RepositorioPagos.buscarTodos(fDesde, fHasta, filtroConcepto, min, max)
-                : RepositorioPagos.buscar(usuarioId, fDesde, fHasta, filtroConcepto, min, max),
+        RepositorioPagos.Filtros filtros = new RepositorioPagos.Filtros(tipo, fDesde, fHasta, filtroConcepto, min, max);
+        Tarea.ejecutar(this, () -> RepositorioPagos.buscar(admin ? null : usuarioId, filtros),
                 resultado -> mostrar(resultado, admin),
                 e -> aviso.error(Ui.mensajeError("consultar los registros").apply(e)));
     }
@@ -255,18 +271,24 @@ class PanelConsulta extends JPanel {
         notaAdmin.setVisible(admin);
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(admin
-                ? new Object[] {"ID", "Usuario", "Monto", "Fecha", "Concepto", "", ""}
-                : new Object[] {"ID", "Monto", "Fecha", "Concepto", ""});
-        double suma = 0;
+                ? new Object[] {"ID", "Usuario", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", "", ""}
+                : new Object[] {"ID", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", ""});
+        double ingresos = 0;
+        double gastos = 0;
         for (Pago p : resultado) {
             String monto = String.format(Locale.ROOT, "%.2f", p.monto());
             if (admin) {
-                modelo.addRow(new Object[] {p.idPago(), p.duenoNombre() + " (" + p.duenoCorreo() + ")", monto,
-                    p.fecha().toString(), p.concepto(), MODIFICAR, ELIMINAR});
+                modelo.addRow(new Object[] {p.idPago(), p.duenoNombre() + " (" + p.duenoCorreo() + ")", p.tipoTexto(),
+                    monto, p.fecha().toString(), p.categoria(), p.concepto(), MODIFICAR, ELIMINAR});
             } else {
-                modelo.addRow(new Object[] {p.idPago(), monto, p.fecha().toString(), p.concepto(), MODIFICAR});
+                modelo.addRow(new Object[] {p.idPago(), p.tipoTexto(), monto, p.fecha().toString(), p.categoria(),
+                    p.concepto(), MODIFICAR});
             }
-            suma += p.monto();
+            if (p.esIngreso()) {
+                ingresos += p.monto();
+            } else {
+                gastos += p.monto();
+            }
         }
         if (resultado.isEmpty()) {
             Object[] vacia = new Object[modelo.getColumnCount()];
@@ -275,7 +297,11 @@ class PanelConsulta extends JPanel {
         }
         tabla.getColumnModel().getColumn(0).setPreferredWidth(resultado.isEmpty() ? 600 : 60);
         tabla.getColumnModel().getColumn(modelo.getColumnCount() - 1).setPreferredWidth(90);
-        total.setText("<html>Total: <b>" + String.format(Locale.ROOT, "%.2f", suma) + "</b></html>");
+        Tema.Paleta pal = Tema.c();
+        total.setText("<html>Ingresos: <b style='color:" + hex(pal.plataforma()) + "'>"
+                + String.format(Locale.ROOT, "%.2f", ingresos) + "</b> &middot; Gastos: <b style='color:"
+                + hex(pal.acento()) + "'>" + String.format(Locale.ROOT, "%.2f", gastos)
+                + "</b> &middot; Balance: <b>" + String.format(Locale.ROOT, "%.2f", ingresos - gastos) + "</b></html>");
         revalidate();
     }
 
@@ -307,9 +333,11 @@ class PanelConsulta extends JPanel {
         File archivo = selector.getSelectedFile();
         // Mismas columnas que /registros/exportar.csv de la web.
         try (PrintWriter w = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
-            w.println(comoAdmin ? "ID,Usuario,Nombre,Monto,Fecha,Concepto" : "ID,Monto,Fecha,Concepto");
+            w.println(comoAdmin ? "ID,Usuario,Nombre,Tipo,Monto,Fecha,Categoría,Concepto"
+                    : "ID,Tipo,Monto,Fecha,Categoría,Concepto");
             for (Pago p : pagos) {
-                String fijo = p.monto() + "," + p.fecha() + "," + csv(p.concepto());
+                String fijo = p.tipoTexto() + "," + com.prpagos.finanzas.Finanzas.numero(p.monto()) + "," + p.fecha() + "," + csv(p.categoria()) + ","
+                        + csv(p.concepto());
                 w.println(comoAdmin
                         ? p.idPago() + "," + csv(p.duenoCorreo()) + "," + csv(p.duenoNombre()) + "," + fijo
                         : p.idPago() + "," + fijo);
@@ -317,6 +345,10 @@ class PanelConsulta extends JPanel {
         } catch (IOException e) {
             aviso.error("No se pudo exportar: " + e.getMessage());
         }
+    }
+
+    private static String hex(java.awt.Color c) {
+        return String.format("#%06x", c.getRGB() & 0xFFFFFF);
     }
 
     private static String csv(String texto) {

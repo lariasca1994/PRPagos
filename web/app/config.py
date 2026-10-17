@@ -30,6 +30,17 @@ class Settings:
     # de la version de escritorio: si difieren, una interfaz no puede leer
     # los autenticadores configurados en la otra.
     totp_clave: str = os.getenv("TOTP_CLAVE", "")
+    # Correos con la API de Brevo (opcionales: sin ellos la app funciona,
+    # pero no envía resúmenes ni códigos de recuperación por correo). El
+    # remitente debe estar verificado en la cuenta de Brevo.
+    brevo_api_key: str = os.getenv("BREVO_API_KEY", "")
+    brevo_remitente: str = os.getenv("BREVO_REMITENTE", "")
+    # Dirección pública de la web (enlace "Ver mi dashboard" de los correos).
+    url_publica: str = os.getenv(
+        "URL_PUBLICA", "https://prpagos-web-1087929107584.southamerica-east1.run.app"
+    )
+    # Token con el que GitHub Actions llama a /tareas/resumenes cada día.
+    tareas_token: str = os.getenv("TAREAS_TOKEN", "")
 
     def validar(self) -> None:
         faltantes = [

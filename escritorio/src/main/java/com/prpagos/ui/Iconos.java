@@ -1,29 +1,47 @@
 package com.prpagos.ui;
 
-import javax.imageio.ImageIO;
-import javax.swing.JFrame;
 import java.awt.Image;
 import java.io.File;
-import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
 
 /**
- * Aplica el ícono de la aplicación a cualquier ventana. Antes el proyecto
- * no tenía ningún ícono propio (se veía con el ícono genérico de Java) —
- * ahora todas las ventanas usan resources/icono.png.
+ * Ícono de la aplicación (el mismo de la web). En el ejecutable empaquetado
+ * viene dentro del .jar (/recursos/icono.png); al correr desde el código se
+ * lee de resources/icono.png.
  */
 public final class Iconos {
+
+    private static Image icono;
 
     private Iconos() {
     }
 
-    public static void aplicarIcono(JFrame ventana) {
-        try {
-            Image icono = ImageIO.read(new File("resources/icono.png"));
-            ventana.setIconImage(icono);
-        } catch (IOException e) {
-            // Si no se encuentra el ícono, la ventana sigue funcionando
-            // normal, solo se ve con el ícono genérico de Java.
-            System.err.println("No se pudo cargar resources/icono.png: " + e.getMessage());
+    static synchronized Image icono() {
+        if (icono == null) {
+            try (InputStream in = Iconos.class.getResourceAsStream("/recursos/icono.png")) {
+                icono = in != null ? ImageIO.read(in) : ImageIO.read(new File("resources/icono.png"));
+            } catch (Exception e) {
+                System.err.println("No se pudo cargar el ícono: " + e.getMessage());
+            }
         }
+        return icono;
+    }
+
+    public static void aplicarIcono(JFrame ventana) {
+        Image base = icono();
+        if (base == null) {
+            return;
+        }
+        // Varios tamaños: Windows usa el más nítido para la barra de tareas y la ventana.
+        List<Image> tamanos = new ArrayList<>();
+        for (int lado : new int[] {16, 24, 32, 48, 64, 128, 256}) {
+            tamanos.add(base.getScaledInstance(lado, lado, Image.SCALE_SMOOTH));
+        }
+        ventana.setIconImages(tamanos);
     }
 }

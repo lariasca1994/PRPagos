@@ -185,6 +185,42 @@ def secreto_legible(secreto: str) -> str:
     return " ".join(secreto[i:i + 4] for i in range(0, len(secreto), 4))
 
 
+# ─────────────── Recuperación si se pierde el teléfono ───────────────
+# Igual en escritorio (seguridad/Recuperacion.java).
+
+CANTIDAD_RESPALDO = 10
+# Sin 0/O ni 1/I/L para que no se confundan al copiarlos a mano.
+_ALFABETO_RESPALDO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+MINUTOS_CODIGO_CORREO = 15
+
+
+def generar_codigos_respaldo() -> list[str]:
+    """10 códigos de un solo uso con forma ABCD-EFGH (unos 40 bits cada uno)."""
+    codigos = []
+    for _ in range(CANTIDAD_RESPALDO):
+        crudo = "".join(secrets.choice(_ALFABETO_RESPALDO) for _ in range(8))
+        codigos.append(f"{crudo[:4]}-{crudo[4:]}")
+    return codigos
+
+
+def normalizar_respaldo(texto: str) -> str | None:
+    """"abcd efgh", "ABCD-EFGH" -> "ABCDEFGH"; None si no tiene esa forma."""
+    limpio = "".join(c for c in (texto or "").upper() if c.isalnum())
+    if len(limpio) != 8 or any(c not in _ALFABETO_RESPALDO for c in limpio):
+        return None
+    return limpio
+
+
+def hash_corto(texto: str) -> str:
+    """SHA-256 en hex de un código de un solo uso (respaldo o correo). Basta
+    sin sal: son aleatorios, de un solo uso y con bloqueo por intentos."""
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()
+
+
+def generar_codigo_correo() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
 # ─────────────────── Cifrado del secreto TOTP ───────────────────
 
 _PREFIJO_CIFRADO = "v1:"

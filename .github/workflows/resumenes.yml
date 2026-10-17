@@ -1,0 +1,48 @@
+# Resúmenes por correo: cada día a las 08:00 (hora de Colombia, 13:00 UTC)
+# llama a la tarea de la web, que decide si hoy toca el resumen semanal
+# (viernes) o el general (día 29; en febrero, el último día). Si no toca
+# ninguno, no envía nada. Un resumen ya enviado no se repite aunque la tarea
+# se ejecute dos veces (ver web/app/resumenes.py).
+#
+# Sin costo: GitHub Actions es gratis en repositorios públicos y los correos
+# salen por el plan gratuito de Brevo.
+#
+# Configuración en GitHub: secreto TAREAS_TOKEN (el mismo de Cloud Run) y
+# variable URL_PUBLICA (dirección de la web).
+name: Resúmenes por correo
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: 'Enviar un resumen aunque hoy no toque (para probar)'
+        type: choice
+        options: [ninguno, semanal, mensual]
+        default: ninguno
+
+permissions:
+  contents: read
+
+concurrency:
+  group: resumenes
+  cancel-in-progress: false
+
+jobs:
+  resumenes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Disparar la tarea de resúmenes
+        env:
+          TOKEN: ${{ secrets.TAREAS_TOKEN }}
+          URL: ${{ vars.URL_PUBLICA }}
+          FORZAR: ${{ github.event.inputs.forzar }}
+        run: |
+          ruta="$URL/tareas/resumenes"
+          if [ -n "$FORZAR" ] && [ "$FORZAR" != "ninguno" ]; then ruta="$ruta?forzar=$FORZAR"; fi
+          # Cloud Run puede estar en frío: se reintenta antes de dar por fallida la tarea.
+          curl --fail --silent --show-error --retry 3 --retry-delay 20 --max-time 120 \
+            -X POST -H "X-Tarea-Token: $TOKEN" "$ruta"
+          echo

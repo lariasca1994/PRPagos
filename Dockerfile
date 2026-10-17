@@ -9,6 +9,8 @@ COPY web/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY web/app/ ./app/
+# Consultas SQL y plantillas de correo compartidas con el escritorio.
+COPY compartido/ ./compartido/
 COPY wallet/ ./wallet/
 
 ENV WALLET_PATH=/app/wallet

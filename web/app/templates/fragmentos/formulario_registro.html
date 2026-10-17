@@ -1,0 +1,33 @@
+{# Campos comunes de "Nuevo registro" y "Modificar registro" (los mismos que
+   PanelPago.java del escritorio). La lista de categorías se filtra según el
+   tipo elegido (static/registros.js). #}
+{% set tipo_actual = registro.tipo if registro else "GASTO" %}
+<fieldset class="selector-tipo">
+    <legend>Tipo</legend>
+    {% for clave, texto in tipos.items() %}
+    <label class="opcion-tipo opcion-{{ clave|lower }}">
+        <input type="radio" name="tipo" value="{{ clave }}" {% if tipo_actual == clave %}checked{% endif %} required>
+        <span>{{ texto }}</span>
+    </label>
+    {% endfor %}
+</fieldset>
+
+<label for="monto">Monto</label>
+<input type="text" id="monto" name="monto" inputmode="decimal" value="{{ registro.monto if registro else '' }}" required autofocus>
+
+<label for="fecha">Fecha</label>
+<input type="date" id="fecha" name="fecha" value="{{ registro.fecha if registro else hoy }}" required>
+
+<label for="categoria_id">Categoría</label>
+<select id="categoria_id" name="categoria_id">
+    <option value="" data-tipo="TODOS">Sin categoría</option>
+    {% set grupos = {"NECESIDADES": "Necesidades", "DESEOS": "Deseos", "AHORRO": "Ahorro y deudas"} %}
+    {% for c in categorias %}
+    <option value="{{ c.id }}" data-tipo="{{ c.tipo }}" {% if registro and registro.categoria_id == c.id %}selected{% endif %}>
+        {{ c.nombre }}{% if c.grupo %} · {{ grupos[c.grupo] }}{% endif %}
+    </option>
+    {% endfor %}
+</select>
+
+<label for="concepto">Concepto</label>
+<input type="text" id="concepto" name="concepto" maxlength="100" value="{{ registro.concepto if registro else '' }}" required>

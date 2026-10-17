@@ -8,6 +8,7 @@ from datetime import date, datetime
 
 import oracledb
 
+from .compartido import consulta
 from .database import obtener_conexion
 
 
@@ -180,6 +181,9 @@ def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
         cur.execute(
             "DELETE FROM TBAuditoria WHERE usuario_id = :id AND id_pago IS NULL", id=usuario_id
         )
+        # Lo que cuelga de la cuenta (no tiene registros, así que tampoco usa sus categorías).
+        for tabla in ("TBCodigosRespaldo", "TBPresupuestos", "TBEnviosResumen", "TBCategorias"):
+            cur.execute(f"DELETE FROM {tabla} WHERE usuario_id = :id", id=usuario_id)
         cur.execute("DELETE FROM TBPLogin WHERE id = :id", id=usuario_id)
         afectadas = cur.rowcount
         conn.commit()
@@ -190,169 +194,105 @@ def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
 
 
 
-def insertar_pago(monto: float, fecha: date, concepto: str, usuario_id: int) -> None:
+# ───────────────────────── Registros (ingresos y gastos) ─────────────────────────
+# Las consultas vienen de compartido/consultas/ (las mismas del escritorio).
+
+
+def _registro(fila, con_dueno: bool = False) -> dict:
+    datos = {
+        "id_pago": fila[0],
+        "tipo": fila[1],
+        "monto": float(fila[2]),
+        "fecha": _solo_fecha(fila[3]),
+        "concepto": fila[4],
+        "categoria_id": fila[5],
+        "categoria": fila[6],
+    }
+    if con_dueno:
+        datos["usuario"], datos["nombre"] = fila[7], fila[8]
+    return datos
+
+
+def buscar_registros(usuario_id: int | None, filtros: dict) -> list[dict]:
+    """usuario_id None = todos los usuarios (admin), con el dueño de cada uno."""
+    params = {k: filtros.get(k) for k in ("tipo", "fecha_desde", "fecha_hasta", "concepto", "monto_min", "monto_max")}
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        cur.callproc("insertar_tbpago", [monto, fecha, concepto, usuario_id])
-        conn.commit()
+        if usuario_id is None:
+            cur.execute(consulta("registros_todos"), params)
+            return [_registro(f, con_dueno=True) for f in cur]
+        cur.execute(consulta("registros"), {**params, "usuario_id": usuario_id})
+        return [_registro(f) for f in cur]
 
 
-def actualizar_pago(
-    id_pago: int, nuevo_monto: float, nueva_fecha: date, nuevo_concepto: str, usuario_id: int
-) -> int:
+_SELECT_UNO = (
+    "SELECT p.id_pago, p.tipo, p.monto, p.fecha, p.concepto, p.categoria_id, "
+    "NVL(c.nombre, 'Sin categoría') FROM TBPagos p LEFT JOIN TBCategorias c ON c.id = p.categoria_id "
+    "WHERE p.id_pago = :id_pago"
+)
+
+
+def obtener_registro(id_pago: int, usuario_id: int | None) -> dict | None:
+    """El registro si es del usuario; con usuario_id None (admin), de cualquiera."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        v_filas_afectadas = cur.var(int)
-        cur.callproc(
-            "actualizar_tbpago",
-            [id_pago, nuevo_monto, nueva_fecha, nuevo_concepto, usuario_id, v_filas_afectadas],
-        )
-        conn.commit()
-        return int(v_filas_afectadas.getvalue() or 0)
-
-
-def buscar_pagos(
-    usuario_id: int,
-    fecha_desde: date | None = None,
-    fecha_hasta: date | None = None,
-    concepto: str | None = None,
-    monto_min: float | None = None,
-    monto_max: float | None = None,
-) -> list[dict]:
-    """Antes llamaba a buscar_tbpagos (que devuelve un SYS_REFCURSOR como
-    parametro de salida) via cur.callproc(...) + cur.var(oracledb.CURSOR).
-    En el contenedor de Cloud Run esa combinacion se quedaba colgada sin
-    error ni timeout de Python (confirmado: insertar/actualizar, que usan
-    solo parametros escalares, funcionaban bien; solo el REF CURSOR se
-    trababa). Se reemplaza por la MISMA consulta y los MISMOS filtros que
-    tiene buscar_tbpagos en sql/DBPagos.sql, pero como SELECT directo -- no
-    se cambia ninguna regla de negocio, solo la forma de traer el
-    resultado."""
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT id_pago, monto, fecha, concepto
-            FROM TBPagos
-            WHERE usuario_id = :usuario_id
-              AND (:fecha_desde IS NULL OR fecha >= :fecha_desde)
-              AND (:fecha_hasta IS NULL OR fecha <= :fecha_hasta)
-              AND (:concepto IS NULL OR UPPER(concepto) LIKE '%' || UPPER(:concepto) || '%')
-              AND (:monto_min IS NULL OR monto >= :monto_min)
-              AND (:monto_max IS NULL OR monto <= :monto_max)
-            ORDER BY fecha DESC
-            """,
-            usuario_id=usuario_id,
-            fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta,
-            concepto=concepto,
-            monto_min=monto_min,
-            monto_max=monto_max,
-        )
-        pagos = []
-        for id_pago, monto, fecha, concepto_fila in cur:
-            pagos.append({
-                "id_pago": id_pago,
-                "monto": float(monto),
-                "fecha": _solo_fecha(fecha),
-                "concepto": concepto_fila,
-            })
-        return pagos
-
-
-def buscar_todos_los_pagos(
-    fecha_desde: date | None = None,
-    fecha_hasta: date | None = None,
-    concepto: str | None = None,
-    monto_min: float | None = None,
-    monto_max: float | None = None,
-) -> list[dict]:
-    """Como buscar_pagos, pero para el admin: sin filtrar por dueño, y con
-    el correo/nombre del dueño de cada pago (join contra TBPLogin) para
-    que se pueda ver de quién es cada uno en la lista."""
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT p.id_pago, p.monto, p.fecha, p.concepto, p.usuario_id, u.usuario, u.nombre
-            FROM TBPagos p
-            JOIN TBPLogin u ON u.id = p.usuario_id
-            WHERE (:fecha_desde IS NULL OR p.fecha >= :fecha_desde)
-              AND (:fecha_hasta IS NULL OR p.fecha <= :fecha_hasta)
-              AND (:concepto IS NULL OR UPPER(p.concepto) LIKE '%' || UPPER(:concepto) || '%')
-              AND (:monto_min IS NULL OR p.monto >= :monto_min)
-              AND (:monto_max IS NULL OR p.monto <= :monto_max)
-            ORDER BY p.fecha DESC
-            """,
-            fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta,
-            concepto=concepto,
-            monto_min=monto_min,
-            monto_max=monto_max,
-        )
-        pagos = []
-        for id_pago, monto, fecha, concepto_fila, usuario_id, correo_dueno, nombre_dueno in cur:
-            pagos.append({
-                "id_pago": id_pago,
-                "monto": float(monto),
-                "fecha": _solo_fecha(fecha),
-                "concepto": concepto_fila,
-                "usuario_id": usuario_id,
-                "usuario": correo_dueno,
-                "nombre": nombre_dueno,
-            })
-        return pagos
-
-
-def obtener_pago_por_id(id_pago: int) -> dict | None:
-    """Como obtener_pago_de_usuario, pero sin exigir dueño -- para que el
-    admin pueda abrir el formulario de editar el pago de cualquiera."""
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id_pago, monto, fecha, concepto FROM TBPagos WHERE id_pago = :id_pago",
-            id_pago=id_pago,
-        )
+        if usuario_id is None:
+            cur.execute(_SELECT_UNO, id_pago=id_pago)
+        else:
+            cur.execute(_SELECT_UNO + " AND p.usuario_id = :usuario_id", id_pago=id_pago, usuario_id=usuario_id)
         fila = cur.fetchone()
-        if not fila:
-            return None
-        return {"id_pago": fila[0], "monto": float(fila[1]), "fecha": _solo_fecha(fila[2]), "concepto": fila[3]}
+        return _registro(fila) if fila else None
 
 
-def actualizar_pago_admin(
-    id_pago: int, nuevo_monto: float, nueva_fecha: date, nuevo_concepto: str, admin_id: int
-) -> bool:
-    """Como actualizar_pago, pero sin exigir que el pago sea del que edita
-    -- por eso no llama al procedimiento actualizar_tbpago (que filtra
-    a proposito por usuario_id = dueño; esa es justo la regla que un admin
-    tiene que poder saltarse). Deja el mismo rastro de auditoria que deja
-    el procedimiento, con admin_id como quien hizo el cambio."""
+def dueno_registro(id_pago: int) -> int | None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT usuario_id FROM TBPagos WHERE id_pago = :id", id=id_pago)
+        fila = cur.fetchone()
+        return fila[0] if fila else None
+
+
+def insertar_registro(tipo: str, monto: float, fecha: date, concepto: str,
+                      categoria_id: int | None, usuario_id: int) -> None:
+    with obtener_conexion() as conn:
+        conn.cursor().callproc("insertar_registro", [tipo, monto, fecha, concepto, categoria_id, usuario_id])
+
+
+def actualizar_registro(id_pago: int, tipo: str, monto: float, fecha: date, concepto: str,
+                        categoria_id: int | None, usuario_id: int) -> int:
+    """Filas afectadas: 0 si el registro no es del usuario."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        v_filas = cur.var(int)
+        cur.callproc("actualizar_registro",
+                     [id_pago, tipo, monto, fecha, concepto, categoria_id, usuario_id, v_filas])
+        return int(v_filas.getvalue() or 0)
+
+
+def actualizar_registro_admin(id_pago: int, tipo: str, monto: float, fecha: date, concepto: str,
+                              categoria_id: int | None, admin_id: int) -> bool:
+    """El admin edita el registro de cualquiera; la auditoría queda a su nombre."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute(
-            "UPDATE TBPagos SET monto = :monto, fecha = :fecha, concepto = :concepto "
-            "WHERE id_pago = :id_pago",
-            monto=nuevo_monto, fecha=nueva_fecha, concepto=nuevo_concepto, id_pago=id_pago,
+            "UPDATE TBPagos SET tipo = :tipo, monto = :monto, fecha = :fecha, concepto = :concepto, "
+            "categoria_id = :categoria_id WHERE id_pago = :id_pago",
+            tipo=tipo, monto=monto, fecha=fecha, concepto=concepto, categoria_id=categoria_id, id_pago=id_pago,
         )
         afectadas = cur.rowcount
         if afectadas:
             cur.execute(
                 "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
                 "VALUES (tbauditoria_sequence.NEXTVAL, :admin_id, :id_pago, 'ACTUALIZAR (admin)', :detalle)",
-                admin_id=admin_id,
-                id_pago=id_pago,
-                detalle=f"Nuevo monto: {nuevo_monto}, Nuevo concepto: {nuevo_concepto}",
+                admin_id=admin_id, id_pago=id_pago,
+                detalle=f"{tipo} {monto}, Concepto: {concepto[:120]}",
             )
         conn.commit()
         return afectadas == 1
 
 
 def eliminar_pago(id_pago: int, admin_id: int) -> bool:
-    """Eliminar un pago no existía ni en la version de escritorio ni en la
-    web hasta ahora -- es una accion exclusiva del admin. TBAuditoria.id_pago
-    no tiene FK hacia TBPagos (es solo un NUMBER suelto), así que no hay
-    que borrar auditoria antes; se deja un registro de la eliminación en
-    vez de borrar el rastro."""
+    """Solo el admin. Se deja el registro de la eliminación en la auditoría."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -366,20 +306,235 @@ def eliminar_pago(id_pago: int, admin_id: int) -> bool:
         return afectadas == 1
 
 
-def obtener_pago_de_usuario(id_pago: int, usuario_id: int) -> dict | None:
-    """No existe un procedimiento para traer un solo pago en la version
-    Java (la ventana de modificar recibia los datos directo de la fila ya
-    seleccionada en la tabla) -- aca hace falta porque cada request es
-    independiente. Es una consulta directa, de solo lectura, no una regla
-    de negocio nueva."""
+# ───────────────────────── Categorías y plan ─────────────────────────
+
+
+def categorias(usuario_id: int) -> list[dict]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("categorias"), usuario_id=usuario_id)
+        return [
+            {"id": f[0], "nombre": f[1], "tipo": f[2], "grupo": f[3], "propia": bool(f[4]), "usos": int(f[5])}
+            for f in cur
+        ]
+
+
+def crear_categoria(usuario_id: int, nombre: str, tipo: str, grupo: str | None) -> bool:
+    """False si ya tiene una categoría con ese nombre y tipo (propia o sugerida)."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id_pago, monto, fecha, concepto FROM TBPagos "
-            "WHERE id_pago = :id_pago AND usuario_id = :usuario_id",
-            id_pago=id_pago, usuario_id=usuario_id,
+            "SELECT COUNT(*) FROM TBCategorias WHERE UPPER(nombre) = UPPER(:nombre) AND tipo = :tipo "
+            "AND (usuario_id IS NULL OR usuario_id = :usuario_id)",
+            nombre=nombre, tipo=tipo, usuario_id=usuario_id,
         )
-        fila = cur.fetchone()
-        if not fila:
+        if cur.fetchone()[0]:
+            return False
+        cur.execute(
+            "INSERT INTO TBCategorias (id, usuario_id, nombre, tipo, grupo) "
+            "VALUES (tbcategoria_sequence.NEXTVAL, :usuario_id, :nombre, :tipo, :grupo)",
+            usuario_id=usuario_id, nombre=nombre, tipo=tipo, grupo=grupo,
+        )
+        conn.commit()
+        return True
+
+
+def eliminar_categoria(usuario_id: int, categoria_id: int) -> str | None:
+    """None si se eliminó; si no, el motivo."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM TBPagos WHERE categoria_id = :id", id=categoria_id)
+        if cur.fetchone()[0]:
+            return "Esa categoría tiene registros: cámbialos de categoría antes de eliminarla"
+        cur.execute("DELETE FROM TBCategorias WHERE id = :id AND usuario_id = :usuario_id",
+                    id=categoria_id, usuario_id=usuario_id)
+        afectadas = cur.rowcount
+        conn.commit()
+        return None if afectadas == 1 else "Solo puedes eliminar tus propias categorías"
+
+
+def plan(usuario_id: int) -> dict[str, float]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("plan"), usuario_id=usuario_id)
+        n, d, a = cur.fetchone()
+        return {"NECESIDADES": float(n), "DESEOS": float(d), "AHORRO": float(a)}
+
+
+def guardar_plan(usuario_id: int, necesidades: float, deseos: float, ahorro: float) -> None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "MERGE INTO TBPresupuestos p USING (SELECT :usuario_id AS usuario_id FROM dual) s "
+            "ON (p.usuario_id = s.usuario_id) "
+            "WHEN MATCHED THEN UPDATE SET pct_necesidades = :n, pct_deseos = :d, pct_ahorro = :a "
+            "WHEN NOT MATCHED THEN INSERT (usuario_id, pct_necesidades, pct_deseos, pct_ahorro) "
+            "VALUES (:usuario_id, :n, :d, :a)",
+            usuario_id=usuario_id, n=necesidades, d=deseos, a=ahorro,
+        )
+        conn.commit()
+
+
+# ───────────────────────── Perfil ─────────────────────────
+
+
+def perfil(usuario_id: int) -> dict | None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT usuario, nombre, notificaciones, "
+            "(SELECT COUNT(*) FROM TBCodigosRespaldo r WHERE r.usuario_id = l.id AND r.usado_en IS NULL) "
+            "FROM TBPLogin l WHERE id = :id",
+            id=usuario_id,
+        )
+        f = cur.fetchone()
+        if not f:
             return None
-        return {"id_pago": fila[0], "monto": float(fila[1]), "fecha": _solo_fecha(fila[2]), "concepto": fila[3]}
+        return {"usuario": f[0], "nombre": f[1], "notificaciones": bool(f[2]), "respaldo_restantes": int(f[3])}
+
+
+def guardar_datos_perfil(usuario_id: int, nombre: str, notificaciones: bool) -> None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE TBPLogin SET nombre = :nombre, notificaciones = :n WHERE id = :id",
+                    nombre=nombre, n=1 if notificaciones else 0, id=usuario_id)
+        conn.commit()
+
+
+# ───────────────────── Recuperación (respaldo y correo) ─────────────────────
+
+
+def reemplazar_codigos_respaldo(usuario_id: int, hashes: list[str]) -> None:
+    """Los códigos nuevos anulan todos los anteriores."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM TBCodigosRespaldo WHERE usuario_id = :id", id=usuario_id)
+        cur.executemany(
+            "INSERT INTO TBCodigosRespaldo (id, usuario_id, codigo_hash) "
+            "VALUES (tbrespaldo_sequence.NEXTVAL, :usuario_id, :codigo_hash)",
+            [{"usuario_id": usuario_id, "codigo_hash": h} for h in hashes],
+        )
+        conn.commit()
+
+
+def usar_codigo_respaldo(usuario_id: int, codigo_hash: str) -> bool:
+    """Lo marca como usado; False si no existe o ya se había usado."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE TBCodigosRespaldo SET usado_en = SYSTIMESTAMP "
+            "WHERE usuario_id = :usuario_id AND codigo_hash = :codigo_hash AND usado_en IS NULL",
+            usuario_id=usuario_id, codigo_hash=codigo_hash,
+        )
+        afectadas = cur.rowcount
+        if afectadas:
+            cur.execute(
+                "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+                "VALUES (tbauditoria_sequence.NEXTVAL, :id, NULL, 'USO_RESPALDO', 'Código de respaldo usado')",
+                id=usuario_id,
+            )
+        conn.commit()
+        return afectadas == 1
+
+
+def reiniciar_intentos(usuario_id: int) -> None:
+    """Tras un ingreso válido con código de respaldo (que no tiene paso TOTP)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE TBPLogin SET intentos_fallidos = 0, bloqueo_hasta = NULL WHERE id = :id", id=usuario_id)
+        conn.commit()
+
+
+def guardar_codigo_correo(usuario_id: int, codigo_hash: str, minutos: int) -> None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE TBPLogin SET recup_hash = :h, "
+            "recup_expira = SYSTIMESTAMP + NUMTODSINTERVAL(:m, 'MINUTE') WHERE id = :id",
+            h=codigo_hash, m=minutos, id=usuario_id,
+        )
+        conn.commit()
+
+
+def usar_codigo_correo(usuario_id: int, codigo_hash: str) -> bool:
+    """Válido una sola vez y antes de vencer; al usarse se borra."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE TBPLogin SET recup_hash = NULL, recup_expira = NULL "
+            "WHERE id = :id AND recup_hash = :h AND recup_expira > SYSTIMESTAMP",
+            id=usuario_id, h=codigo_hash,
+        )
+        afectadas = cur.rowcount
+        if afectadas:
+            cur.execute(
+                "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+                "VALUES (tbauditoria_sequence.NEXTVAL, :id, NULL, 'RECUPERA_CORREO', 'Código por correo usado')",
+                id=usuario_id,
+            )
+        conn.commit()
+        return afectadas == 1
+
+
+# ───────────────────────── Dashboard y resúmenes ─────────────────────────
+
+
+def totales(usuario_id: int, desde: date, hasta: date) -> tuple[float, float, int]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("totales_periodo"), usuario_id=usuario_id, desde=desde, hasta=hasta)
+        i, g, n = cur.fetchone()
+        return float(i), float(g), int(n)
+
+
+def serie_meses(usuario_id: int, desde: date, hasta: date) -> list[tuple[date, float, float]]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("serie_meses"), usuario_id=usuario_id, desde=desde, hasta=hasta)
+        return [(_solo_fecha(m), float(i), float(g)) for m, i, g in cur]
+
+
+def gastos_por_categoria(usuario_id: int, desde: date, hasta: date) -> list[tuple[str, str, float]]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("gastos_categoria"), usuario_id=usuario_id, desde=desde, hasta=hasta)
+        return [(c, g, float(t)) for c, g, t in cur]
+
+
+def gastos_por_grupo(usuario_id: int, desde: date, hasta: date) -> dict[str, float]:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("gastos_grupo"), usuario_id=usuario_id, desde=desde, hasta=hasta)
+        return {g: float(t) for g, t in cur}
+
+
+def destinatarios_resumen() -> list[dict]:
+    """Cuentas activas con los resúmenes activados."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, usuario, nombre FROM TBPLogin WHERE activo = 1 AND notificaciones = 1 ORDER BY id")
+        return [{"usuario_id": f[0], "usuario": f[1], "nombre": f[2]} for f in cur]
+
+
+def marcar_envio(usuario_id: int, tipo: str, periodo: str) -> bool:
+    """False si ese resumen ya se había enviado (la tarea se repitió)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO TBEnviosResumen (usuario_id, tipo, periodo) VALUES (:u, :t, :p)",
+                u=usuario_id, t=tipo, p=periodo,
+            )
+        except oracledb.IntegrityError:
+            return False
+        conn.commit()
+        return True
+
+
+def desmarcar_envio(usuario_id: int, tipo: str, periodo: str) -> None:
+    """Si el envío falló, se borra la marca para reintentarlo después."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM TBEnviosResumen WHERE usuario_id = :u AND tipo = :t AND periodo = :p",
+                    u=usuario_id, t=tipo, p=periodo)
+        conn.commit()

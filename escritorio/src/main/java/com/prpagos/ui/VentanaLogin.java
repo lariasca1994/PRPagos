@@ -23,7 +23,14 @@ import com.prpagos.datos.RepositorioUsuarios;
 import com.prpagos.datos.Sesion;
 import com.prpagos.seguridad.CifradoTotp;
 import com.prpagos.seguridad.Seguridad;
+import com.prpagos.seguridad.Recuperacion;
 import com.prpagos.seguridad.Totp;
+import com.prpagos.seguridad.Verificacion;
+import com.prpagos.datos.RepositorioFinanzas;
+import com.prpagos.finanzas.Correo;
+import com.prpagos.finanzas.Finanzas;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Portada de acceso: ingresar (contraseña y luego código), configurar el
@@ -69,6 +76,12 @@ public class VentanaLogin extends JFrame {
     private final JPasswordField recClave = Ui.clave();
     private final JPasswordField recConfirmacion = Ui.clave();
     private final Ui.Aviso avisoRecuperar = new Ui.Aviso();
+    // Perdí mi teléfono (código por correo)
+    private final JTextField codigoCorreo = Ui.campoCodigo();
+    private final JTextArea subtituloCorreo = Ui.suave("");
+    private final Ui.Aviso avisoCorreo = new Ui.Aviso();
+    // Códigos de respaldo al activar el autenticador
+    private final JPanel rejillaRespaldo = new JPanel(new java.awt.GridLayout(0, 2, 24, 6));
 
     /** Contraseña ya verificada; falta el código o configurar el autenticador. */
     private Credenciales pendiente;
@@ -99,6 +112,8 @@ public class VentanaLogin extends JFrame {
         formularios.add(formConfigurar(), "configurar");
         formularios.add(formRegistro(), "registro");
         formularios.add(formRecuperar(), "recuperar");
+        formularios.add(formCorreo(), "correo");
+        formularios.add(formRespaldo(), "respaldo");
 
         JPanel lado = new JPanel(new BorderLayout());
         lado.setBorder(BorderFactory.createEmptyBorder(26, 48, 22, 48));
@@ -210,10 +225,33 @@ public class VentanaLogin extends JFrame {
         return formulario(
                 encabezado("Acceso · Paso 2 de 2", "Código de verificación", subtituloCodigo),
                 avisoCodigo,
-                Ui.etiqueta("Código de 6 dígitos"), codigo,
+                Ui.etiqueta("Código de 6 dígitos (o un código de respaldo)"), codigo,
                 (JComponent) Ui.espacio(20), ingresar,
                 enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null)),
-                        Ui.enlace("Olvidé mi contraseña", e -> mostrar("recuperar"))));
+                        Ui.enlace("Perdí mi teléfono", e -> perdiTelefono())));
+    }
+
+    private JPanel formCorreo() {
+        JButton verificar = botonAncho(Ui.primario("Verificar y configurar autenticador", e -> verificarCodigoCorreo()));
+        codigoCorreo.addActionListener(e -> verificarCodigoCorreo());
+        return formulario(
+                encabezado("Perdí mi teléfono", "Revisa tu correo", subtituloCorreo),
+                avisoCorreo,
+                Ui.etiqueta("Código del correo"), codigoCorreo,
+                (JComponent) Ui.espacio(20), verificar,
+                enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null))));
+    }
+
+    private JPanel formRespaldo() {
+        rejillaRespaldo.setOpaque(false);
+        JTextArea texto = Ui.suave(PanelPerfil.TEXTO_RESPALDO);
+        texto.setFont(texto.getFont().deriveFont(12.5f));
+        return formulario(
+                encabezado("Verificación activada", "Guarda tus códigos de respaldo", Ui.suave(
+                        "Si pierdes el teléfono, con uno de estos códigos podrás ingresar y configurar un "
+                        + "autenticador nuevo.")),
+                rejillaRespaldo, (JComponent) Ui.espacio(12), texto, (JComponent) Ui.espacio(20),
+                botonAncho(Ui.primario("Ya los guardé, continuar", e -> abrirPrincipal())));
     }
 
     private JPanel formConfigurar() {
@@ -262,12 +300,12 @@ public class VentanaLogin extends JFrame {
         ayuda.setFont(ayuda.getFont().deriveFont(12f));
         return formulario(
                 encabezado("Recuperar acceso", "Recuperar contraseña", Ui.suave(
-                        "Confirma tu correo, el nombre con el que te registraste y el código de tu "
-                        + "autenticador para definir una contraseña nueva.")),
+                        "Confirma tu correo, el nombre con el que te registraste y un código de tu "
+                        + "autenticador (o de respaldo) para definir una contraseña nueva.")),
                 avisoRecuperar,
                 Ui.etiqueta("Correo"), recCorreo,
                 Ui.etiqueta("Nombre registrado"), recNombre,
-                Ui.etiqueta("Código del autenticador"), recCodigo, ayuda,
+                Ui.etiqueta("Código del autenticador o de respaldo"), recCodigo, ayuda,
                 Ui.etiqueta("Nueva contraseña (mínimo 8 caracteres)"), recClave,
                 Ui.etiqueta("Repite la nueva contraseña"), recConfirmacion,
                 (JComponent) Ui.espacio(20), actualizar,
@@ -275,7 +313,8 @@ public class VentanaLogin extends JFrame {
     }
 
     private void mostrar(String tarjeta) {
-        for (Ui.Aviso a : new Ui.Aviso[] {avisoIngreso, avisoCodigo, avisoConfig, avisoRegistro, avisoRecuperar}) {
+        for (Ui.Aviso a : new Ui.Aviso[] {avisoIngreso, avisoCodigo, avisoConfig, avisoRegistro, avisoRecuperar,
+            avisoCorreo}) {
             a.ocultar();
         }
         tarjetas.show(formularios, tarjeta);
@@ -362,10 +401,8 @@ public class VentanaLogin extends JFrame {
             if (cred.bloqueada()) {
                 return MENSAJE_BLOQUEO;
             }
-            String secreto = CifradoTotp.descifrarONull(cred.totpSecreto());
-            Long paso = Totp.verificar(secreto, texto, cred.totpUltimoPaso());
-            if (paso == null || !RepositorioUsuarios.registrarExito(id, paso, "INGRESO")) {
-                RepositorioUsuarios.registrarFallo(id, "FALLO_TOTP");
+            // Código de la app o de respaldo (igual que la web).
+            if (!Verificacion.segundoFactor(cred, texto, "INGRESO")) {
                 return "Código incorrecto o ya usado";
             }
             pendiente = cred;
@@ -406,15 +443,96 @@ public class VentanaLogin extends JFrame {
             }
             RepositorioUsuarios.guardarTotp(id, CifradoTotp.cifrar(secreto), paso);
             pendienteAdmin = esAdmin(id);
+            // Con el autenticador se entregan los 10 códigos de respaldo (se muestran una sola vez).
+            List<String> codigos = Recuperacion.generarCodigosRespaldo();
+            List<String> hashes = new ArrayList<>();
+            for (String c : codigos) {
+                hashes.add(Recuperacion.hashCorto(c.replace("-", "")));
+            }
+            RepositorioFinanzas.reemplazarCodigosRespaldo(id, hashes);
+            codigosNuevos = codigos;
             return null;
         }, error -> {
             if (error != null) {
                 codigoConfig.setText("");
                 avisoConfig.error(error);
             } else {
-                abrirPrincipal();
+                PanelPerfil.mostrarCodigos(rejillaRespaldo, codigosNuevos);
+                mostrar("respaldo");
             }
         }, e -> avisoConfig.error(Ui.mensajeError("guardar el autenticador").apply(e)));
+    }
+
+    private List<String> codigosNuevos = List.of();
+
+    // ─────────────────── Perdí mi teléfono (código por correo) ───────────────────
+
+    /** Solo después de la contraseña: envía un código de 6 dígitos al correo de la cuenta. */
+    private void perdiTelefono() {
+        if (pendiente == null) {
+            reiniciar(null);
+            return;
+        }
+        long id = pendiente.usuarioId();
+        Tarea.ejecutar(this, () -> {
+            Credenciales cred = RepositorioUsuarios.porId(id);
+            if (cred == null || cred.bloqueada()) {
+                return MENSAJE_BLOQUEO;
+            }
+            String codigoNuevo = Recuperacion.generarCodigoCorreo();
+            RepositorioFinanzas.guardarCodigoCorreo(id, Recuperacion.hashCorto(codigoNuevo),
+                    Recuperacion.MINUTOS_CODIGO_CORREO);
+            try {
+                Correo.enviar(cred.correo(), cred.nombre(), "Código para recuperar tu acceso a PRPagos",
+                        Finanzas.htmlCodigo(cred.nombre(), codigoNuevo, Recuperacion.MINUTOS_CODIGO_CORREO));
+            } catch (Correo.ErrorCorreo e) {
+                return "No se pudo enviar el correo. Usa un código de respaldo o inténtalo más tarde.";
+            }
+            return null;
+        }, error -> {
+            if (error != null) {
+                avisoCodigo.error(error);
+                return;
+            }
+            subtituloCorreo.setText("Te enviamos un código de 6 dígitos a " + pendiente.correo() + ". Vence en "
+                    + Recuperacion.MINUTOS_CODIGO_CORREO + " minutos.");
+            codigoCorreo.setText("");
+            mostrar("correo");
+            codigoCorreo.requestFocusInWindow();
+        }, e -> avisoCodigo.error(Ui.mensajeError("enviar el correo").apply(e)));
+    }
+
+    private void verificarCodigoCorreo() {
+        if (pendiente == null) {
+            reiniciar(null);
+            return;
+        }
+        long id = pendiente.usuarioId();
+        String limpio = codigoCorreo.getText().replaceAll("[^0-9]", "");
+        Tarea.ejecutar(this, () -> {
+            Credenciales cred = RepositorioUsuarios.porId(id);
+            if (cred == null || cred.bloqueada()) {
+                return MENSAJE_BLOQUEO;
+            }
+            if (limpio.length() != 6 || !RepositorioFinanzas.usarCodigoCorreo(id, Recuperacion.hashCorto(limpio))) {
+                RepositorioUsuarios.registrarFallo(id, "FALLO_CORREO");
+                return "Código incorrecto o vencido";
+            }
+            secretoPendiente = Totp.generarSecreto();
+            return null;
+        }, error -> {
+            if (error != null) {
+                codigoCorreo.setText("");
+                avisoCorreo.error(error);
+                return;
+            }
+            qr.mostrar(Totp.uri(secretoPendiente, pendiente.correo()));
+            claveManual.setText("Clave:  " + Totp.legible(secretoPendiente));
+            codigoConfig.setText("");
+            mostrar("configurar");
+            avisoConfig.exito("Código verificado: configura tu autenticador nuevo.");
+            codigoConfig.requestFocusInWindow();
+        }, e -> avisoCorreo.error(Ui.mensajeError("verificar el código").apply(e)));
     }
 
     private static boolean esAdmin(long usuarioId) throws java.sql.SQLException {
@@ -486,15 +604,12 @@ public class VentanaLogin extends JFrame {
             if (cred.bloqueada()) {
                 return MENSAJE_BLOQUEO;
             }
-            boolean ok = cred.nombre() != null && cred.nombre().trim().equalsIgnoreCase(nombre);
-            if (ok && cred.totpActivo()) {
-                // Con autenticador configurado, sin su código no se puede tomar la cuenta.
-                Long paso = Totp.verificar(CifradoTotp.descifrarONull(cred.totpSecreto()), textoCodigo,
-                        cred.totpUltimoPaso());
-                ok = paso != null && RepositorioUsuarios.registrarExito(cred.usuarioId(), paso, "RECUPERAR_TOTP");
-            }
-            if (!ok) {
+            if (cred.nombre() == null || !cred.nombre().trim().equalsIgnoreCase(nombre)) {
                 RepositorioUsuarios.registrarFallo(cred.usuarioId(), "FALLO_RECUPERAR");
+                return errorGenerico;
+            }
+            // Con autenticador configurado, sin un código suyo (o de respaldo) no se puede tomar la cuenta.
+            if (cred.totpActivo() && !Verificacion.segundoFactor(cred, textoCodigo, "RECUPERAR_TOTP")) {
                 return errorGenerico;
             }
             String problema = Seguridad.problemaContrasena(clave);

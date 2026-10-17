@@ -12,10 +12,8 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.util.function.Function;
 
-import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -288,11 +286,7 @@ public final class Ui {
     }
 
     static Image icono() {
-        try {
-            return ImageIO.read(new File("resources/icono.png"));
-        } catch (Exception e) {
-            return null;
-        }
+        return Iconos.icono();
     }
 
     /** Envuelve un contenido con ancho máximo y centrado (como main { max-width }). */

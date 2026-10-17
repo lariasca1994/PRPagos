@@ -1,7 +1,7 @@
 {
   "name": "PRPagos",
   "short_name": "PRPagos",
-  "description": "Registro, consulta y exportación de pagos.",
+  "description": "Control de ingresos y gastos con plan 50/30/20, dashboard y resúmenes por correo.",
   "lang": "es",
   "start_url": "/",
   "scope": "/",

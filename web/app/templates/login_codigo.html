@@ -5,13 +5,15 @@
 {% block subtitulo %}Abre tu app autenticadora y escribe el código de 6 dígitos de PRPagos ({{ correo }}).{% endblock %}
 {% block formulario %}
 <form method="post" action="/login/codigo">
-    <label for="codigo">Código de 6 dígitos</label>
-    <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus>
+    <label for="codigo">Código de 6 dígitos (o un código de respaldo)</label>
+    <input type="text" id="codigo" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required autofocus>
 
     <button type="submit" class="boton">Ingresar</button>
 </form>
 {% endblock %}
 {% block enlaces %}
 <a href="/logout">Usar otra cuenta</a>
-<a href="/recuperar">Olvidé mi contraseña</a>
+<form method="post" action="/login/perdi-telefono" class="en-linea">
+    <button type="submit" class="enlace-boton">Perdí mi teléfono</button>
+</form>
 {% endblock %}

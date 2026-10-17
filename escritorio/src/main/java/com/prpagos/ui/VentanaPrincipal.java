@@ -27,8 +27,8 @@ import com.prpagos.datos.Sesion;
 /**
  * Ventana principal: misma estructura que las páginas de la web (base.html).
  * Barra superior con la marca, el botón de tema y el menú en el mismo orden
- * (Consultar registros · Nuevo registro · Seguridad · Usuarios (admin) ·
- * Salir), el contenido al centro con un ancho máximo y el pie.
+ * (Dashboard · Consultar registros · Nuevo registro · Perfil · Usuarios
+ * (admin) · Salir), el contenido al centro con un ancho máximo y el pie.
  *
  * Sesión con las mismas reglas y mensajes que la web: se cierra tras 6 horas
  * sin uso (cada tecla o clic reinicia el plazo) y como máximo a las 8 horas;
@@ -38,10 +38,11 @@ import com.prpagos.datos.Sesion;
  */
 public class VentanaPrincipal extends JFrame {
 
+    static final String DASHBOARD = "dashboard";
     static final String CONSULTA = "consulta";
     static final String NUEVO = "nuevo";
     static final String EDITAR = "editar";
-    static final String SEGURIDAD = "seguridad";
+    static final String PERFIL = "perfil";
     static final String USUARIOS = "usuarios";
 
     private static final int INACTIVIDAD_MS = 6 * 60 * 60 * 1000;
@@ -58,13 +59,17 @@ public class VentanaPrincipal extends JFrame {
     private final PanelConsulta consulta;
     private final PanelPago nuevo;
     private final PanelPago editar;
-    private final PanelSeguridad seguridad;
+    private final PanelDashboard dashboard;
+    private final PanelPerfil perfil;
     private final PanelUsuarios usuarios;
     private final Timer inactividad;
     private final Timer duracionMaxima;
     private final java.awt.event.AWTEventListener actividad;
     private Sesion sesion;
     private String actual;
+    private final Map<String, JScrollPane> desplazables = new java.util.HashMap<>();
+    /** Al cambiar de sección, la vista queda arriba aunque la carga devuelva el foco a un campo. */
+    private long anclarArribaHasta;
 
     public VentanaPrincipal(Sesion sesion) {
         super("PRPagos — " + sesion.nombre());
@@ -78,15 +83,17 @@ public class VentanaPrincipal extends JFrame {
         consulta = new PanelConsulta(this);
         nuevo = PanelPago.nuevo(this);
         editar = PanelPago.edicion(this);
-        seguridad = new PanelSeguridad(this);
+        dashboard = new PanelDashboard(this);
+        perfil = new PanelPerfil(this);
         usuarios = new PanelUsuarios(this);
 
         contenido.setOpaque(false);
-        contenido.add(desplazable(consulta), CONSULTA);
-        contenido.add(desplazable(nuevo), NUEVO);
-        contenido.add(desplazable(editar), EDITAR);
-        contenido.add(desplazable(seguridad), SEGURIDAD);
-        contenido.add(desplazable(usuarios), USUARIOS);
+        for (Object[] s : new Object[][] {{dashboard, DASHBOARD}, {consulta, CONSULTA}, {nuevo, NUEVO},
+            {editar, EDITAR}, {perfil, PERFIL}, {usuarios, USUARIOS}}) {
+            JScrollPane scroll = desplazable((JPanel) s[0]);
+            desplazables.put((String) s[1], scroll);
+            contenido.add(scroll, (String) s[1]);
+        }
 
         JPanel raiz = new JPanel(new BorderLayout());
         raiz.add(barra(), BorderLayout.NORTH);
@@ -110,7 +117,7 @@ public class VentanaPrincipal extends JFrame {
         java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(actividad,
                 java.awt.AWTEvent.KEY_EVENT_MASK | java.awt.AWTEvent.MOUSE_EVENT_MASK);
 
-        mostrar(CONSULTA);
+        mostrar(DASHBOARD);
     }
 
     Sesion sesion() {
@@ -132,9 +139,10 @@ public class VentanaPrincipal extends JFrame {
 
         JPanel nav = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 0));
         nav.setOpaque(false);
+        menu.put(DASHBOARD, opcion("Dashboard", () -> ir(DASHBOARD)));
         menu.put(CONSULTA, opcion("Consultar registros", () -> ir(CONSULTA)));
         menu.put(NUEVO, opcion("Nuevo registro", () -> ir(NUEVO)));
-        menu.put(SEGURIDAD, opcion("Seguridad", () -> ir(SEGURIDAD)));
+        menu.put(PERFIL, opcion("Perfil", () -> ir(PERFIL)));
         menu.put(USUARIOS, opcion("Usuarios (admin)", () -> ir(USUARIOS)));
         menu.values().forEach(nav::add);
         nav.add(opcion("Salir (" + sesion.nombre() + ")", () -> cerrarSesion(CIERRE_SALIR, true)));
@@ -171,7 +179,14 @@ public class VentanaPrincipal extends JFrame {
     }
 
     private JScrollPane desplazable(JPanel panel) {
-        JPanel margen = new JPanel(new BorderLayout());
+        JPanel margen = new JPanel(new BorderLayout()) {
+            @Override
+            public void scrollRectToVisible(java.awt.Rectangle r) {
+                if (System.currentTimeMillis() >= anclarArribaHasta) {
+                    super.scrollRectToVisible(r);
+                }
+            }
+        };
         margen.setOpaque(false);
         margen.setBorder(BorderFactory.createEmptyBorder(32, 32, 32, 32));
         margen.add(Ui.centrado(panel, 960), BorderLayout.CENTER);
@@ -204,7 +219,7 @@ public class VentanaPrincipal extends JFrame {
                 cerrarSesion(CIERRE_SUSPENDIDA, false);
                 return;
             }
-            mostrar(USUARIOS.equals(seccion) && !sesion.admin() ? CONSULTA : seccion);
+            mostrar(USUARIOS.equals(seccion) && !sesion.admin() ? DASHBOARD : seccion);
         }, e -> mostrar(seccion));
     }
 
@@ -226,12 +241,22 @@ public class VentanaPrincipal extends JFrame {
         switch (seccion) {
             case CONSULTA -> consulta.recargar();
             case NUEVO -> nuevo.limpiar();
-            case SEGURIDAD -> seguridad.recargar();
+            case DASHBOARD -> dashboard.recargar();
+            case PERFIL -> perfil.recargar();
             case USUARIOS -> usuarios.recargar();
             default -> { }
         }
         tarjetas.show(contenido, seccion);
         marcarMenu();
+        arriba(seccion);
+    }
+
+    private void arriba(String seccion) {
+        anclarArribaHasta = System.currentTimeMillis() + 4000;
+        JScrollPane scroll = desplazables.get(seccion);
+        if (scroll != null) {
+            javax.swing.SwingUtilities.invokeLater(() -> scroll.getVerticalScrollBar().setValue(0));
+        }
     }
 
     void editar(Pago pago) {
@@ -239,6 +264,7 @@ public class VentanaPrincipal extends JFrame {
         actual = EDITAR;
         tarjetas.show(contenido, EDITAR);
         marcarMenu();
+        arriba(EDITAR);
     }
 
     /** Volver a la consulta tras guardar, con el aviso arriba (como ?ok= / ?error= en la web). */
