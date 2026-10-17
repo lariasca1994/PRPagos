@@ -5,6 +5,8 @@
 #   - PRPagos-Escritorio-<versión>.zip   portable: descomprimir y abrir PRPagos.exe
 #   - PRPagos-<versión>.exe              instalador por usuario con acceso directo
 # El enlace estable es /releases/latest. Repositorio público: sin costo.
+# Luego registra la versión y la huella SHA-256 del .zip en la base: las
+# aplicaciones instaladas se actualizan solas (ver Actualizador.java).
 # La configuración (config.properties y la billetera) no va en el paquete:
 # cada equipo la pone en %APPDATA%\PRPagos\ (ver escritorio/README.md).
 name: Publicar escritorio
@@ -79,3 +81,30 @@ jobs:
           gh release create "escritorio-v$env:VERSION" `
             "$dist/PRPagos-$env:VERSION.exe" "$dist/PRPagos-Escritorio-$env:VERSION.zip" `
             --title "PRPagos Escritorio $env:VERSION" --notes $notas --latest --target $env:GITHUB_SHA
+
+      # Actualización automática: registra la versión y la huella SHA-256 del .zip en la
+      # base (vía la web). Las aplicaciones instaladas la comprueban al abrir y cada hora,
+      # y solo instalan un paquete de GitHub cuya huella coincida con esta.
+      - name: Registrar versión para la actualización automática
+        shell: pwsh
+        env:
+          TAREAS_TOKEN: ${{ secrets.TAREAS_TOKEN }}
+          URL_PUBLICA: ${{ vars.URL_PUBLICA }}
+        run: |
+          $zip = "escritorio/build/dist/PRPagos-Escritorio-$env:VERSION.zip"
+          $cuerpo = @{
+            version = $env:VERSION
+            url     = "https://github.com/${{ github.repository }}/releases/download/escritorio-v$env:VERSION/PRPagos-Escritorio-$env:VERSION.zip"
+            sha256  = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          } | ConvertTo-Json
+          # La web puede estar desplegándose en este mismo push: se reintenta.
+          for ($i = 1; $i -le 10; $i++) {
+            try {
+              Invoke-RestMethod -Method Post -Uri "$env:URL_PUBLICA/tareas/version-escritorio" `
+                -Headers @{ 'X-Tarea-Token' = $env:TAREAS_TOKEN } -ContentType 'application/json' -Body $cuerpo
+              exit 0
+            } catch {
+              Write-Host "Intento $i falló: $($_.Exception.Message)"; Start-Sleep -Seconds 30
+            }
+          }
+          exit 1

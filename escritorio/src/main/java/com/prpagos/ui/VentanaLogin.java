@@ -637,6 +637,8 @@ public class VentanaLogin extends JFrame {
     public static void main(String[] args) {
         Tema.iniciar();
         SwingUtilities.invokeLater(() -> new VentanaLogin().setVisible(true));
+        // Actualización automática (solo en la aplicación instalada con PRPagos.exe).
+        com.prpagos.actualizaciones.Comprobador.iniciar();
     }
 
 }

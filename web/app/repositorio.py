@@ -538,3 +538,20 @@ def desmarcar_envio(usuario_id: int, tipo: str, periodo: str) -> None:
         cur.execute("DELETE FROM TBEnviosResumen WHERE usuario_id = :u AND tipo = :t AND periodo = :p",
                     u=usuario_id, t=tipo, p=periodo)
         conn.commit()
+
+
+# ───────────────────────── Versiones del escritorio ─────────────────────────
+
+
+def publicar_version_escritorio(version: str, url: str, sha256: str) -> None:
+    """Registra (o corrige) una versión publicada en GitHub Releases."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "MERGE INTO TBVersionesEscritorio v USING (SELECT :v version FROM dual) n "
+            "ON (v.version = n.version) "
+            "WHEN MATCHED THEN UPDATE SET url = :u, sha256 = :s, publicada = SYSTIMESTAMP "
+            "WHEN NOT MATCHED THEN INSERT (version, url, sha256) VALUES (:v, :u, :s)",
+            v=version, u=url, s=sha256,
+        )
+        conn.commit()

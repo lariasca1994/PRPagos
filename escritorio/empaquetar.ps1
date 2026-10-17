@@ -28,13 +28,18 @@ $fuentes = Get-ChildItem -Recurse -Path src -Filter *.java | ForEach-Object { $_
 & javac --release 17 -encoding UTF-8 -d $clases -cp "lib/*" $fuentes
 if ($LASTEXITCODE -ne 0) { throw "Falló la compilación" }
 
-# 2. Recursos dentro del .jar: consultas y plantillas compartidas con la web, e ícono.
+# 2. Recursos dentro del .jar: consultas y plantillas compartidas con la web, ícono
+#    y script del actualizador (src/main/resources).
 Copy-Item -Recurse (Join-Path $PSScriptRoot "..\compartido") (Join-Path $clases "compartido")
 New-Item -ItemType Directory -Force (Join-Path $clases "recursos") | Out-Null
 Copy-Item "resources\icono.png" (Join-Path $clases "recursos\icono.png")
+Copy-Item -Recurse "src\main\resources\*" $clases -Force
 
-# 3. El .jar de la aplicación y sus librerías.
-& jar --create --file (Join-Path $entrada "prpagos-escritorio.jar") --main-class com.prpagos.ui.VentanaLogin -C $clases .
+# 3. El .jar de la aplicación (con su versión en el manifiesto: el actualizador
+#    la compara con la publicada) y sus librerías.
+$manifiesto = Join-Path $build "MANIFEST.MF"
+[IO.File]::WriteAllText($manifiesto, "Implementation-Title: PRPagos Escritorio`nImplementation-Version: $Version`n")
+& jar --create --file (Join-Path $entrada "prpagos-escritorio.jar") --manifest $manifiesto --main-class com.prpagos.ui.VentanaLogin -C $clases .
 if ($LASTEXITCODE -ne 0) { throw "Falló la creación del jar" }
 Copy-Item "lib\*.jar" $entrada
 
