@@ -24,10 +24,17 @@
 
 ## 1. Presentación
 
-Versión de escritorio de PRPagos, construida con Java Swing. Es la aplicación
-original, y habla con la **misma** base de datos, el **mismo** Wallet de
-Oracle y los **mismos** procedimientos almacenados que la versión web
-([`../web`](../web)).
+Versión de escritorio de PRPagos, construida con Java Swing: el mismo gestor
+de presupuesto de la web (ingresos, gastos, plan 50/30/20, dashboard y
+resúmenes por correo) como aplicación de Windows. Habla con la **misma** base
+de datos, el **mismo** Wallet de Oracle, los **mismos** procedimientos
+almacenados y las **mismas** consultas y plantillas de correo
+(`../compartido/`) que la versión web ([`../web`](../web)), así que muestra las
+mismas cifras y gráficas.
+
+Se distribuye como **PRPagos.exe** con Java incluido —instalador o versión
+portable— en [GitHub Releases](https://github.com/lariasca1994/PRPagos/releases/latest),
+y se **actualiza sola** cuando se publica una versión nueva.
 
 Ver el [`README.md`](../README.md) de la raíz para la descripción general del
 proyecto y [`CHANGELOG-migracion.md`](../CHANGELOG-migracion.md) para el
@@ -35,61 +42,72 @@ detalle de la migración.
 
 ### En pocas palabras
 
-- **Qué hace:** permite registrar, consultar, modificar y exportar pagos desde
-  una aplicación de escritorio. Cada persona ve solo sus propios pagos.
-- **Qué lo hace interesante:** el código Java no reimplementa las reglas: la
-  autorización y la auditoría viven en procedimientos almacenados de Oracle,
-  los mismos que usa la versión web.
-- **Cómo probarlo:** se ejecuta en tu equipo; ve a
-  [Instalación para pruebas](#6-instalación-para-pruebas). Para probar sin
-  instalar nada, usa la [demo web](https://prpagos-web-1087929107584.southamerica-east1.run.app),
+- **Qué hace:** registra ingresos y gastos por categoría, muestra el mes en un
+  dashboard (JFreeChart) frente al plan 50/30/20 y envía el resumen por correo.
+  Cada persona ve solo lo suyo.
+- **Qué lo hace interesante:** funciona y se ve igual que la web sin duplicar
+  reglas: la autorización y la auditoría viven en procedimientos de Oracle y el
+  dashboard y los correos salen de archivos compartidos. Además se empaqueta con
+  jpackage, se actualiza desde GitHub con verificación SHA-256 y protege su
+  configuración con DPAPI.
+- **Cómo probarlo:** descarga la [última versión](https://github.com/lariasca1994/PRPagos/releases/latest)
+  o compílala desde el código ([Instalación para pruebas](#6-instalación-para-pruebas)).
+  Para probar sin instalar nada, usa la [demo web](https://prpagos-web-1087929107584.southamerica-east1.run.app),
   que comparte la misma base.
 
 ### Demo en vivo
 
 La versión de escritorio no tiene demo en línea: se ejecuta en el equipo de
-cada usuario.
+cada usuario. **Descarga:** [última versión](https://github.com/lariasca1994/PRPagos/releases/latest).
 
 **Versión web (misma base de datos):** [abrir la demo en vivo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
 
 ### Funcionalidades
 
+**Presupuesto**
+- Ingresos y gastos con tipo, monto, fecha (con calendario), categoría y concepto
+- Categorías sugeridas y propias, cada una de gasto en un grupo del plan
+- Plan 50/30/20 con porcentajes editables en Perfil
+- **Dashboard** por mes con los mismos gráficos de la web (JFreeChart): barras de
+  6 meses, anillo de categorías y barras del plan con su estado
+- Consulta con filtros (tipo, concepto, montos y fechas), totales y CSV
+
+**Resúmenes por correo (Brevo)**
+- Botones **Enviarme el resumen semanal / del mes**, con el mismo correo de la web
+- Los envíos programados (viernes y día 29) los hace el servidor, aunque la
+  aplicación esté cerrada
+
 **Cuentas y seguridad**
-- Registro con cualquier correo real (ahí llegan las notificaciones)
-- Ingreso en dos pasos: contraseña y código de una app autenticadora (TOTP),
-  obligatorio para todas las cuentas
-- El autenticador se configura una sola vez y sirve también en la web
-- Pantalla **Seguridad**: cambiar la contraseña o el autenticador
-- Recuperación de contraseña con el código del autenticador
+- Ingreso en dos pasos obligatorio (TOTP), compartido con la web
+- Códigos de respaldo y código por correo si se pierde el teléfono
+- **Perfil** con datos, plan, categorías, autenticador, códigos y contraseña
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
 - Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con un mensaje del motivo
 
-**Interfaz**
-- Misma estructura, menú y colores que la versión web, con tema claro y oscuro
-
-**Pagos**
-- Ingresar, consultar y modificar pagos
-- Filtros por concepto, monto y rango de fechas
-- Selector de fechas mediante calendario
-- Exportar la consulta a CSV
-- Cada usuario ve y modifica únicamente sus propios pagos
-
-**Auditoría**
-- Cada operación queda registrada por la base de datos
+**Aplicación de Windows**
+- **PRPagos.exe** con Java incluido: instalador por usuario (sin permisos elevados
+  de Windows) o versión portable, con el ícono de la app
+- **Actualización automática**: comprueba al abrir y cada hora; instala al
+  reiniciar o al cerrar
+- Configuración en `%APPDATA%\PRPagos\` con los secretos cifrados por **DPAPI**
+- Misma portada animada, menú y colores que la web, en tema claro y oscuro
 
 ### Stack
 
 | Capa | Tecnología |
 |---|---|
-| Interfaz | Java Swing con FlatLaf (tema claro y oscuro) |
-| Lenguaje | Java 17 |
+| Interfaz | Java Swing con FlatLaf (tema claro y oscuro) y JFreeChart |
+| Lenguaje | Java 17 (el ejecutable incluye su propio Java) |
 | Acceso a datos | JDBC (ojdbc17 + oraclepki) |
+| Consultas del dashboard | `../compartido/consultas/*.sql`, las mismas de la web |
 | Base de datos | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
+| Correos | Brevo (API HTTPS, `java.net.http`) con `../compartido/correo/` |
 | Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única) |
 | Verificación en dos pasos | TOTP (RFC 6238); QR con ZXing; secreto cifrado con AES-256-GCM |
+| Protección de la configuración | DPAPI de Windows (JNA) |
 | Sesión | En memoria; 6 h sin uso, máximo 8 h (igual que la web) |
-| Despliegue | Equipo local |
+| Distribución | jpackage → GitHub Releases; actualización con verificación SHA-256 |
 
 ---
 
@@ -98,43 +116,52 @@ cada usuario.
 ```
 escritorio/
 ├── config.properties.example   Plantilla de configuración
-├── lib/                         Drivers de Oracle, FlatLaf y ZXing
+├── empaquetar.ps1               Compila y arma PRPagos.exe (y el instalador) con jpackage
+├── lib/                         Drivers de Oracle, FlatLaf, ZXing, JFreeChart y JNA
 ├── resources/                   Ícono de la aplicación (el mismo de la web)
-└── src/main/java/com/prpagos/
-    ├── conexion/    ConexionBD — punto único de conexión a la base (Wallet)
-    ├── datos/       Repositorios de usuarios y pagos (procedimientos almacenados)
-    ├── seguridad/   PBKDF2, TOTP y cifrado AES-GCM (gemelos de la web)
-    └── ui/          Portada de acceso, ventana principal con su menú,
-                     paneles (Consulta, Pago, Seguridad), Tema y componentes
+└── src/main/
+    ├── java/com/prpagos/
+    │   ├── actualizaciones/ Actualizador y comprobación periódica de versiones
+    │   ├── compartido/      Lee ../compartido/ (consultas SQL y plantillas de correo)
+    │   ├── conexion/        ConexionBD y SecretosProtegidos (DPAPI)
+    │   ├── datos/           Repositorios de usuarios, registros y finanzas
+    │   ├── finanzas/        Plan 50/30/20, formatos, resúmenes y cliente de Brevo
+    │   ├── seguridad/       PBKDF2, TOTP, AES-GCM y recuperación (gemelos de la web)
+    │   └── ui/              Portada, ventana principal y paneles (Dashboard,
+    │                        Consulta, Registro, Perfil), Tema y componentes
+    └── resources/           Script que instala las actualizaciones
 ```
 
-Las tablas y procedimientos (`../sql/`) y el Wallet (`../wallet/`) están en
-la raíz del repositorio, compartidos con la versión web.
+Las tablas y procedimientos (`../sql/`), las consultas y plantillas
+compartidas (`../compartido/`) y el Wallet (`../wallet/`) están en la raíz del
+repositorio, compartidos con la versión web. En el ejecutable, `compartido/`
+va dentro del `.jar`.
 
 ---
 
 ## 3. Arquitectura
 
 <p align="center">
-  <img src="../docs/arquitectura-escritorio.svg" alt="Diagrama de arquitectura: las ventanas Swing de PRPagos Escritorio usan Seguridad (PBKDF2, TOTP y AES-GCM), exportan pagos a CSV y, mediante ConexionBD y config.properties, se conectan por JDBC con TLS y Wallet a los procedimientos almacenados de Oracle Autonomous Database" width="100%">
+  <img src="../docs/arquitectura-escritorio.svg" alt="Diagrama de arquitectura: las ventanas Swing de PRPagos Escritorio usan Seguridad y el Dashboard, y mediante ConexionBD y config.properties (protegido con DPAPI) se conectan por JDBC con TLS y Wallet a los procedimientos de Oracle Autonomous Database; los correos salen por Brevo y el Actualizador descarga las versiones nuevas de GitHub Releases" width="100%">
 </p>
 
 - La aplicación corre en el **equipo del usuario**; la ventana de inicio es
   `com.prpagos.ui.VentanaLogin`.
-- **Seguridad** verifica la contraseña (PBKDF2) y el código del autenticador
-  (TOTP) con las mismas reglas que la web.
-- **ConexionBD** es el punto único de conexión: lee `config.properties` y se
-  conecta por JDBC con TLS usando el **Wallet** (SSO, sin contraseña).
-- Los **procedimientos almacenados** de Oracle deciden qué pagos ve cada
-  usuario, verifican la autorización y registran la auditoría.
-- La consulta de pagos se puede exportar a un **archivo CSV** local.
+- **Seguridad** verifica la contraseña (PBKDF2) y el código del autenticador o
+  de respaldo con las mismas reglas que la web.
+- **ConexionBD** es el punto único de conexión: lee `config.properties`
+  (descifrando con DPAPI lo protegido) y se conecta por JDBC con TLS usando el
+  **Wallet** (SSO, sin contraseña).
+- El **Dashboard** usa las consultas de `compartido/` y JFreeChart; los
+  resúmenes y códigos se envían por **Brevo** con las plantillas compartidas.
+- El **Actualizador** lee en Oracle la última versión publicada y su huella
+  SHA-256, la descarga de **GitHub Releases** y la instala al cerrar.
 
 ### Seguridad
 
-- **Una sola seguridad para las dos interfaces:** la contraseña, el
-  autenticador, el último código usado y el bloqueo por intentos fallidos
-  viven en la misma fila de la base. Un autenticador configurado en la web
-  sirve aquí, y al revés.
+- **Una sola seguridad para las dos interfaces:** contraseña, autenticador,
+  último código usado, códigos de respaldo y bloqueo viven en la base. Un
+  autenticador configurado en la web sirve aquí, y al revés.
 - Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única). Las cuentas
   creadas con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
 - Verificación en dos pasos obligatoria (TOTP); un código no se puede usar dos
@@ -142,12 +169,17 @@ la raíz del repositorio, compartidos con la versión web.
   (`totp.clave`) vive fuera de la base.
 - Cinco intentos fallidos seguidos bloquean la cuenta 5 minutos; lo decide la
   base, igual que para la web.
-- Un usuario solo puede ver y modificar sus propios pagos; esa regla vive en
-  los procedimientos almacenados (`buscar_tbpagos`, `actualizar_tbpago`), no
-  se reimplementa en el código Java.
-- Conexión a la base por TLS con Wallet.
-- El Wallet y `config.properties` (con la clave de cifrado) no se suben al
-  repositorio.
+- Un usuario solo ve y modifica sus propios registros; esa regla vive en los
+  procedimientos y en las consultas, siempre filtradas por la cuenta.
+- **Configuración protegida:** al primer uso, `db.password`, `totp.clave` y
+  `brevo.api.key` se cifran con DPAPI (`dpapi:…`), atados al usuario de Windows
+  y al equipo; copiados a otra máquina no se pueden descifrar.
+- **Actualizaciones verificadas** (mismo esquema que los agentes de SysPulse):
+  solo HTTPS y solo GitHub (también tras las redirecciones), tamaño máximo,
+  huella SHA-256 tomada de la base y no del sitio de descarga, y versión del
+  `.jar` igual a la publicada. Si algo falla, se conserva la versión instalada.
+- Conexión a la base por TLS con Wallet. El Wallet y `config.properties` no se
+  suben al repositorio.
 
 ---
 
@@ -155,63 +187,52 @@ la raíz del repositorio, compartidos con la versión web.
 
 | Plataforma | Función en el proyecto |
 |---|---|
-| ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La aplicación corre en el equipo de cada usuario, sin servidor. |
-| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda usuarios y pagos, y ejecuta los procedimientos almacenados con las reglas y la auditoría. Conexión por TLS con el Wallet; no requiere ningún otro servicio, cuenta ni clave de API. |
+| ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La aplicación corre en el equipo de cada usuario como PRPagos.exe, con su propio Java. |
+| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda cuentas, registros, categorías, planes y versiones publicadas, y ejecuta los procedimientos con las reglas y la auditoría. Conexión por TLS con el Wallet. |
 | ![JDBC](https://img.shields.io/badge/JDBC-5382A1?style=for-the-badge&logo=openjdk&logoColor=white) | Conecta la aplicación con la base mediante los drivers `ojdbc17` y `oraclepki`. |
-| ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Aloja la versión web; su azul y el rojo de Oracle forman la paleta común de las dos interfaces. |
+| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes pedidos desde el dashboard y los códigos de recuperación. |
+| ![GitHub](https://img.shields.io/badge/GitHub_Releases-181717?style=for-the-badge&logo=github&logoColor=white) | GitHub Actions compila y publica cada versión (instalador y portable); de ahí se actualizan las aplicaciones instaladas. |
+| ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Aloja la versión web y la tarea diaria de resúmenes; su azul y el rojo de Oracle forman la paleta común de las dos interfaces. |
 
 ---
 
 ## 5. Cómo usar la plataforma
 
-La ventana tiene la misma barra que la web: **Consultar registros**, **Nuevo
-registro**, **Seguridad** y **Salir**, y el botón ◐ para cambiar entre tema claro
-y oscuro.
+El paso a paso con capturas de cada pantalla, incluida la instalación, está en
+el **[Manual de escritorio](../docs/MANUAL-ESCRITORIO.md)**. En resumen:
 
-### 5.1 Crear una cuenta
+La ventana tiene la misma barra que la web: **Dashboard**, **Consultar
+registros**, **Nuevo registro**, **Perfil** y **Salir**, y el botón ◐ para
+cambiar entre tema claro y oscuro.
 
-1. En la portada, pulsa **Regístrate**.
-2. Completa **Correo**, **Nombre completo**, **Contraseña** (mínimo 8 caracteres) y
-   **Repite la contraseña**, y pulsa **Crear cuenta**. La misma cuenta sirve en la
-   versión web.
+### 5.1 Instalar
 
-### 5.2 Iniciar sesión (dos pasos)
+1. Descarga de [Releases](https://github.com/lariasca1994/PRPagos/releases/latest)
+   el instalador `PRPagos-<versión>.exe` o el portable `PRPagos-Escritorio-<versión>.zip`.
+2. Copia `config.properties` y la carpeta del Wallet en `%APPDATA%\PRPagos\`.
+3. Abre **PRPagos** desde el acceso directo. Las versiones nuevas se instalan solas.
 
-1. Escribe **Correo** y **Contraseña** y pulsa **Continuar**.
-2. **Primera vez:** escanea el QR con una app autenticadora (Google Authenticator,
-   Microsoft Authenticator, Authy…) o escribe la clave a mano, y escribe el código
-   de 6 dígitos en **Activar e ingresar**. Si ya lo configuraste en la web, este paso
-   no aparece.
-3. **Siguientes veces:** escribe el código de 6 dígitos de tu app y pulsa **Ingresar**.
-4. La sesión se cierra tras 6 horas sin uso o a las 8 horas del ingreso, con un mensaje que explica el motivo.
+### 5.2 Crear una cuenta e ingresar
 
-### 5.3 Registrar un pago
+1. En la portada, pulsa **Regístrate**: correo, nombre completo y contraseña. La
+   misma cuenta sirve en la web.
+2. Ingresa con **Correo** y **Contraseña**; la primera vez escanea el QR con tu
+   app autenticadora y guarda los 10 **códigos de respaldo**.
+3. Las siguientes veces, escribe el código de 6 dígitos (o uno de respaldo).
 
-1. Pulsa **Nuevo registro**.
-2. Completa **Monto**, **Fecha** (con el calendario) y **Concepto**, y pulsa **Guardar**.
+### 5.3 Dashboard, registros y Perfil
 
-### 5.4 Consultar, modificar y exportar
+- **Dashboard:** elige el mes; cifras, gráficas, plan 50/30/20 y botones de resumen por correo.
+- **Nuevo registro:** tipo, monto, fecha, categoría y concepto.
+- **Consultar registros:** filtros, totales, **Modificar** (o doble clic) y **Exportar a CSV**.
+- **Perfil:** nombre y resúmenes, plan, categorías, autenticador, códigos de respaldo y contraseña.
 
-1. Pulsa **Consultar registros**.
-2. Filtra con **Concepto contiene**, **Monto mínimo**, **Monto máximo**, **Desde** y
-   **Hasta** (las fechas pueden quedar vacías), y pulsa **Buscar** (**Limpiar** quita
-   los filtros).
-3. La tabla muestra tus pagos y el **Total**. **Modificar** (o doble clic en la fila)
-   abre el pago; confirma con **Guardar cambios**.
-4. **Exportar a CSV** guarda la consulta en un archivo local.
+### 5.4 Recuperar el acceso
 
-### 5.5 Seguridad
-
-- **Cambiar contraseña:** contraseña actual, la nueva dos veces y un código del
-  autenticador.
-- **Cambiar autenticador:** escribe un código del actual, escanea el QR nuevo y
-  confírmalo con su primer código.
-
-### 5.6 Recuperar la contraseña
-
-1. En la portada, pulsa **Olvidé mi contraseña**.
-2. Escribe tu **Correo**, el **Nombre registrado**, el **Código del autenticador** y
-   la nueva contraseña dos veces, y pulsa **Actualizar contraseña**.
+- **Perdí mi teléfono** (paso del código): un código de respaldo, o un código
+  al correo para configurar un autenticador nuevo.
+- **Olvidé mi contraseña** (portada): correo, nombre registrado, un código del
+  autenticador o de respaldo y la nueva contraseña dos veces.
 
 ---
 
@@ -219,12 +240,13 @@ y oscuro.
 
 ### Requisitos
 
-- JDK 17 o superior
-- Una base Oracle accesible, preparada con `../sql/DBPagos.sql` (una sola vez)
+- JDK 17 o superior (para compilar; el ejecutable trae su propio Java)
+- Una base Oracle accesible, preparada con `../sql/DBPagos.sql` y las
+  migraciones (ver el [README de la raíz](../README.md#base-de-datos-una-sola-vez))
 - El Wallet de esa base descomprimido en `../wallet`. No viene en el
   repositorio: se descarga desde la consola de Oracle Cloud.
 - Las librerías de `lib/` (ya incluidas en el repositorio): drivers de Oracle,
-  FlatLaf (aspecto de la interfaz) y ZXing (código QR)
+  FlatLaf, ZXing, JFreeChart y JNA
 
 ### Instalación
 
@@ -239,14 +261,18 @@ cp config.properties.example config.properties
 
 La conexión se centraliza en `conexion/ConexionBD`. Sus parámetros se leen de
 `config.properties`, no están escritos en el código: el alias de conexión
-(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base, y
-`totp.clave`, la clave con la que se cifran los autenticadores. Debe ser **la
-misma** `TOTP_CLAVE` de la versión web; si no, ninguna de las dos podrá leer
-los autenticadores configurados en la otra.
+(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base,
+`totp.clave` (debe ser **la misma** `TOTP_CLAVE` de la web) y, para los
+correos, `brevo.api.key` y `brevo.remitente` (los mismos de la web).
 
-Como el Wallet está en la raíz del repositorio y no dentro de esta carpeta,
-`wallet.path` debe apuntar a `../wallet`, que es el valor que ya trae la
-plantilla. `config.properties` nunca se sube a git.
+Dónde se busca el archivo, en orden: `-Dprpagos.config=<ruta>`, la carpeta
+actual (al correr desde el código, `escritorio/`) y `%APPDATA%\PRPagos\` (la
+aplicación instalada). `wallet.path` puede ser absoluto o relativo a la carpeta
+del archivo; la plantilla trae `../wallet`.
+
+En Windows, la primera vez que la aplicación lee el archivo cifra los secretos
+con DPAPI; para cambiar uno, vuelve a escribirlo en claro. `config.properties`
+nunca se sube a git.
 
 ### Ejecución
 
@@ -263,14 +289,28 @@ java --enable-native-access=ALL-UNNAMED -cp "bin;lib\*" com.prpagos.ui.VentanaLo
 
 En Linux o macOS el separador del classpath es `:` en lugar de `;`.
 
+Para armar el ejecutable (JDK 17+ con jpackage):
+
+```powershell
+.\empaquetar.ps1                  # build\dist\PRPagos\PRPagos.exe (portable)
+.\empaquetar.ps1 -Instalador      # además, el instalador .exe (requiere WiX Toolset)
+```
+
 ### Despliegue
 
-La versión de escritorio se ejecuta localmente, con Oracle Autonomous
-Database como base de datos. No requiere servidor.
+Cada push a `main` que toque el escritorio o `compartido/` ejecuta
+[`.github/workflows/escritorio.yml`](../.github/workflows/escritorio.yml), que:
+
+1. Compila y empaqueta con `empaquetar.ps1` en un runner de Windows.
+2. Publica el Release `escritorio-v1.0.<n>` con el instalador y el portable.
+3. Registra la versión y la huella SHA-256 del portable en la base, de donde la
+   leen las aplicaciones instaladas para actualizarse.
 
 ---
 
 ## 7. Autor y licencia
+
+> 📘 **[Manual de escritorio](../docs/MANUAL-ESCRITORIO.md)**: cómo instalar y usar la aplicación campo por campo, qué datos se ingresan y qué garantiza en seguridad.
 
 **Luis Felipe Arias Carriazo**
 [GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1)

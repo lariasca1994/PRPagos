@@ -152,6 +152,9 @@ input:focus, textarea:focus, select:focus {
 .tabla tr:last-child td { border-bottom: none; }
 
 .acciones { display: flex; gap: 0.75rem; align-items: center; }
+/* Categorías de Perfil: la celda sigue alineada con su fila. */
+.tabla-compacta td.acciones { display: table-cell; vertical-align: middle; }
+.acciones .texto-suave { margin: 0; }
 .en-linea { display: inline; margin: 0; }
 .enlace-boton {
     background: none;

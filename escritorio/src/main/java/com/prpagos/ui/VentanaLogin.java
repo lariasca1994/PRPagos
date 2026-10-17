@@ -153,7 +153,8 @@ public class VentanaLogin extends JFrame {
         JPanel p = Ui.columna();
         p.add(Ui.paso(paso));
         p.add(Ui.espacio(8));
-        p.add(Ui.titulo(titulo, 27f));
+        // En HTML con ancho fijo: los títulos largos pasan a la línea siguiente, como en la web.
+        p.add(Ui.titulo("<html><body style='width:300px'>" + titulo + "</body></html>", 27f));
         p.add(Ui.espacio(6));
         p.add(subtitulo);
         p.add(Ui.espacio(18));
