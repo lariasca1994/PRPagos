@@ -34,9 +34,10 @@
             {% if usuario %}
                 {# Mismo menú, en el mismo orden, que la barra de la versión de escritorio. #}
                 {% set ruta = request.url.path %}
+                <a href="/dashboard" {% if ruta.startswith("/dashboard") %}class="activo" aria-current="page"{% endif %}>Dashboard</a>
                 <a href="/registros" {% if ruta == "/registros" or (ruta.startswith("/registros/") and not ruta.endswith("/nuevo")) %}class="activo" aria-current="page"{% endif %}>Consultar registros</a>
                 <a href="/registros/nuevo" {% if ruta == "/registros/nuevo" %}class="activo" aria-current="page"{% endif %}>Nuevo registro</a>
-                <a href="/seguridad" {% if ruta.startswith("/seguridad") %}class="activo" aria-current="page"{% endif %}>Seguridad</a>
+                <a href="/perfil" {% if ruta.startswith("/perfil") %}class="activo" aria-current="page"{% endif %}>Perfil</a>
                 {% if usuario.es_admin %}<a href="/admin/usuarios" {% if ruta.startswith("/admin") %}class="activo" aria-current="page"{% endif %}>Usuarios (admin)</a>{% endif %}
                 <a href="/logout">Salir ({{ usuario.nombre }})</a>
             {% else %}
@@ -60,7 +61,7 @@
         // servidor muestra el mensaje del motivo.
         (function () {
             var espera = ({{ usuario.vence }} * 1000) - Date.now() + 2000;
-            setTimeout(function () { window.location.href = "/registros"; }, Math.max(espera, 0));
+            setTimeout(function () { window.location.href = "/dashboard"; }, Math.max(espera, 0));
         })();
     </script>
     {% endif %}

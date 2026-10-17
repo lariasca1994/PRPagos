@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block titulo %}Códigos de respaldo - PRPagos{% endblock %}
+{% block contenido %}
+<section class="tarjeta-formulario">
+    <h1>Tus códigos de respaldo</h1>
+    {% include "fragmentos/lista_respaldo.html" %}
+    <p><a class="boton" href="/perfil">Ya los guardé</a></p>
+</section>
+{% endblock %}

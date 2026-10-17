@@ -13,6 +13,14 @@
 
 <form method="get" action="/registros" class="filtros">
     <div class="fila-filtros">
+        <label>Tipo
+            <select name="tipo">
+                <option value="">Todos</option>
+                {% for clave, texto in tipos.items() %}
+                <option value="{{ clave }}" {% if filtros.tipo == clave %}selected{% endif %}>{{ texto }}s</option>
+                {% endfor %}
+            </select>
+        </label>
         <label>Concepto contiene
             <input type="text" name="concepto" value="{{ filtros.concepto }}">
         </label>
@@ -35,15 +43,21 @@
     </div>
 </form>
 
-<p class="total-pagado">Total: <strong>{{ "%.2f"|format(total) }}</strong></p>
+<p class="totales-registros">
+    Ingresos: <strong class="cifra-ingreso">{{ "%.2f"|format(ingresos) }}</strong>
+    · Gastos: <strong class="cifra-gasto">{{ "%.2f"|format(gastos) }}</strong>
+    · Balance: <strong>{{ "%.2f"|format(balance) }}</strong>
+</p>
 
 <table class="tabla">
     <thead>
         <tr>
             <th>ID</th>
             {% if usuario.es_admin %}<th>Usuario</th>{% endif %}
+            <th>Tipo</th>
             <th>Monto</th>
             <th>Fecha</th>
+            <th>Categoría</th>
             <th>Concepto</th>
             <th></th>
         </tr>
@@ -53,8 +67,10 @@
         <tr>
             <td>{{ r.id_pago }}</td>
             {% if usuario.es_admin %}<td>{{ r.nombre }} ({{ r.usuario }})</td>{% endif %}
+            <td><span class="etiqueta-tipo tipo-{{ r.tipo|lower }}">{{ tipos[r.tipo] }}</span></td>
             <td>{{ "%.2f"|format(r.monto) }}</td>
             <td>{{ r.fecha }}</td>
+            <td>{{ r.categoria }}</td>
             <td>{{ r.concepto }}</td>
             <td class="acciones">
                 <a href="/registros/{{ r.id_pago }}/editar">Modificar</a>
@@ -66,14 +82,14 @@
             </td>
         </tr>
         {% else %}
-        <tr><td colspan="{{ 6 if usuario.es_admin else 5 }}">No hay registros para los filtros seleccionados.</td></tr>
+        <tr><td colspan="{{ 8 if usuario.es_admin else 7 }}">No hay registros para los filtros seleccionados.</td></tr>
         {% endfor %}
     </tbody>
 </table>
 
 <p>
     <a class="boton boton-secundario"
-       href="/registros/exportar.csv?concepto={{ filtros.concepto | urlencode }}&monto_min={{ filtros.monto_min | urlencode }}&monto_max={{ filtros.monto_max | urlencode }}&fecha_desde={{ filtros.fecha_desde | urlencode }}&fecha_hasta={{ filtros.fecha_hasta | urlencode }}">
+       href="/registros/exportar.csv?tipo={{ filtros.tipo | urlencode }}&concepto={{ filtros.concepto | urlencode }}&monto_min={{ filtros.monto_min | urlencode }}&monto_max={{ filtros.monto_max | urlencode }}&fecha_desde={{ filtros.fecha_desde | urlencode }}&fecha_hasta={{ filtros.fecha_hasta | urlencode }}">
         Exportar a CSV
     </a>
 </p>

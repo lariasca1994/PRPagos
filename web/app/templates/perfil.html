@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block titulo %}Perfil - PRPagos{% endblock %}
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>Perfil</h1>
+</div>
+
+{% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% endif %}
+{% if ok %}<p class="aviso exito" role="status">{{ ok }}</p>{% endif %}
+
+<div class="rejilla-perfil">
+    <section class="tarjeta">
+        <h2>Tus datos</h2>
+        <form method="post" action="/perfil/datos">
+            <label for="nombre">Nombre completo</label>
+            <input type="text" id="nombre" name="nombre" maxlength="100" value="{{ perfil.nombre }}" required>
+            <label>Correo</label>
+            <input type="email" value="{{ perfil.usuario }}" disabled>
+            <label class="casilla">
+                <input type="checkbox" name="notificaciones" value="1" {% if perfil.notificaciones %}checked{% endif %}>
+                Recibir el resumen semanal (viernes) y el general (día 29) por correo
+            </label>
+            <button type="submit" class="boton">Guardar datos</button>
+        </form>
+    </section>
+
+    <section class="tarjeta">
+        <h2>Plan 50/30/20</h2>
+        <p class="texto-ayuda">Cómo repartir tus ingresos del mes. Los tres porcentajes deben sumar 100.</p>
+        <form method="post" action="/perfil/plan">
+            <label for="necesidades">Necesidades (%)</label>
+            <input type="text" id="necesidades" name="necesidades" inputmode="decimal" value="{{ texto_pct(pcts.NECESIDADES) }}" required>
+            <label for="deseos">Deseos (%)</label>
+            <input type="text" id="deseos" name="deseos" inputmode="decimal" value="{{ texto_pct(pcts.DESEOS) }}" required>
+            <label for="ahorro">Ahorro y deudas (%)</label>
+            <input type="text" id="ahorro" name="ahorro" inputmode="decimal" value="{{ texto_pct(pcts.AHORRO) }}" required>
+            <button type="submit" class="boton">Guardar plan</button>
+        </form>
+    </section>
+
+    <section class="tarjeta tarjeta-ancha">
+        <h2>Categorías</h2>
+        <p class="texto-ayuda">Las sugeridas sirven para todos; puedes crear las tuyas y elegir su grupo del plan.</p>
+        <table class="tabla tabla-compacta">
+            <thead><tr><th>Categoría</th><th>Tipo</th><th>Grupo</th><th></th></tr></thead>
+            <tbody>
+            {% for c in categorias %}
+            <tr>
+                <td>{{ c.nombre }}</td>
+                <td>{{ "Ingreso" if c.tipo == "INGRESO" else "Gasto" }}</td>
+                <td>{{ grupos[c.grupo] if c.grupo else "—" }}</td>
+                <td class="acciones">
+                    {% if c.propia %}
+                    <form method="post" action="/perfil/categorias/{{ c.id }}/eliminar" class="en-linea">
+                        <button type="submit" class="enlace-boton">Eliminar</button>
+                    </form>
+                    {% else %}<span class="texto-suave">Sugerida</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <form method="post" action="/perfil/categorias" class="fila-filtros formulario-categoria">
+            <label>Nombre<input type="text" name="nombre" maxlength="60" required></label>
+            <label>Tipo
+                <select name="tipo"><option value="GASTO">Gasto</option><option value="INGRESO">Ingreso</option></select>
+            </label>
+            <label>Grupo (gastos)
+                <select name="grupo">{% for clave, texto in grupos.items() %}<option value="{{ clave }}">{{ texto }}</option>{% endfor %}</select>
+            </label>
+            <button type="submit" class="boton boton-secundario">Agregar categoría</button>
+        </form>
+    </section>
+
+    <section class="tarjeta">
+        <h2>Verificación en dos pasos</h2>
+        <p class="estado-totp {{ 'activo' if totp_activo else 'inactivo' }}">{{ 'Activa' if totp_activo else 'Sin configurar' }}</p>
+        <p class="texto-ayuda">Cada ingreso pide, además de la contraseña, el código de 6 dígitos de tu app autenticadora. Es el mismo en la web y en el escritorio.</p>
+        <form method="post" action="/perfil/autenticador">
+            <label for="codigo-cambio">Para cambiar o restablecer tu autenticador (teléfono nuevo o perdido), escribe un código de la app o uno de respaldo</label>
+            <input type="text" id="codigo-cambio" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required>
+            <button type="submit" class="boton boton-secundario">Cambiar autenticador</button>
+        </form>
+    </section>
+
+    <section class="tarjeta">
+        <h2>Códigos de respaldo</h2>
+        <p class="estado-totp {{ 'activo' if perfil.respaldo_restantes > 2 else 'inactivo' }}">{{ perfil.respaldo_restantes }} disponibles</p>
+        <p class="texto-ayuda">Sirven, una sola vez cada uno, si no tienes el teléfono a mano. Generar nuevos anula los anteriores.</p>
+        <form method="post" action="/perfil/respaldo">
+            <label for="codigo-respaldo">Código de la app o de respaldo</label>
+            <input type="text" id="codigo-respaldo" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required>
+            <button type="submit" class="boton boton-secundario">Generar códigos nuevos</button>
+        </form>
+    </section>
+
+    <section class="tarjeta tarjeta-ancha">
+        <h2>Cambiar contraseña</h2>
+        <form method="post" action="/perfil/contrasena" class="formulario-dos-columnas">
+            <div>
+                <label for="actual">Contraseña actual</label>
+                <input type="password" id="actual" name="actual" autocomplete="current-password" required>
+                <label for="nueva">Nueva contraseña (mínimo 8 caracteres)</label>
+                <input type="password" id="nueva" name="nueva" autocomplete="new-password" minlength="8" required>
+            </div>
+            <div>
+                <label for="confirmacion">Repite la nueva contraseña</label>
+                <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="8" required>
+                <label for="codigo-clave">Código de la app o de respaldo</label>
+                <input type="text" id="codigo-clave" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required>
+            </div>
+            <button type="submit" class="boton">Guardar contraseña</button>
+        </form>
+    </section>
+</div>
+
+<p class="nota-permiso">Las contraseñas se guardan con PBKDF2-SHA256 y la clave de tu autenticador, cifrada con AES-256-GCM. Tras 5 intentos fallidos seguidos la cuenta se bloquea 5 minutos.</p>
+{% endblock %}

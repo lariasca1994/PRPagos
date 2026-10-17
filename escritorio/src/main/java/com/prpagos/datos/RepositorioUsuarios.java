@@ -166,6 +166,14 @@ public final class RepositorioUsuarios {
                      PreparedStatement b = conn.prepareStatement("DELETE FROM TBPLogin WHERE id = ?")) {
                     a.setLong(1, usuarioId);
                     a.executeUpdate();
+                    // Lo que cuelga de la cuenta (no tiene registros, así que tampoco usa sus categorías).
+                    for (String tabla : new String[] {"TBCodigosRespaldo", "TBPresupuestos", "TBEnviosResumen",
+                        "TBCategorias"}) {
+                        try (PreparedStatement c = conn.prepareStatement("DELETE FROM " + tabla + " WHERE usuario_id = ?")) {
+                            c.setLong(1, usuarioId);
+                            c.executeUpdate();
+                        }
+                    }
                     b.setLong(1, usuarioId);
                     borradas = b.executeUpdate();
                 }

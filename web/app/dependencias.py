@@ -100,4 +100,4 @@ def respuesta_redireccion_login(motivo: str | None = None) -> RedirectResponse:
 
 
 def respuesta_redireccion_sin_permiso() -> RedirectResponse:
-    return RedirectResponse(url="/registros", status_code=303)
+    return RedirectResponse(url="/dashboard", status_code=303)

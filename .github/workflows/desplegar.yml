@@ -19,6 +19,7 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'compartido/**'
       - 'Dockerfile'
       - '.github/workflows/desplegar.yml'
   workflow_dispatch:

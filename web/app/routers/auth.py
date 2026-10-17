@@ -4,9 +4,13 @@ Ingreso, registro y recuperación de contraseña.
 El ingreso tiene dos pasos y la verificación en dos pasos es obligatoria:
   1. /login         correo + contraseña (PBKDF2; las cuentas con el SHA-256
                     de antes se actualizan solas aquí).
-  2a. /login/codigo     código TOTP de 6 dígitos, si la cuenta ya tiene
-                        autenticador.
-  2b. /login/configurar QR + primer código, si todavía no lo tiene.
+  2a. /login/codigo     código TOTP de 6 dígitos (o uno de respaldo), si la
+                        cuenta ya tiene autenticador.
+  2b. /login/configurar QR + primer código, si todavía no lo tiene; al
+                        activarlo se entregan 10 códigos de respaldo.
+  Perdí mi teléfono:    /login/perdi-telefono envía un código al correo
+                        (solo después de la contraseña) y /login/correo lo
+                        verifica para configurar un autenticador nuevo.
 Entre un paso y otro solo existe la cookie "acceso" (JWT de 10 minutos, tipo
 "parcial"); la cookie "sesion" se emite únicamente al final del paso 2.
 
@@ -20,9 +24,14 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import repositorio
+from .. import correo as servicio_correo
+from .. import finanzas, repositorio
 from ..seguridad import (
     MENSAJES_CIERRE,
+    MINUTOS_CODIGO_CORREO,
+    generar_codigo_correo,
+    generar_codigos_respaldo,
+    hash_corto,
     cifrar_secreto,
     correo_valido,
     crear_token,
@@ -39,6 +48,7 @@ from ..seguridad import (
     verificar_totp,
 )
 from ..qr import qr_svg
+from .verificacion import verificar_segundo_factor
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -70,8 +80,9 @@ def _cookie(respuesta: RedirectResponse, nombre: str, valor: str, max_age: int) 
     )
 
 
-def _abrir_sesion(cred: dict) -> RedirectResponse:
-    respuesta = _redirigir("/registros")
+def _abrir_sesion(cred: dict, respuesta=None):
+    """Emite la sesión completa (por defecto, rumbo al dashboard)."""
+    respuesta = respuesta or _redirigir("/dashboard")
     _cookie(
         respuesta, COOKIE_SESION,
         crear_token(cred["usuario_id"], cred["usuario"], cred["nombre"]), 8 * 3600,
@@ -154,10 +165,7 @@ def procesar_codigo(request: Request, codigo: str = Form(...)):
         return _redirigir("/login", "Usuario o contraseña incorrectos")
     if cred["bloqueada"]:
         return _redirigir("/login", MENSAJE_BLOQUEO)
-    secreto = descifrar_o_none(cred["totp_secreto"])
-    paso = verificar_totp(secreto, codigo, cred["totp_ultimo_paso"]) if secreto else None
-    if paso is None or not repositorio.registrar_acceso_exitoso(cred["usuario_id"], paso):
-        repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_TOTP")
+    if not verificar_segundo_factor(cred, codigo, "INGRESO"):
         return _redirigir("/login/codigo", "Código incorrecto o ya usado")
     return _abrir_sesion(cred)
 
@@ -201,7 +209,68 @@ def procesar_configurar(request: Request, codigo: str = Form(...)):
             "El código no coincide. Revisa que la hora del teléfono sea la correcta.",
         )
     repositorio.guardar_totp(cred["usuario_id"], cifrar_secreto(secreto), paso)
-    return _abrir_sesion(cred)
+    codigos = generar_codigos_respaldo()
+    repositorio.reemplazar_codigos_respaldo(cred["usuario_id"], [hash_corto(c.replace("-", "")) for c in codigos])
+    # Los códigos se muestran una sola vez, en esta misma respuesta.
+    pantalla = templates.TemplateResponse("login_respaldo.html", _contexto(request, codigos=codigos))
+    return _abrir_sesion(cred, pantalla)
+
+
+# ─────────────────── Perdí mi teléfono (código por correo) ───────────────────
+
+
+@router.post("/login/perdi-telefono")
+def perdi_telefono(request: Request):
+    """Solo después de la contraseña (etapa "codigo"): envía un código de 6
+    dígitos al correo de la cuenta para configurar un autenticador nuevo."""
+    datos = _parcial(request, "codigo")
+    if datos is None:
+        return _redirigir("/login", "Tu ingreso expiró; vuelve a escribir tu contraseña")
+    cred = repositorio.obtener_credenciales(usuario_id=datos["usuario_id"])
+    if cred is None or cred["bloqueada"]:
+        return _redirigir("/login", MENSAJE_BLOQUEO)
+    codigo = generar_codigo_correo()
+    repositorio.guardar_codigo_correo(cred["usuario_id"], hash_corto(codigo), MINUTOS_CODIGO_CORREO)
+    try:
+        servicio_correo.enviar(
+            cred["usuario"], cred["nombre"], "Código para recuperar tu acceso a PRPagos",
+            finanzas.html_codigo(cred["nombre"], codigo, MINUTOS_CODIGO_CORREO),
+        )
+    except servicio_correo.ErrorCorreo:
+        return _redirigir("/login/codigo", "No se pudo enviar el correo. Usa un código de respaldo o inténtalo más tarde.")
+    respuesta = _redirigir("/login/correo")
+    _cookie(respuesta, COOKIE_ACCESO,
+            crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], "correo"), 600)
+    return respuesta
+
+
+@router.get("/login/correo")
+def form_codigo_correo(request: Request):
+    datos = _parcial(request, "correo")
+    if datos is None:
+        return _redirigir("/login", "Tu ingreso expiró; vuelve a escribir tu contraseña")
+    return templates.TemplateResponse(
+        "login_correo.html", _contexto(request, correo=datos["usuario"], minutos=MINUTOS_CODIGO_CORREO)
+    )
+
+
+@router.post("/login/correo")
+def procesar_codigo_correo(request: Request, codigo: str = Form(...)):
+    datos = _parcial(request, "correo")
+    if datos is None:
+        return _redirigir("/login", "Tu ingreso expiró; vuelve a escribir tu contraseña")
+    cred = repositorio.obtener_credenciales(usuario_id=datos["usuario_id"])
+    if cred is None or cred["bloqueada"]:
+        return _redirigir("/login", MENSAJE_BLOQUEO)
+    limpio = "".join(c for c in codigo if c.isdigit())
+    if len(limpio) != 6 or not repositorio.usar_codigo_correo(cred["usuario_id"], hash_corto(limpio)):
+        repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_CORREO")
+        return _redirigir("/login/correo", "Código incorrecto o vencido")
+    respuesta = _redirigir("/login/configurar", "Código verificado: configura tu autenticador nuevo.", exito=True)
+    _cookie(respuesta, COOKIE_ACCESO, crear_token_parcial(
+        cred["usuario_id"], cred["usuario"], cred["nombre"], "configurar",
+        secreto_pendiente=generar_secreto_totp()), 600)
+    return respuesta
 
 
 @router.get("/logout")
@@ -274,16 +343,11 @@ def procesar_recuperar(
     if cred["bloqueada"]:
         return _redirigir("/recuperar", MENSAJE_BLOQUEO)
 
-    paso = None
-    datos_ok = (cred["nombre"] or "").strip().lower() == nombre_registrado.strip().lower()
-    if datos_ok and cred["totp_activo"]:
-        secreto = descifrar_o_none(cred["totp_secreto"])
-        paso = verificar_totp(secreto, codigo, cred["totp_ultimo_paso"]) if secreto else None
-        datos_ok = paso is not None and repositorio.registrar_acceso_exitoso(
-            cred["usuario_id"], paso, "RECUPERAR_TOTP"
-        )
-    if not datos_ok:
+    if (cred["nombre"] or "").strip().lower() != nombre_registrado.strip().lower():
         repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_RECUPERAR")
+        return _redirigir("/recuperar", error_generico)
+    # Código de la app o de respaldo (cada fallo cuenta para el bloqueo).
+    if cred["totp_activo"] and not verificar_segundo_factor(cred, codigo, "RECUPERAR_TOTP"):
         return _redirigir("/recuperar", error_generico)
 
     motivo = problema_contrasena(nueva_contrasena)

@@ -1,7 +1,12 @@
 package com.prpagos.conexion;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -40,17 +45,52 @@ public final class ConexionBD {
     private ConexionBD() {
     }
 
-    private static Properties cargarConfig() throws IOException {
+    /**
+     * Dónde está config.properties: primero en la carpeta de trabajo (al correr
+     * desde el código, en escritorio/) y luego en %APPDATA%\PRPagos\ (la
+     * aplicación instalada). Con -Dprpagos.config=ruta se puede indicar otro.
+     */
+    static Path ubicarConfig() {
+        List<Path> candidatos = new ArrayList<>();
+        String indicado = System.getProperty("prpagos.config");
+        if (indicado != null && !indicado.isBlank()) {
+            candidatos.add(Path.of(indicado));
+        }
+        candidatos.add(Path.of("config.properties").toAbsolutePath());
+        String appData = System.getenv("APPDATA");
+        candidatos.add(appData != null
+                ? Path.of(appData, "PRPagos", "config.properties")
+                : Path.of(System.getProperty("user.home"), ".prpagos", "config.properties"));
+        for (Path p : candidatos) {
+            if (Files.isRegularFile(p)) {
+                return p;
+            }
+        }
+        return candidatos.get(candidatos.size() - 1);
+    }
+
+    private static synchronized Properties cargarConfig() throws IOException {
         if (config != null) {
             return config;
         }
+        Path archivo = ubicarConfig();
         Properties props = new Properties();
-        try (FileInputStream in = new FileInputStream("config.properties")) {
+        try (Reader in = new java.io.StringReader(
+                // El Bloc de notas puede agregar una marca BOM al inicio: se ignora.
+                Files.readString(archivo, StandardCharsets.UTF_8).replace("\uFEFF", ""))) {
             props.load(in);
         } catch (IOException e) {
             throw new IOException(
-                "No se encontró config.properties. Copia config.properties.example, "
-                + "renómbralo a config.properties y completa tus datos reales.", e);
+                "No se encontró config.properties (se buscó en la carpeta actual y en " + archivo.getParent()
+                + "). Copia config.properties.example con ese nombre y completa tus datos reales.", e);
+        }
+        // Secretos cifrados con DPAPI (Windows): se descifran en memoria y, si estaban en claro,
+        // se cifran en el archivo.
+        SecretosProtegidos.proteger(archivo, props);
+        // wallet.path relativo: respecto a la carpeta del archivo de configuración.
+        String wallet = props.getProperty("wallet.path");
+        if (wallet != null && !Path.of(wallet).isAbsolute()) {
+            props.setProperty("wallet.path", archivo.getParent().resolve(wallet).normalize().toString());
         }
         config = props;
         return config;

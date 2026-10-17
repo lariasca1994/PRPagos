@@ -13,12 +13,12 @@
     <div class="qr-caja">{{ qr | safe }}</div>
     <p class="clave-manual">Clave: <code>{{ secreto }}</code></p>
 
-    <form method="post" action="/seguridad/autenticador/confirmar">
+    <form method="post" action="/perfil/autenticador/confirmar">
         <label for="codigo">Código de 6 dígitos</label>
         <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus>
         <button type="submit" class="boton">Confirmar autenticador</button>
     </form>
-    <p class="texto-ayuda">Hasta que confirmes, el autenticador anterior sigue siendo el válido.</p>
-    <p><a href="/seguridad">Cancelar</a></p>
+    <p class="texto-ayuda">Hasta que confirmes, el autenticador anterior sigue siendo el válido. Al confirmar recibirás códigos de respaldo nuevos.</p>
+    <p><a href="/perfil">Cancelar</a></p>
 </section>
 {% endblock %}

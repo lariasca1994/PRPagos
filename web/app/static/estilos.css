@@ -238,3 +238,81 @@ input:focus, textarea:focus, select:focus {
 @media (max-width: 360px) {
     main { padding-inline: 0.75rem; }
 }
+
+/* ───── Ingresos y gastos ───── */
+.cifra-ingreso { color: var(--plataforma); }
+.cifra-gasto { color: var(--acento); }
+.cifra-bien { color: var(--exito); }
+.cifra-mal { color: var(--acento); }
+.totales-registros { font-size: 1.05rem; margin: 0 0 1rem; }
+.etiqueta-tipo { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.etiqueta-tipo.tipo-ingreso { background: var(--plataforma-suave); color: var(--plataforma); }
+.etiqueta-tipo.tipo-gasto { background: var(--acento-suave); color: var(--acento); }
+.fila-filtros select, form select {
+    padding: 0.5rem 0.6rem; border-radius: 8px; border: 1px solid var(--borde);
+    background: var(--fondo); color: var(--texto); font-size: 1rem; font-family: inherit;
+}
+.selector-tipo { display: flex; gap: 0.5rem; border: 0; padding: 0; margin: 0.5rem 0 0; }
+.selector-tipo legend { font-size: 0.85rem; color: var(--texto-suave); margin-bottom: 0.4rem; padding: 0; }
+.opcion-tipo { flex: 1; margin: 0; }
+.opcion-tipo input { position: absolute; opacity: 0; pointer-events: none; }
+.opcion-tipo span {
+    display: block; text-align: center; padding: 0.55rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--borde); color: var(--texto-suave); font-weight: 600;
+}
+.opcion-gasto input:checked + span { border-color: var(--acento); background: var(--acento-suave); color: var(--acento); }
+.opcion-ingreso input:checked + span { border-color: var(--plataforma); background: var(--plataforma-suave); color: var(--plataforma); }
+.opcion-tipo input:focus-visible + span { box-shadow: 0 0 0 3px var(--plataforma-suave); }
+
+/* ───── Dashboard ───── */
+.selector-mes select { min-width: 12rem; }
+.oculto-visual { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.tarjetas-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.tarjeta-cifra { display: flex; flex-direction: column; gap: 0.25rem; }
+.tarjeta-cifra span { font-size: 0.85rem; color: var(--texto-suave); }
+.tarjeta-cifra strong { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.tarjeta-cifra small { font-size: 0.78rem; color: var(--texto-suave); }
+.rejilla-graficas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.grafica h2, .resumenes-correo h2, .tarjeta > h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+.grafica-ancha { grid-column: 1 / -1; }
+.lienzo { position: relative; height: 260px; }
+.vacio-grafica { padding: 2rem 0; text-align: center; }
+.tabla-plan td, .tabla-plan th { white-space: nowrap; }
+.punto { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; margin-right: 0.5rem; vertical-align: middle; }
+.resumenes-correo { margin-top: 1rem; }
+.botones-resumen { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.boton:disabled { opacity: 0.5; cursor: not-allowed; }
+.tarjeta + .tarjeta { margin-top: 0; }
+
+/* ───── Perfil ───── */
+.rejilla-perfil { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.tarjeta-ancha { grid-column: 1 / -1; }
+.tabla-compacta th, .tabla-compacta td { padding: 0.45rem 0.8rem; }
+.formulario-categoria { margin-top: 1rem; flex-direction: row; }
+.casilla { display: flex; gap: 0.5rem; align-items: flex-start; color: var(--texto); margin-top: 0.75rem; }
+.casilla input { margin-top: 0.2rem; }
+.formulario-dos-columnas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+.formulario-dos-columnas > div { display: flex; flex-direction: column; gap: 0.4rem; }
+.formulario-dos-columnas .boton { grid-column: 1 / -1; justify-self: start; }
+.codigos-respaldo {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 1.5rem;
+    padding: 1rem 1rem 1rem 2.2rem; margin: 0 0 0.75rem; background: var(--fondo);
+    border: 1px dashed var(--borde); border-radius: 10px;
+}
+.codigos-respaldo code { font-size: 1.05rem; letter-spacing: 0.08em; color: var(--texto); }
+.boton-ancho { display: block; text-align: center; margin-top: 1rem; }
+.enlaces-acceso .enlace-boton { color: var(--plataforma); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+
+@media (max-width: 760px) {
+    .rejilla-graficas, .rejilla-perfil, .formulario-dos-columnas { grid-template-columns: 1fr; }
+    .lienzo { height: 220px; }
+}
+
+/* Estados del plan: el mismo tono que el correo en claro, más luminoso en oscuro. */
+.estado-plan { font-weight: 600; }
+.estado-bien { color: #067647; }
+.estado-mal { color: #a8221a; }
+.estado-alerta { color: #b54708; }
+[data-tema="oscuro"] .estado-bien { color: #75e0a7; }
+[data-tema="oscuro"] .estado-mal { color: #fda29b; }
+[data-tema="oscuro"] .estado-alerta { color: #f7b27a; }
