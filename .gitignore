@@ -49,3 +49,7 @@ venv/
 *.log
 *.tmp
 *.temp
+
+# Instrucciones locales para Claude Code: nunca se suben a GitHub
+CLAUDE.md
+CLAUDE.local.md
