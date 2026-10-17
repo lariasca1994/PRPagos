@@ -19,31 +19,36 @@ import com.prpagos.datos.Sesion;
 
 /**
  * "Nuevo registro" y "Modificar registro #N": la misma tarjeta de
- * formulario de registros_nuevo.html y registros_editar.html de la web.
+ * formulario, los mismos textos y los mismos mensajes que
+ * registros_nuevo.html y registros_editar.html de la web.
  */
 class PanelPago extends JPanel {
 
+    private static final String NOTA_USUARIO = "Solo puedes modificar registros que te pertenecen; si el registro "
+            + "fue creado por otro usuario, el sistema rechaza el cambio.";
+    private static final String NOTA_ADMIN = "Como admin puedes modificar el registro de cualquier usuario.";
+
     private final VentanaPrincipal ventana;
-    private final Sesion sesion;
     private final boolean edicion;
     private final JLabel titulo;
+    private final JTextArea gestionando = Ui.suave("Gestionando como admin.");
+    private final JTextArea nota = Ui.suave(NOTA_USUARIO);
     private final JTextField monto = Ui.campo(null);
     private final SelectorFecha fecha = new SelectorFecha();
     private final JTextField concepto = Ui.campo(null);
     private final Ui.Aviso aviso = new Ui.Aviso();
     private Pago actual;
 
-    static PanelPago nuevo(VentanaPrincipal ventana, Sesion sesion) {
-        return new PanelPago(ventana, sesion, false);
+    static PanelPago nuevo(VentanaPrincipal ventana) {
+        return new PanelPago(ventana, false);
     }
 
-    static PanelPago edicion(VentanaPrincipal ventana, Sesion sesion) {
-        return new PanelPago(ventana, sesion, true);
+    static PanelPago edicion(VentanaPrincipal ventana) {
+        return new PanelPago(ventana, true);
     }
 
-    private PanelPago(VentanaPrincipal ventana, Sesion sesion, boolean edicion) {
+    private PanelPago(VentanaPrincipal ventana, boolean edicion) {
         this.ventana = ventana;
-        this.sesion = sesion;
         this.edicion = edicion;
         setOpaque(false);
         setLayout(new BorderLayout());
@@ -54,9 +59,12 @@ class PanelPago extends JPanel {
         JButton guardar = Ui.primario(edicion ? "Guardar cambios" : "Guardar", e -> guardar());
         guardar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         concepto.addActionListener(e -> guardar());
+        gestionando.setFont(gestionando.getFont().deriveFont(12.5f));
+        gestionando.setVisible(false);
+        nota.setFont(nota.getFont().deriveFont(12f));
 
         for (Component c : new Component[] {
-            titulo, Ui.espacio(10), aviso,
+            titulo, Ui.espacio(6), gestionando, Ui.espacio(6), aviso,
             Ui.etiqueta("Monto"), monto,
             Ui.etiqueta("Fecha"), fecha,
             Ui.etiqueta("Concepto"), concepto,
@@ -66,9 +74,6 @@ class PanelPago extends JPanel {
             tarjeta.add(c);
         }
         if (edicion) {
-            JTextArea nota = Ui.suave("Solo puedes modificar registros que te pertenecen; si el registro fue "
-                    + "creado por otro usuario, el sistema rechaza el cambio.");
-            nota.setFont(nota.getFont().deriveFont(12f));
             tarjeta.add(Ui.espacio(12));
             tarjeta.add(nota);
         }
@@ -85,6 +90,10 @@ class PanelPago extends JPanel {
         add(centro, BorderLayout.NORTH);
     }
 
+    private Sesion sesion() {
+        return ventana.sesion();
+    }
+
     void limpiar() {
         actual = null;
         monto.setText("");
@@ -95,8 +104,11 @@ class PanelPago extends JPanel {
 
     void cargar(Pago pago) {
         actual = pago;
+        boolean admin = sesion().admin();
         titulo.setText("Modificar registro #" + pago.idPago());
-        monto.setText(String.format(Locale.ROOT, "%.2f", pago.monto()));
+        gestionando.setVisible(admin);
+        nota.setText(admin ? NOTA_ADMIN : NOTA_USUARIO);
+        monto.setText(String.format(Locale.ROOT, "%s", pago.monto()));
         fecha.setFechaSeleccionada(pago.fecha());
         concepto.setText(pago.concepto());
         aviso.ocultar();
@@ -105,9 +117,10 @@ class PanelPago extends JPanel {
     private void guardar() {
         double valor;
         try {
+            // Coma o punto decimal, igual que la web.
             valor = Double.parseDouble(monto.getText().trim().replace(",", "."));
         } catch (NumberFormatException e) {
-            aviso.error("El monto debe ser un número");
+            aviso.error("Monto inválido");
             return;
         }
         String texto = concepto.getText().trim();
@@ -116,23 +129,39 @@ class PanelPago extends JPanel {
             return;
         }
         LocalDate dia = fecha.getFechaSeleccionada();
+        long usuarioId = sesion().usuarioId();
         if (edicion && actual != null) {
             long id = actual.idPago();
-            Tarea.ejecutar(this, () -> RepositorioPagos.actualizar(sesion.usuarioId(), id, valor, dia, texto),
-                    ok -> {
-                        if (ok) {
-                            ventana.volverAConsulta("Registro #" + id + " actualizado");
-                        } else {
-                            aviso.error("No se pudo modificar: este registro no te pertenece.");
-                        }
-                    },
-                    e -> aviso.error(Ui.mensajeError("guardar los cambios").apply(e)));
+            Tarea.ejecutar(this, () -> {
+                if (!ventana.verificarCuenta()) {
+                    return null;
+                }
+                return ventana.sesion().admin()
+                        ? RepositorioPagos.actualizarComoAdmin(usuarioId, id, valor, dia, texto)
+                        : RepositorioPagos.actualizar(usuarioId, id, valor, dia, texto);
+            }, ok -> {
+                if (ok == null) {
+                    ventana.cuentaNoVigente();
+                } else if (ok) {
+                    ventana.volverAConsulta("Registro #" + id + " actualizado", true);
+                } else {
+                    ventana.volverAConsulta("No se pudo modificar: este registro no te pertenece.", false);
+                }
+            }, e -> aviso.error(Ui.mensajeError("guardar los cambios").apply(e)));
         } else {
             Tarea.ejecutar(this, () -> {
-                RepositorioPagos.insertar(sesion.usuarioId(), valor, dia, texto);
-                return null;
-            }, r -> ventana.volverAConsulta("Registro guardado"),
-                    e -> aviso.error(Ui.mensajeError("guardar el registro").apply(e)));
+                if (!ventana.verificarCuenta()) {
+                    return Boolean.FALSE;
+                }
+                RepositorioPagos.insertar(usuarioId, valor, dia, texto);
+                return Boolean.TRUE;
+            }, ok -> {
+                if (ok) {
+                    ventana.volverAConsulta("Registro guardado", true);
+                } else {
+                    ventana.cuentaNoVigente();
+                }
+            }, e -> aviso.error(Ui.mensajeError("guardar el registro").apply(e)));
         }
     }
 }

@@ -5,11 +5,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Carga EXACTAMENTE el .env de la carpeta web/ (un nivel arriba de este
-# archivo, que vive en web/app/config.py). No se deja a la busqueda
-# automatica de python-dotenv hacia arriba en el arbol de carpetas, porque
-# en este repo hay otro .env suelto en la raiz (A:\Github\PRPagos\.env,
-# de otra cosa, no de esta app) que esa busqueda puede encontrar primero
-# y dejar sin efecto lo que se edite aca.
+# archivo, que vive en web/app/config.py), sin dejarlo a la busqueda
+# automatica de python-dotenv hacia arriba en el arbol de carpetas. Es el
+# unico .env del proyecto; la version de escritorio usa
+# escritorio/config.properties.
 _RUTA_ENV = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(_RUTA_ENV)
 

@@ -8,7 +8,8 @@
 </div>
 
 {% set qs = request.query_params.get('error') %}
-{% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
+{% set ok = request.query_params.get('ok') %}
+{% if qs %}<p class="aviso error">{{ qs }}</p>{% elif ok %}<p class="aviso exito">{{ ok }}</p>{% endif %}
 
 <form method="get" action="/registros" class="filtros">
     <div class="fila-filtros">

@@ -33,21 +33,25 @@ import com.prpagos.datos.Sesion;
 
 /**
  * "Consultar registros": misma pantalla que registros_lista.html de la web
- * (filtros, total, tabla con "Modificar" y exportar a CSV).
+ * (filtros, total, tabla con "Modificar" y exportar a CSV). Para el admin,
+ * igual que en la web: ve los pagos de todos con su dueño, puede eliminar y
+ * el CSV lleva las columnas Usuario y Nombre.
  */
 class PanelConsulta extends JPanel {
 
+    private static final String MODIFICAR = "Modificar";
+    private static final String ELIMINAR = "Eliminar";
+
     private final VentanaPrincipal ventana;
-    private final Sesion sesion;
     private final JTextField concepto = Ui.campo(null);
     private final JTextField montoMin = Ui.campo(null);
     private final JTextField montoMax = Ui.campo(null);
     private final SelectorFecha desde = SelectorFecha.opcional();
     private final SelectorFecha hasta = SelectorFecha.opcional();
     private final JLabel total = new JLabel();
+    private final JLabel notaAdmin = new JLabel("Viendo los registros de todos los usuarios");
     private final Ui.Aviso aviso = new Ui.Aviso();
-    private final DefaultTableModel modelo = new DefaultTableModel(
-            new Object[] {"ID", "Monto", "Fecha", "Concepto", ""}, 0) {
+    private final DefaultTableModel modelo = new DefaultTableModel() {
         @Override
         public boolean isCellEditable(int fila, int columna) {
             return false;
@@ -55,16 +59,22 @@ class PanelConsulta extends JPanel {
     };
     private final JTable tabla = new JTable(modelo);
     private List<Pago> pagos = new ArrayList<>();
+    private boolean comoAdmin;
 
-    PanelConsulta(VentanaPrincipal ventana, Sesion sesion) {
+    PanelConsulta(VentanaPrincipal ventana) {
         this.ventana = ventana;
-        this.sesion = sesion;
         setOpaque(false);
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 
-        JPanel cabecera = new JPanel(new BorderLayout());
+        JPanel cabecera = new JPanel(new BorderLayout(16, 0));
         cabecera.setOpaque(false);
         cabecera.add(Ui.titulo("Consultar registros", 26f), BorderLayout.WEST);
+        notaAdmin.setFont(notaAdmin.getFont().deriveFont(12.5f));
+        Tema.alCambiar(() -> notaAdmin.setForeground(Tema.c().textoSuave()));
+        JPanel centro = new JPanel(new java.awt.GridBagLayout());
+        centro.setOpaque(false);
+        centro.add(notaAdmin);
+        cabecera.add(centro, BorderLayout.CENTER);
         cabecera.add(Ui.primario("Nuevo registro", e -> ventana.ir(VentanaPrincipal.NUEVO)), BorderLayout.EAST);
         cabecera.setAlignmentX(LEFT_ALIGNMENT);
         cabecera.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
@@ -82,6 +92,10 @@ class PanelConsulta extends JPanel {
         add(tablaEnTarjeta());
         add(Ui.espacio(16));
         add(Ui.secundario("Exportar a CSV", e -> exportarCsv()));
+    }
+
+    private Sesion sesion() {
+        return ventana.sesion();
     }
 
     private JPanel filtros() {
@@ -127,53 +141,45 @@ class PanelConsulta extends JPanel {
         tabla.getTableHeader().setReorderingAllowed(false);
         tabla.getTableHeader().setFont(tabla.getTableHeader().getFont().deriveFont(Font.BOLD, 12.5f));
         tabla.setIntercellSpacing(new Dimension(0, 1));
-        DefaultTableCellRenderer celdas = new DefaultTableCellRenderer();
-        celdas.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
-        DefaultTableCellRenderer enlace = new DefaultTableCellRenderer() {
+        ((DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer())
+                .setHorizontalAlignment(JLabel.LEFT);
+        tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foco,
                                                            int fila, int col) {
                 super.getTableCellRendererComponent(t, v, sel, false, fila, col);
-                setForeground(Tema.c().plataforma());
-                // La fila "No hay registros..." no lleva enlace.
-                setText(fila < pagos.size() ? "<html><u>Modificar</u></html>" : "");
                 setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
+                boolean accion = MODIFICAR.equals(v) || ELIMINAR.equals(v);
+                setForeground(accion ? Tema.c().plataforma() : Tema.c().texto());
+                if (accion) {
+                    setText("<html><u>" + v + "</u></html>");
+                }
                 return this;
             }
-        };
-        for (int i = 0; i < 4; i++) {
-            tabla.getColumnModel().getColumn(i).setCellRenderer(new DefaultTableCellRenderer() {
-                @Override
-                public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foco,
-                                                               int fila, int col) {
-                    super.getTableCellRendererComponent(t, v, sel, false, fila, col);
-                    setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
-                    return this;
-                }
-            });
-        }
-        tabla.getColumnModel().getColumn(4).setCellRenderer(enlace);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(80);
-        tabla.getColumnModel().getColumn(1).setPreferredWidth(120);
-        tabla.getColumnModel().getColumn(2).setPreferredWidth(120);
-        tabla.getColumnModel().getColumn(3).setPreferredWidth(360);
-        tabla.getColumnModel().getColumn(4).setMaxWidth(120);
-        ((DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer())
-                .setHorizontalAlignment(JLabel.LEFT);
+        });
         tabla.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int fila = tabla.rowAtPoint(e.getPoint());
                 int col = tabla.columnAtPoint(e.getPoint());
-                if (fila >= 0 && (col == 4 || e.getClickCount() == 2) && fila < pagos.size()) {
+                if (fila < 0 || col < 0 || fila >= pagos.size()) {
+                    return;
+                }
+                Object valor = modelo.getValueAt(fila, col);
+                if (MODIFICAR.equals(valor)) {
                     ventana.editar(pagos.get(fila));
+                } else if (ELIMINAR.equals(valor)) {
+                    eliminar(pagos.get(fila));
                 }
             }
         });
         tabla.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
-                tabla.setCursor(tabla.columnAtPoint(e.getPoint()) == 4
+                int fila = tabla.rowAtPoint(e.getPoint());
+                int col = tabla.columnAtPoint(e.getPoint());
+                Object valor = fila >= 0 && col >= 0 ? modelo.getValueAt(fila, col) : null;
+                tabla.setCursor(MODIFICAR.equals(valor) || ELIMINAR.equals(valor)
                         ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
             }
         });
@@ -195,8 +201,12 @@ class PanelConsulta extends JPanel {
         return marco;
     }
 
-    void avisar(String mensaje) {
-        aviso.exito(mensaje);
+    void avisar(String mensaje, boolean exito) {
+        if (exito) {
+            aviso.exito(mensaje);
+        } else {
+            aviso.error(mensaje);
+        }
     }
 
     void recargar() {
@@ -221,8 +231,13 @@ class PanelConsulta extends JPanel {
         Double max = monto(montoMax.getText());
         LocalDate fDesde = desde.getFechaSeleccionada();
         LocalDate fHasta = hasta.getFechaSeleccionada();
-        Tarea.ejecutar(this, () -> RepositorioPagos.buscar(sesion.usuarioId(), fDesde, fHasta,
-                textoConcepto.isEmpty() ? null : textoConcepto, min, max), this::mostrar,
+        String filtroConcepto = textoConcepto.isEmpty() ? null : textoConcepto;
+        boolean admin = sesion().admin();
+        long usuarioId = sesion().usuarioId();
+        Tarea.ejecutar(this, () -> admin
+                ? RepositorioPagos.buscarTodos(fDesde, fHasta, filtroConcepto, min, max)
+                : RepositorioPagos.buscar(usuarioId, fDesde, fHasta, filtroConcepto, min, max),
+                resultado -> mostrar(resultado, admin),
                 e -> aviso.error(Ui.mensajeError("consultar los registros").apply(e)));
     }
 
@@ -234,27 +249,56 @@ class PanelConsulta extends JPanel {
         }
     }
 
-    private void mostrar(List<Pago> resultado) {
+    private void mostrar(List<Pago> resultado, boolean admin) {
         pagos = resultado;
+        comoAdmin = admin;
+        notaAdmin.setVisible(admin);
         modelo.setRowCount(0);
+        modelo.setColumnIdentifiers(admin
+                ? new Object[] {"ID", "Usuario", "Monto", "Fecha", "Concepto", "", ""}
+                : new Object[] {"ID", "Monto", "Fecha", "Concepto", ""});
         double suma = 0;
         for (Pago p : resultado) {
-            modelo.addRow(new Object[] {p.idPago(), String.format(Locale.ROOT, "%.2f", p.monto()),
-                    p.fecha().toString(), p.concepto(), ""});
+            String monto = String.format(Locale.ROOT, "%.2f", p.monto());
+            if (admin) {
+                modelo.addRow(new Object[] {p.idPago(), p.duenoNombre() + " (" + p.duenoCorreo() + ")", monto,
+                    p.fecha().toString(), p.concepto(), MODIFICAR, ELIMINAR});
+            } else {
+                modelo.addRow(new Object[] {p.idPago(), monto, p.fecha().toString(), p.concepto(), MODIFICAR});
+            }
             suma += p.monto();
         }
         if (resultado.isEmpty()) {
-            modelo.addRow(new Object[] {"", "", "", "No hay registros para los filtros seleccionados.", null});
+            Object[] vacia = new Object[modelo.getColumnCount()];
+            vacia[0] = "No hay registros para los filtros seleccionados.";
+            modelo.addRow(vacia);
         }
-        revalidate();
+        tabla.getColumnModel().getColumn(0).setPreferredWidth(resultado.isEmpty() ? 600 : 60);
+        tabla.getColumnModel().getColumn(modelo.getColumnCount() - 1).setPreferredWidth(90);
         total.setText("<html>Total: <b>" + String.format(Locale.ROOT, "%.2f", suma) + "</b></html>");
+        revalidate();
+    }
+
+    private void eliminar(Pago pago) {
+        long adminId = sesion().usuarioId();
+        Tarea.ejecutar(this, () -> {
+            // Como exigir_admin en la web: la cuenta debe seguir activa y con rol admin.
+            if (!ventana.verificarCuenta() || !ventana.sesion().admin()) {
+                return Boolean.FALSE;
+            }
+            RepositorioPagos.eliminar(adminId, pago.idPago());
+            return Boolean.TRUE;
+        }, ok -> {
+            if (!ok) {
+                ventana.ir(VentanaPrincipal.CONSULTA);  // revisa la cuenta: suspendida o sin rol admin
+                return;
+            }
+            recargar();
+            aviso.exito("Registro #" + pago.idPago() + " eliminado");
+        }, e -> aviso.error(Ui.mensajeError("eliminar el registro").apply(e)));
     }
 
     private void exportarCsv() {
-        if (pagos.isEmpty()) {
-            aviso.error("No hay registros para exportar con los filtros actuales.");
-            return;
-        }
         JFileChooser selector = new JFileChooser();
         selector.setSelectedFile(new File("registros.csv"));
         if (selector.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
@@ -263,11 +307,13 @@ class PanelConsulta extends JPanel {
         File archivo = selector.getSelectedFile();
         // Mismas columnas que /registros/exportar.csv de la web.
         try (PrintWriter w = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
-            w.println("ID,Monto,Fecha,Concepto");
+            w.println(comoAdmin ? "ID,Usuario,Nombre,Monto,Fecha,Concepto" : "ID,Monto,Fecha,Concepto");
             for (Pago p : pagos) {
-                w.println(p.idPago() + "," + p.monto() + "," + p.fecha() + "," + csv(p.concepto()));
+                String fijo = p.monto() + "," + p.fecha() + "," + csv(p.concepto());
+                w.println(comoAdmin
+                        ? p.idPago() + "," + csv(p.duenoCorreo()) + "," + csv(p.duenoNombre()) + "," + fijo
+                        : p.idPago() + "," + fijo);
             }
-            aviso.exito("Exportado a " + archivo.getName());
         } catch (IOException e) {
             aviso.error("No se pudo exportar: " + e.getMessage());
         }

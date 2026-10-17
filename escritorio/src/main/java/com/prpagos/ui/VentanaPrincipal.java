@@ -2,6 +2,7 @@ package com.prpagos.ui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -12,18 +13,28 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.Timer;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.prpagos.datos.Cuenta;
 import com.prpagos.datos.Pago;
+import com.prpagos.datos.RepositorioUsuarios;
 import com.prpagos.datos.Sesion;
 
 /**
  * Ventana principal: misma estructura que las páginas de la web (base.html).
  * Barra superior con la marca, el botón de tema y el menú en el mismo orden
- * (Consultar registros · Nuevo registro · Seguridad · Salir), el contenido al
- * centro con un ancho máximo y el pie.
+ * (Consultar registros · Nuevo registro · Seguridad · Usuarios (admin) ·
+ * Salir), el contenido al centro con un ancho máximo y el pie.
+ *
+ * Sesión con las mismas reglas y mensajes que la web: se cierra tras 6 horas
+ * sin uso (cada tecla o clic reinicia el plazo) y como máximo a las 8 horas;
+ * en cada cambio de pantalla se vuelve a consultar la cuenta (como
+ * dependencias.py en cada petición), así que una suspensión o un cambio de
+ * rol tienen efecto inmediato.
  */
 public class VentanaPrincipal extends JFrame {
 
@@ -31,6 +42,15 @@ public class VentanaPrincipal extends JFrame {
     static final String NUEVO = "nuevo";
     static final String EDITAR = "editar";
     static final String SEGURIDAD = "seguridad";
+    static final String USUARIOS = "usuarios";
+
+    private static final int INACTIVIDAD_MS = 6 * 60 * 60 * 1000;
+    private static final int DURACION_MAXIMA_MS = 8 * 60 * 60 * 1000;
+    /** Los mismos textos que MENSAJES_CIERRE en web/app/seguridad.py. */
+    static final String CIERRE_INACTIVIDAD = "Tu sesión se cerró tras 6 horas de inactividad. Ingresa de nuevo.";
+    static final String CIERRE_MAXIMO = "Tu sesión se cerró al cumplir 8 horas. Ingresa de nuevo.";
+    static final String CIERRE_SUSPENDIDA = "Tu sesión se cerró porque tu cuenta ya no está activa.";
+    static final String CIERRE_SALIR = "Cerraste sesión.";
 
     private final CardLayout tarjetas = new CardLayout();
     private final JPanel contenido = new JPanel(tarjetas);
@@ -39,37 +59,65 @@ public class VentanaPrincipal extends JFrame {
     private final PanelPago nuevo;
     private final PanelPago editar;
     private final PanelSeguridad seguridad;
+    private final PanelUsuarios usuarios;
+    private final Timer inactividad;
+    private final Timer duracionMaxima;
+    private final java.awt.event.AWTEventListener actividad;
+    private Sesion sesion;
     private String actual;
 
     public VentanaPrincipal(Sesion sesion) {
         super("PRPagos — " + sesion.nombre());
+        this.sesion = sesion;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 780);
         setMinimumSize(new Dimension(860, 600));
         setLocationRelativeTo(null);
         Iconos.aplicarIcono(this);
 
-        consulta = new PanelConsulta(this, sesion);
-        nuevo = PanelPago.nuevo(this, sesion);
-        editar = PanelPago.edicion(this, sesion);
-        seguridad = new PanelSeguridad(sesion);
+        consulta = new PanelConsulta(this);
+        nuevo = PanelPago.nuevo(this);
+        editar = PanelPago.edicion(this);
+        seguridad = new PanelSeguridad(this);
+        usuarios = new PanelUsuarios(this);
 
         contenido.setOpaque(false);
         contenido.add(desplazable(consulta), CONSULTA);
         contenido.add(desplazable(nuevo), NUEVO);
         contenido.add(desplazable(editar), EDITAR);
         contenido.add(desplazable(seguridad), SEGURIDAD);
+        contenido.add(desplazable(usuarios), USUARIOS);
 
         JPanel raiz = new JPanel(new BorderLayout());
-        raiz.add(barra(sesion), BorderLayout.NORTH);
+        raiz.add(barra(), BorderLayout.NORTH);
         raiz.add(contenido, BorderLayout.CENTER);
         raiz.add(pie(), BorderLayout.SOUTH);
         setContentPane(raiz);
 
-        ir(CONSULTA);
+        inactividad = new Timer(INACTIVIDAD_MS, e -> cerrarSesion(CIERRE_INACTIVIDAD, false));
+        inactividad.setRepeats(false);
+        inactividad.start();
+        duracionMaxima = new Timer(DURACION_MAXIMA_MS, e -> cerrarSesion(CIERRE_MAXIMO, false));
+        duracionMaxima.setRepeats(false);
+        duracionMaxima.start();
+        // Cualquier tecla o clic en esta ventana cuenta como actividad.
+        actividad = evento -> {
+            if (evento.getSource() instanceof java.awt.Component c
+                    && javax.swing.SwingUtilities.getWindowAncestor(c) == this) {
+                inactividad.restart();
+            }
+        };
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(actividad,
+                java.awt.AWTEvent.KEY_EVENT_MASK | java.awt.AWTEvent.MOUSE_EVENT_MASK);
+
+        mostrar(CONSULTA);
     }
 
-    private JPanel barra(Sesion sesion) {
+    Sesion sesion() {
+        return sesion;
+    }
+
+    private JPanel barra() {
         JPanel barra = new JPanel(new BorderLayout());
         Tema.alCambiar(() -> {
             barra.setBackground(Tema.c().superficie());
@@ -87,8 +135,9 @@ public class VentanaPrincipal extends JFrame {
         menu.put(CONSULTA, opcion("Consultar registros", () -> ir(CONSULTA)));
         menu.put(NUEVO, opcion("Nuevo registro", () -> ir(NUEVO)));
         menu.put(SEGURIDAD, opcion("Seguridad", () -> ir(SEGURIDAD)));
+        menu.put(USUARIOS, opcion("Usuarios (admin)", () -> ir(USUARIOS)));
         menu.values().forEach(nav::add);
-        nav.add(opcion("Salir (" + sesion.nombre() + ")", this::salir));
+        nav.add(opcion("Salir (" + sesion.nombre() + ")", () -> cerrarSesion(CIERRE_SALIR, true)));
         barra.add(nav, BorderLayout.EAST);
         Tema.alCambiar(this::marcarMenu);
         return barra;
@@ -104,8 +153,12 @@ public class VentanaPrincipal extends JFrame {
         return b;
     }
 
-    /** La sección actual en rojo, en negrita y subrayada (.nav-principal a.activo). */
+    /** La sección actual en azul, en negrita y subrayada (.nav-principal a.activo). */
     private void marcarMenu() {
+        if (sesion == null) {
+            return;
+        }
+        menu.get(USUARIOS).setVisible(sesion.admin());
         menu.forEach((clave, boton) -> {
             boolean activo = clave.equals(actual) || (EDITAR.equals(actual) && CONSULTA.equals(clave));
             boton.setForeground(activo ? Tema.c().plataforma() : Tema.c().textoSuave());
@@ -113,7 +166,7 @@ public class VentanaPrincipal extends JFrame {
             boton.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createEmptyBorder(6, 2, 0, 2),
                     BorderFactory.createMatteBorder(0, 0, 2, 0,
-                            activo ? Tema.c().plataforma() : new java.awt.Color(0, 0, 0, 0))));
+                            activo ? Tema.c().plataforma() : new Color(0, 0, 0, 0))));
         });
     }
 
@@ -132,21 +185,50 @@ public class VentanaPrincipal extends JFrame {
     private JPanel pie() {
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pie.setBorder(BorderFactory.createEmptyBorder(10, 0, 14, 0));
-        javax.swing.JLabel texto = new javax.swing.JLabel("PRPagos — proyecto de portafolio de Luis Felipe Arias.");
+        JLabel texto = new JLabel("PRPagos — proyecto de portafolio de Luis Felipe Arias.");
         texto.setFont(texto.getFont().deriveFont(12.5f));
         Tema.alCambiar(() -> texto.setForeground(Tema.c().textoSuave()));
         pie.add(texto);
         return pie;
     }
 
+    /**
+     * Cambio de pantalla. Antes se revisa la cuenta en la base: si fue
+     * suspendida o eliminada se vuelve al ingreso; si cambió el rol, el menú
+     * y los permisos se actualizan. La pantalla de usuarios exige rol admin
+     * (si no, se va a la consulta, como exigir_admin en la web).
+     */
     void ir(String seccion) {
+        Tarea.ejecutar(contenido, () -> RepositorioUsuarios.estado(sesion.usuarioId()), cuenta -> {
+            if (!vigente(cuenta)) {
+                cerrarSesion(CIERRE_SUSPENDIDA, false);
+                return;
+            }
+            mostrar(USUARIOS.equals(seccion) && !sesion.admin() ? CONSULTA : seccion);
+        }, e -> mostrar(seccion));
+    }
+
+    /** Antes de una acción que escribe en la base: false si la cuenta ya no vale. */
+    boolean verificarCuenta() throws java.sql.SQLException {
+        return vigente(RepositorioUsuarios.estado(sesion.usuarioId()));
+    }
+
+    private boolean vigente(Cuenta cuenta) {
+        if (cuenta == null || !cuenta.activo()) {
+            return false;
+        }
+        sesion = sesion.conAdmin(cuenta.esAdmin());
+        return true;
+    }
+
+    private void mostrar(String seccion) {
         actual = seccion;
-        if (CONSULTA.equals(seccion)) {
-            consulta.recargar();
-        } else if (NUEVO.equals(seccion)) {
-            nuevo.limpiar();
-        } else if (SEGURIDAD.equals(seccion)) {
-            seguridad.recargar();
+        switch (seccion) {
+            case CONSULTA -> consulta.recargar();
+            case NUEVO -> nuevo.limpiar();
+            case SEGURIDAD -> seguridad.recargar();
+            case USUARIOS -> usuarios.recargar();
+            default -> { }
         }
         tarjetas.show(contenido, seccion);
         marcarMenu();
@@ -159,14 +241,23 @@ public class VentanaPrincipal extends JFrame {
         marcarMenu();
     }
 
-    /** Volver a la consulta tras guardar, con el aviso de éxito arriba. */
-    void volverAConsulta(String mensaje) {
-        ir(CONSULTA);
-        consulta.avisar(mensaje);
+    /** Volver a la consulta tras guardar, con el aviso arriba (como ?ok= / ?error= en la web). */
+    void volverAConsulta(String mensaje, boolean exito) {
+        mostrar(CONSULTA);
+        consulta.avisar(mensaje, exito);
     }
 
-    private void salir() {
-        new VentanaLogin().setVisible(true);
+    /** Cuenta suspendida o eliminada mientras se usaba la aplicación. */
+    void cuentaNoVigente() {
+        cerrarSesion(CIERRE_SUSPENDIDA, false);
+    }
+
+    /** Vuelve al ingreso con el mensaje del motivo, como la web. */
+    void cerrarSesion(String mensaje, boolean exito) {
+        inactividad.stop();
+        duracionMaxima.stop();
+        java.awt.Toolkit.getDefaultToolkit().removeAWTEventListener(actividad);
+        new VentanaLogin(mensaje, exito).setVisible(true);
         dispose();
     }
 }

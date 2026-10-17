@@ -71,6 +71,7 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
   escritorio, y al revés
 - Cambio de contraseña y de autenticador, y recuperación con el código
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
+- Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con un mensaje del motivo
 
 **Interfaz**
 - Web y escritorio con la misma estructura, menú, ícono y colores (rojo Oracle
@@ -98,7 +99,7 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 | Acceso a datos | python-oracledb (modo thin) | JDBC (ojdbc17 + oraclepki) |
 | Base de datos | Oracle Autonomous Database | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL | Procedimientos almacenados PL/SQL |
-| Sesiones | JWT en cookie httponly | Sesión en memoria de la aplicación |
+| Sesiones | JWT en cookie httponly; 6 h sin uso, máximo 8 h | En memoria; 6 h sin uso, máximo 8 h |
 | Contraseñas | PBKDF2-SHA256 | PBKDF2-SHA256 (mismo formato) |
 | Verificación en dos pasos | TOTP; secreto cifrado con AES-256-GCM | TOTP; mismo secreto y misma clave |
 | Despliegue | Docker en Google Cloud Run | Equipo local |

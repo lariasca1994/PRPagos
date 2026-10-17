@@ -159,18 +159,27 @@ def reactivar_usuario(usuario_id: int) -> bool:
 
 
 def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
-    """No elimina si la cuenta tiene pagos o auditoria asociados (choca
-    con el FK de TBPagos/TBAuditoria hacia TBPLogin) -- en ese caso hay
-    que suspender en vez de eliminar, mismo patron que verificador-api.
+    """No elimina si la cuenta tiene pagos o auditoria de pagos asociados
+    (choca con el FK de TBPagos/TBAuditoria hacia TBPLogin) -- en ese caso
+    hay que suspender en vez de eliminar, mismo patron que verificador-api.
+    La auditoria de ACCESO (ingresos, intentos fallidos, cambios de
+    contrasena; id_pago NULL) se borra junto con la cuenta: si no, ninguna
+    cuenta que haya ingresado alguna vez se podria eliminar.
     Devuelve (exito, motivo_si_fallo)."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM TBPagos WHERE usuario_id = :id", id=usuario_id)
         if cur.fetchone()[0] > 0:
             return False, "Esa cuenta tiene pagos registrados -- suspéndela en vez de eliminarla"
-        cur.execute("SELECT COUNT(*) FROM TBAuditoria WHERE usuario_id = :id", id=usuario_id)
+        cur.execute(
+            "SELECT COUNT(*) FROM TBAuditoria WHERE usuario_id = :id AND id_pago IS NOT NULL",
+            id=usuario_id,
+        )
         if cur.fetchone()[0] > 0:
             return False, "Esa cuenta tiene historial de auditoría -- suspéndela en vez de eliminarla"
+        cur.execute(
+            "DELETE FROM TBAuditoria WHERE usuario_id = :id AND id_pago IS NULL", id=usuario_id
+        )
         cur.execute("DELETE FROM TBPLogin WHERE id = :id", id=usuario_id)
         afectadas = cur.rowcount
         conn.commit()

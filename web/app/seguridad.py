@@ -210,21 +210,64 @@ def descifrar_secreto(valor: str) -> str:
 # ───────────────────────── Sesión ─────────────────────────
 
 ALGORITMO_JWT = "HS256"
+# Igual que el escritorio (VentanaPrincipal): la sesión se cierra tras 6 horas
+# sin uso, y como máximo a las 8 horas aunque haya actividad.
+INACTIVIDAD_SESION = timedelta(hours=6)
 DURACION_SESION = timedelta(hours=8)
+# Mensajes de cierre de sesión: los mismos textos en la web y en el escritorio.
+MENSAJES_CIERRE = {
+    "inactividad": "Tu sesión se cerró tras 6 horas de inactividad. Ingresa de nuevo.",
+    "maximo": "Tu sesión se cerró al cumplir 8 horas. Ingresa de nuevo.",
+    "suspendida": "Tu sesión se cerró porque tu cuenta ya no está activa.",
+    "salir": "Cerraste sesión.",
+}
 # Entre la contraseña y el código TOTP (o la configuración del autenticador).
 DURACION_ACCESO_PARCIAL = timedelta(minutes=10)
 
 
-def crear_token(usuario_id: int, usuario: str, nombre: str) -> str:
-    """Sesión completa: solo se emite después de verificar el código TOTP."""
+def crear_token(usuario_id: int, usuario: str, nombre: str, inicio: int | None = None) -> str:
+    """Sesión completa: solo se emite después de verificar el código TOTP.
+    Vence a las 6 horas sin uso (cada petición la renueva, ver
+    dependencias.py) y nunca más allá de 8 horas desde el ingreso."""
+    ahora = datetime.now(timezone.utc)
+    inicio = inicio or int(ahora.timestamp())
+    tope = datetime.fromtimestamp(inicio, timezone.utc) + DURACION_SESION
     payload = {
         "tipo": "sesion",
         "usuario_id": usuario_id,
         "usuario": usuario,
         "nombre": nombre,
-        "exp": datetime.now(timezone.utc) + DURACION_SESION,
+        "inicio": inicio,
+        "exp": min(ahora + INACTIVIDAD_SESION, tope),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=ALGORITMO_JWT)
+
+
+def renovar_token(datos: dict) -> str:
+    """La misma sesión con el plazo de inactividad reiniciado."""
+    return crear_token(datos["usuario_id"], datos["usuario"], datos["nombre"], datos.get("inicio"))
+
+
+def motivo_cierre(token: str | None) -> str | None:
+    """Por qué ya no vale una cookie de sesión auténtica: "inactividad" o
+    "maximo". None si no hay cookie, si es falsa o si sigue vigente."""
+    if not token:
+        return None
+    try:
+        datos = jwt.decode(
+            token, settings.jwt_secret, algorithms=[ALGORITMO_JWT], options={"verify_exp": False}
+        )
+    except jwt.PyJWTError:
+        return None
+    if datos.get("tipo") != "sesion":
+        return None
+    ahora = datetime.now(timezone.utc).timestamp()
+    inicio = datos.get("inicio")
+    if inicio and ahora >= inicio + DURACION_SESION.total_seconds():
+        return "maximo"
+    if ahora >= datos.get("exp", 0):
+        return "inactividad"
+    return None
 
 
 def leer_token(token: str) -> dict | None:

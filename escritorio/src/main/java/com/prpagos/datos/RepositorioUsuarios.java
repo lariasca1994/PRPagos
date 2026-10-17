@@ -104,6 +104,104 @@ public final class RepositorioUsuarios {
         }
     }
 
+    /**
+     * Rol y estado actuales de la cuenta (null si ya no existe). Se consulta al
+     * cambiar de pantalla, igual que la web en cada petición.
+     */
+    public static Cuenta estado(long usuarioId) throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion();
+             PreparedStatement st = conn.prepareStatement(
+                     "SELECT id, usuario, nombre, rol, activo FROM TBPLogin WHERE id = ?")) {
+            st.setLong(1, usuarioId);
+            try (java.sql.ResultSet rs = st.executeQuery()) {
+                return rs.next() ? cuenta(rs) : null;
+            }
+        }
+    }
+
+    // ───────────── Administración (mismas reglas que web/app/repositorio.py) ─────────────
+
+    public static java.util.List<Cuenta> listar() throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion();
+             PreparedStatement st = conn.prepareStatement(
+                     "SELECT id, usuario, nombre, rol, activo FROM TBPLogin ORDER BY nombre");
+             java.sql.ResultSet rs = st.executeQuery()) {
+            java.util.List<Cuenta> cuentas = new java.util.ArrayList<>();
+            while (rs.next()) {
+                cuentas.add(cuenta(rs));
+            }
+            return cuentas;
+        }
+    }
+
+    public static void suspender(long usuarioId) throws SQLException {
+        actualizarActivo(usuarioId, 0);
+    }
+
+    public static void reactivar(long usuarioId) throws SQLException {
+        actualizarActivo(usuarioId, 1);
+    }
+
+    /**
+     * Null si se eliminó; si no, el motivo. No elimina cuentas con pagos o
+     * auditoría de pagos (hay que suspenderlas); la auditoría de acceso
+     * (id_pago NULL) se borra junto con la cuenta.
+     */
+    public static String eliminar(long usuarioId) throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion()) {
+            conn.setAutoCommit(false);
+            try {
+                if (contar(conn, "SELECT COUNT(*) FROM TBPagos WHERE usuario_id = ?", usuarioId) > 0) {
+                    conn.rollback();
+                    return "Esa cuenta tiene pagos registrados -- suspéndela en vez de eliminarla";
+                }
+                if (contar(conn, "SELECT COUNT(*) FROM TBAuditoria WHERE usuario_id = ? AND id_pago IS NOT NULL",
+                        usuarioId) > 0) {
+                    conn.rollback();
+                    return "Esa cuenta tiene historial de auditoría -- suspéndela en vez de eliminarla";
+                }
+                int borradas;
+                try (PreparedStatement a = conn.prepareStatement(
+                        "DELETE FROM TBAuditoria WHERE usuario_id = ? AND id_pago IS NULL");
+                     PreparedStatement b = conn.prepareStatement("DELETE FROM TBPLogin WHERE id = ?")) {
+                    a.setLong(1, usuarioId);
+                    a.executeUpdate();
+                    b.setLong(1, usuarioId);
+                    borradas = b.executeUpdate();
+                }
+                conn.commit();
+                return borradas == 1 ? null : "No se encontró el usuario";
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        }
+    }
+
+    private static void actualizarActivo(long usuarioId, int activo) throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion();
+             PreparedStatement st = conn.prepareStatement("UPDATE TBPLogin SET activo = ? WHERE id = ?")) {
+            st.setInt(1, activo);
+            st.setLong(2, usuarioId);
+            st.executeUpdate();
+        }
+    }
+
+    private static int contar(Connection conn, String sql, long usuarioId) throws SQLException {
+        try (PreparedStatement st = conn.prepareStatement(sql)) {
+            st.setLong(1, usuarioId);
+            try (java.sql.ResultSet rs = st.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    private static Cuenta cuenta(java.sql.ResultSet rs) throws SQLException {
+        return new Cuenta(rs.getLong("id"), rs.getString("usuario"), rs.getString("nombre"),
+                rs.getString("rol"), rs.getInt("activo") == 1);
+    }
+
     /** False si el correo ya tiene cuenta. */
     public static boolean crear(String correo, String nombre, String hash) throws SQLException {
         try (Connection conn = ConexionBD.obtenerConexion();

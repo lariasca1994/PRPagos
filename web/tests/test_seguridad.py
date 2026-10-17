@@ -135,3 +135,45 @@ def test_token_de_reconfiguracion_es_del_mismo_usuario():
     token = s.crear_token_reconfiguracion(7, "ABCD")
     assert s.leer_token_reconfiguracion(token, 7) == "ABCD"
     assert s.leer_token_reconfiguracion(token, 8) is None
+
+
+def _token_sesion(inicio: float, exp: float) -> str:
+    import jwt
+    from app.config import settings
+    datos = {"tipo": "sesion", "usuario_id": 1, "usuario": "a@b.co", "nombre": "Ana",
+             "inicio": int(inicio), "exp": int(exp)}
+    return jwt.encode(datos, settings.jwt_secret, algorithm="HS256")
+
+
+def test_sesion_vence_por_inactividad_a_las_6_horas():
+    import time
+    ahora = time.time()
+    vencido = _token_sesion(inicio=ahora - 7 * 3600 + 3600, exp=ahora - 10)
+    assert s.leer_token(vencido) is None
+    assert s.motivo_cierre(vencido) == "inactividad"
+
+
+def test_sesion_vence_al_cumplir_8_horas_aunque_haya_actividad():
+    import time
+    ahora = time.time()
+    vencido = _token_sesion(inicio=ahora - 8 * 3600 - 5, exp=ahora - 5)
+    assert s.motivo_cierre(vencido) == "maximo"
+
+
+def test_sesion_vigente_y_renovacion():
+    import time
+    token = s.crear_token(1, "a@b.co", "Ana")
+    datos = s.leer_token(token)
+    assert s.motivo_cierre(token) is None
+    assert abs(datos["exp"] - (time.time() + 6 * 3600)) < 5  # 6 horas sin uso
+    # Cerca del tope de 8 horas, el vencimiento no pasa del tope.
+    inicio = int(time.time() - 7 * 3600)
+    renovado = s.leer_token(s.crear_token(1, "a@b.co", "Ana", inicio=inicio))
+    assert renovado["exp"] <= inicio + 8 * 3600
+    assert renovado["inicio"] == inicio
+
+
+def test_mensajes_de_cierre():
+    assert set(s.MENSAJES_CIERRE) == {"inactividad", "maximo", "suspendida", "salir"}
+    assert s.motivo_cierre(None) is None
+    assert s.motivo_cierre("no-es-un-token") is None

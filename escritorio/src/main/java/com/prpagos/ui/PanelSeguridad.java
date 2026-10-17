@@ -30,7 +30,7 @@ import com.prpagos.seguridad.Totp;
  */
 class PanelSeguridad extends JPanel {
 
-    private final Sesion sesion;
+    private final VentanaPrincipal ventana;
     private final CardLayout vistas = new CardLayout();
     private final Ui.Aviso aviso = new Ui.Aviso();
     private final JLabel estado = new JLabel();
@@ -47,8 +47,8 @@ class PanelSeguridad extends JPanel {
     private String secretoNuevo;
     private boolean totpActivo;
 
-    PanelSeguridad(Sesion sesion) {
-        this.sesion = sesion;
+    PanelSeguridad(VentanaPrincipal ventana) {
+        this.ventana = ventana;
         setOpaque(false);
         setLayout(vistas);
         add(vistaPrincipal(), "principal");
@@ -76,7 +76,7 @@ class PanelSeguridad extends JPanel {
         estado.setOpaque(true);
         estado.setBorder(BorderFactory.createEmptyBorder(3, 12, 3, 12));
         JTextArea ayudaTotp = Ui.suave("Cada ingreso pide, además de la contraseña, el código de 6 dígitos de "
-                + "tu app autenticadora. Es el mismo en la web y en esta versión.");
+                + "tu app autenticadora. Es el mismo en la web y en el escritorio.");
         ayudaTotp.setFont(ayudaTotp.getFont().deriveFont(12.5f));
         JTextArea paraCambiar = Ui.suave("Para cambiar de teléfono o de app, escribe un código del "
                 + "autenticador actual");
@@ -157,11 +157,15 @@ class PanelSeguridad extends JPanel {
         return p;
     }
 
+    private Sesion sesion() {
+        return ventana.sesion();
+    }
+
     void recargar() {
         aviso.ocultar();
         secretoNuevo = null;
         vistas.show(this, "principal");
-        Tarea.ejecutar(this, () -> RepositorioUsuarios.porId(sesion.usuarioId()), cred -> {
+        Tarea.ejecutar(this, () -> RepositorioUsuarios.porId(sesion().usuarioId()), cred -> {
             totpActivo = cred != null && cred.totpActivo();
             pintarEstado();
         }, e -> aviso.error(Ui.mensajeError("leer el estado de la cuenta").apply(e)));
@@ -188,7 +192,7 @@ class PanelSeguridad extends JPanel {
     private void iniciarCambio() {
         String codigo = codigoCambio.getText();
         Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(sesion.usuarioId());
+            Credenciales cred = RepositorioUsuarios.porId(sesion().usuarioId());
             if (cred == null || cred.bloqueada()) {
                 return "Cuenta bloqueada temporalmente; espera 5 minutos";
             }
@@ -200,7 +204,7 @@ class PanelSeguridad extends JPanel {
                 return;
             }
             secretoNuevo = Totp.generarSecreto();
-            qr.mostrar(Totp.uri(secretoNuevo, sesion.correo()));
+            qr.mostrar(Totp.uri(secretoNuevo, sesion().correo()));
             claveManual.setText("Clave:  " + Totp.legible(secretoNuevo));
             codigoNuevo.setText("");
             avisoNuevo.ocultar();
@@ -219,10 +223,10 @@ class PanelSeguridad extends JPanel {
         Tarea.ejecutar(this, () -> {
             Long paso = Totp.verificar(secreto, codigo, 0);
             if (paso == null) {
-                RepositorioUsuarios.registrarFallo(sesion.usuarioId(), "FALLO_TOTP");
+                RepositorioUsuarios.registrarFallo(sesion().usuarioId(), "FALLO_TOTP");
                 return "El código no coincide con el nuevo autenticador";
             }
-            RepositorioUsuarios.guardarTotp(sesion.usuarioId(), CifradoTotp.cifrar(secreto), paso);
+            RepositorioUsuarios.guardarTotp(sesion().usuarioId(), CifradoTotp.cifrar(secreto), paso);
             return null;
         }, error -> {
             if (error != null) {
@@ -241,7 +245,7 @@ class PanelSeguridad extends JPanel {
         String claveConfirmacion = new String(confirmacion.getPassword());
         String codigo = codigoClave.getText();
         Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(sesion.usuarioId());
+            Credenciales cred = RepositorioUsuarios.porId(sesion().usuarioId());
             if (cred == null || cred.bloqueada()) {
                 return "Cuenta bloqueada temporalmente; espera 5 minutos";
             }

@@ -55,6 +55,15 @@ def _parsear_filtros(
     }
 
 
+def _monto_formulario(texto: str) -> float | None:
+    """Monto de los formularios de nuevo/modificar: acepta coma o punto
+    decimal, igual que la versión de escritorio."""
+    try:
+        return float(texto.strip().replace(",", "."))
+    except ValueError:
+        return None
+
+
 @router.get("/registros")
 def listar_registros(
     request: Request,
@@ -154,15 +163,14 @@ def crear_registro(
     concepto: str = Form(...),
     usuario: UsuarioActual = Depends(exigir_login),
 ):
-    try:
-        monto_val = float(monto)
-    except ValueError:
+    monto_val = _monto_formulario(monto)
+    if monto_val is None:
         return RedirectResponse(
             url=f"/registros/nuevo?error={quote('Monto inválido')}", status_code=303
         )
 
-    repositorio.insertar_pago(monto_val, date.fromisoformat(fecha), concepto, usuario.usuario_id)
-    return RedirectResponse(url="/registros", status_code=303)
+    repositorio.insertar_pago(monto_val, date.fromisoformat(fecha), concepto.strip(), usuario.usuario_id)
+    return RedirectResponse(url=f"/registros?ok={quote('Registro guardado')}", status_code=303)
 
 
 @router.get("/registros/{id_pago}/editar")
@@ -191,9 +199,8 @@ def procesar_editar_registro(
     concepto: str = Form(...),
     usuario: UsuarioActual = Depends(exigir_login),
 ):
-    try:
-        monto_val = float(monto)
-    except ValueError:
+    monto_val = _monto_formulario(monto)
+    if monto_val is None:
         return RedirectResponse(
             url=f"/registros/{id_pago}/editar?error={quote('Monto inválido')}", status_code=303
         )
@@ -214,9 +221,10 @@ def procesar_editar_registro(
         )
     if filas == 0:
         return RedirectResponse(
-            url=f"/registros?error={quote('No autorizado')}", status_code=303
+            url=f"/registros?error={quote('No se pudo modificar: este registro no te pertenece.')}",
+            status_code=303,
         )
-    return RedirectResponse(url="/registros", status_code=303)
+    return RedirectResponse(url=f"/registros?ok={quote(f'Registro #{id_pago} actualizado')}", status_code=303)
 
 
 @router.post("/registros/{id_pago}/eliminar")
@@ -225,4 +233,4 @@ def eliminar_registro(id_pago: int, usuario: UsuarioActual = Depends(exigir_admi
     # la versión de escritorio. Un usuario normal ni ve este botón (ver
     # registros_lista.html) ni puede llamar a esta ruta (exigir_admin).
     repositorio.eliminar_pago(id_pago, usuario.usuario_id)
-    return RedirectResponse(url="/registros", status_code=303)
+    return RedirectResponse(url=f"/registros?ok={quote(f'Registro #{id_pago} eliminado')}", status_code=303)

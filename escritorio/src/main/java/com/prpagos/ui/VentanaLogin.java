@@ -73,6 +73,17 @@ public class VentanaLogin extends JFrame {
     /** Contraseña ya verificada; falta el código o configurar el autenticador. */
     private Credenciales pendiente;
     private String secretoPendiente;
+    private boolean pendienteAdmin;
+
+    /** Portada con el mensaje de cierre de sesión (los mismos textos que la web). */
+    public VentanaLogin(String mensaje, boolean exito) {
+        this();
+        if (exito) {
+            avisoIngreso.exito(mensaje);
+        } else {
+            avisoIngreso.error(mensaje);
+        }
+    }
 
     public VentanaLogin() {
         super("PRPagos");
@@ -358,6 +369,7 @@ public class VentanaLogin extends JFrame {
                 return "Código incorrecto o ya usado";
             }
             pendiente = cred;
+            pendienteAdmin = esAdmin(id);
             return null;
         }, error -> {
             if (error != null) {
@@ -393,6 +405,7 @@ public class VentanaLogin extends JFrame {
                 return "El código no coincide. Revisa que la hora del teléfono sea la correcta.";
             }
             RepositorioUsuarios.guardarTotp(id, CifradoTotp.cifrar(secreto), paso);
+            pendienteAdmin = esAdmin(id);
             return null;
         }, error -> {
             if (error != null) {
@@ -404,8 +417,13 @@ public class VentanaLogin extends JFrame {
         }, e -> avisoConfig.error(Ui.mensajeError("guardar el autenticador").apply(e)));
     }
 
+    private static boolean esAdmin(long usuarioId) throws java.sql.SQLException {
+        com.prpagos.datos.Cuenta cuenta = RepositorioUsuarios.estado(usuarioId);
+        return cuenta != null && cuenta.esAdmin();
+    }
+
     private void abrirPrincipal() {
-        Sesion sesion = Sesion.de(pendiente);
+        Sesion sesion = Sesion.de(pendiente, pendienteAdmin);
         pendiente = null;
         secretoPendiente = null;
         new VentanaPrincipal(sesion).setVisible(true);

@@ -32,27 +32,27 @@ def suspender(usuario_id: int, usuario: UsuarioActual = Depends(exigir_admin)):
     # ColombiaTech2 / gestor-casos-qa / taskflow / verificador-api.
     if usuario_id == usuario.usuario_id:
         return RedirectResponse(
-            url=f"/admin/usuarios?error={quote('No podés suspender tu propia cuenta')}",
+            url=f"/admin/usuarios?error={quote('No puedes suspender tu propia cuenta')}",
             status_code=303,
         )
     repositorio.suspender_usuario(usuario_id)
-    return RedirectResponse(url="/admin/usuarios", status_code=303)
+    return RedirectResponse(url=f"/admin/usuarios?ok={quote('Cuenta suspendida')}", status_code=303)
 
 
 @router.post("/{usuario_id}/reactivar")
 def reactivar(usuario_id: int, usuario: UsuarioActual = Depends(exigir_admin)):
     repositorio.reactivar_usuario(usuario_id)
-    return RedirectResponse(url="/admin/usuarios", status_code=303)
+    return RedirectResponse(url=f"/admin/usuarios?ok={quote('Cuenta reactivada')}", status_code=303)
 
 
 @router.post("/{usuario_id}/eliminar")
 def eliminar(usuario_id: int, usuario: UsuarioActual = Depends(exigir_admin)):
     if usuario_id == usuario.usuario_id:
         return RedirectResponse(
-            url=f"/admin/usuarios?error={quote('No podés eliminar tu propia cuenta')}",
+            url=f"/admin/usuarios?error={quote('No puedes eliminar tu propia cuenta')}",
             status_code=303,
         )
     exito, motivo = repositorio.eliminar_usuario(usuario_id)
     if not exito:
         return RedirectResponse(url=f"/admin/usuarios?error={quote(motivo)}", status_code=303)
-    return RedirectResponse(url="/admin/usuarios", status_code=303)
+    return RedirectResponse(url=f"/admin/usuarios?ok={quote('Cuenta eliminada')}", status_code=303)
