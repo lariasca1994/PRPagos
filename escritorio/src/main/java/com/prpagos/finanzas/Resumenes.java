@@ -33,7 +33,12 @@ public final class Resumenes {
         Correo.enviar(correo, nombre, Finanzas.asuntoResumen(p), html);
     }
 
-    private static String urlPublica() {
+    /** Dirección pública de la web (url.publica o la de producción); también identifica las llaves de acceso. */
+    public static String urlPublica() {
+        String indicada = System.getProperty("prpagos.url.publica"); // pruebas contra una web local
+        if (indicada != null && !indicada.isBlank()) {
+            return indicada.trim();
+        }
         try {
             String valor = ConexionBD.propiedad("url.publica");
             return valor == null || valor.isBlank() ? URL_PUBLICA_POR_DEFECTO : valor.trim();

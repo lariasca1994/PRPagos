@@ -168,7 +168,7 @@ public final class RepositorioUsuarios {
                     a.executeUpdate();
                     // Lo que cuelga de la cuenta (no tiene registros, así que tampoco usa sus categorías).
                     for (String tabla : new String[] {"TBCodigosRespaldo", "TBPresupuestos", "TBEnviosResumen",
-                        "TBCategorias"}) {
+                        "TBCategorias", "TBLlavesAcceso"}) {
                         try (PreparedStatement c = conn.prepareStatement("DELETE FROM " + tabla + " WHERE usuario_id = ?")) {
                             c.setLong(1, usuarioId);
                             c.executeUpdate();

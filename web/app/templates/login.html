@@ -13,6 +13,11 @@
 
     <button type="submit" class="boton">Continuar</button>
 </form>
+<div class="separador-acceso" aria-hidden="true"><span>o</span></div>
+<p id="aviso-llave" class="aviso-acceso error" role="alert" hidden></p>
+<button type="button" id="boton-llave" class="boton boton-secundario boton-llave">Ingresar con llave de acceso</button>
+<p class="ayuda-llave">Windows Hello, huella, rostro o PIN del dispositivo</p>
+<script src="/static/llaves.js" defer></script>
 {% endblock %}
 {% block enlaces %}
 <span>¿No tienes cuenta? <a href="/registro">Regístrate</a></span>

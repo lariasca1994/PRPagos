@@ -80,6 +80,8 @@ cada usuario. **Descarga:** [última versión](https://github.com/lariasca1994/P
 **Cuentas y seguridad**
 - Ingreso en dos pasos obligatorio (TOTP), compartido con la web
 - Códigos de respaldo y código por correo si se pierde el teléfono
+- **Llaves de acceso con Windows Hello** (PIN, huella o rostro): la misma llave de Edge o
+  Chrome en ese Windows; se agregan desde Perfil
 - **Perfil** con datos, plan, categorías, autenticador, códigos y contraseña
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
 - Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con un mensaje del motivo
@@ -105,6 +107,7 @@ cada usuario. **Descarga:** [última versión](https://github.com/lariasca1994/P
 | Correos | Brevo (API HTTPS, `java.net.http`) con `../compartido/correo/` |
 | Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única) |
 | Verificación en dos pasos | TOTP (RFC 6238); QR con ZXing; secreto cifrado con AES-256-GCM |
+| Llaves de acceso | Windows Hello con `webauthn.dll` (JNA); verificación ES256/RS256 propia |
 | Protección de la configuración | DPAPI de Windows (JNA) |
 | Sesión | En memoria; 6 h sin uso, máximo 8 h (igual que la web) |
 | Distribución | jpackage → GitHub Releases; actualización con verificación SHA-256 |
@@ -126,7 +129,8 @@ escritorio/
     │   ├── conexion/        ConexionBD y SecretosProtegidos (DPAPI)
     │   ├── datos/           Repositorios de usuarios, registros y finanzas
     │   ├── finanzas/        Plan 50/30/20, formatos, resúmenes y cliente de Brevo
-    │   ├── seguridad/       PBKDF2, TOTP, AES-GCM y recuperación (gemelos de la web)
+    │   ├── seguridad/       PBKDF2, TOTP, AES-GCM, recuperación y llaves de acceso
+    │   │                    (LlavesAcceso, WindowsHello), gemelos de la web
     │   └── ui/              Portada, ventana principal y paneles (Dashboard,
     │                        Consulta, Registro, Perfil), Tema y componentes
     └── resources/           Script que instala las actualizaciones
@@ -171,6 +175,10 @@ va dentro del `.jar`.
   base, igual que para la web.
 - Un usuario solo ve y modifica sus propios registros; esa regla vive en los
   procedimientos y en las consultas, siempre filtradas por la cuenta.
+- **Llaves de acceso:** Windows Hello vía `webauthn.dll`, la misma API de Edge y Chrome. Al no
+  haber servidor, la app verifica cada firma (ES256 o RS256) con la clave pública guardada, el
+  dominio de la web y un reto nuevo; exige la verificación del usuario y rechaza contadores que
+  no avanzan.
 - **Configuración protegida:** al primer uso, `db.password`, `totp.clave` y
   `brevo.api.key` se cifran con DPAPI (`dpapi:…`), atados al usuario de Windows
   y al equipo; copiados a otra máquina no se pueden descifrar.
@@ -218,14 +226,15 @@ cambiar entre tema claro y oscuro.
    misma cuenta sirve en la web.
 2. Ingresa con **Correo** y **Contraseña**; la primera vez escanea el QR con tu
    app autenticadora y guarda los 10 **códigos de respaldo**.
-3. Las siguientes veces, escribe el código de 6 dígitos (o uno de respaldo).
+3. Las siguientes veces, escribe el código de 6 dígitos (o uno de respaldo), o pulsa **Ingresar
+   con llave de acceso** si agregaste este equipo en Perfil (Windows Hello).
 
 ### 5.3 Dashboard, registros y Perfil
 
 - **Dashboard:** elige el mes; cifras, gráficas, plan 50/30/20 y botones de resumen por correo.
 - **Nuevo registro:** tipo, monto, fecha, categoría y concepto.
 - **Consultar registros:** filtros, totales, **Modificar** (o doble clic) y **Exportar a CSV**.
-- **Perfil:** nombre y resúmenes, plan, categorías, autenticador, códigos de respaldo y contraseña.
+- **Perfil:** nombre y resúmenes, plan, categorías, autenticador, códigos de respaldo, llaves de acceso y contraseña.
 
 ### 5.4 Recuperar el acceso
 

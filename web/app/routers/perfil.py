@@ -5,13 +5,15 @@ los códigos de respaldo. Las acciones de seguridad piden un código vigente
 (de la app autenticadora o uno de respaldo), así que una sesión robada no
 alcanza para tomar la cuenta. Igual que escritorio/.../ui/PanelPerfil.java.
 """
+import json
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+import oracledb
+from fastapi import APIRouter, Body, Depends, Form, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import finanzas, repositorio
+from .. import finanzas, llaves, repositorio
 from ..dependencias import UsuarioActual, exigir_login
 from ..qr import qr_svg
 from ..seguridad import (
@@ -59,6 +61,7 @@ def pantalla_perfil(request: Request, usuario: UsuarioActual = Depends(exigir_lo
             "totp_activo": bool(cred and cred["totp_activo"]),
             "pcts": repositorio.plan(usuario.usuario_id),
             "categorias": repositorio.categorias(usuario.usuario_id),
+            "llaves": repositorio.llaves(usuario.usuario_id),
             "grupos": GRUPOS,
             "texto_pct": finanzas.texto_pct,
             "error": request.query_params.get("error"),
@@ -215,3 +218,58 @@ def confirmar_autenticador_nuevo(
     respuesta = _pantalla_codigos(request, usuario, _nuevos_codigos(usuario.usuario_id))
     respuesta.delete_cookie(COOKIE_RECONFIGURAR)
     return respuesta
+
+
+# ───────────────────────── Llaves de acceso ─────────────────────────
+#
+# Agregar una llave pide un código de la app o de respaldo (como los demás
+# cambios de seguridad). Mismas reglas y textos que PanelPerfil.java.
+
+COOKIE_RETO = "reto_llave"
+
+
+def _error(mensaje: str) -> JSONResponse:
+    return JSONResponse({"error": mensaje}, status_code=400)
+
+
+@router.post("/perfil/llaves/opciones")
+def opciones_llave_nueva(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
+    nombre = llaves.nombre_valido(str(datos.get("nombre", "")))
+    if nombre is None:
+        return _error("Escribe un nombre para este dispositivo")
+    cred = repositorio.obtener_credenciales(usuario_id=usuario.usuario_id)
+    if cred is None or cred["bloqueada"]:
+        return _error("Cuenta bloqueada temporalmente; espera 5 minutos")
+    if not verificar_segundo_factor(cred, str(datos.get("codigo", "")), "VERIFICA_TOTP"):
+        return _error("Código incorrecto o ya usado")
+    existentes = [llave["credencial_id"] for llave in repositorio.llaves(usuario.usuario_id)]
+    reto, token = llaves.crear_reto("registro", usuario.usuario_id, nombre)
+    opciones = llaves.opciones_registro(usuario.usuario_id, cred["usuario"], cred["nombre"], existentes, reto)
+    respuesta = JSONResponse(json.loads(opciones))
+    respuesta.set_cookie(COOKIE_RETO, token, httponly=True, secure=True, samesite="strict", max_age=300)
+    return respuesta
+
+
+@router.post("/perfil/llaves/registrar")
+def registrar_llave(request: Request, credencial: dict = Body(...),
+                    usuario: UsuarioActual = Depends(exigir_login)):
+    datos = llaves.leer_reto(request.cookies.get(COOKIE_RETO), "registro")
+    if datos is None or datos.get("usuario_id") != usuario.usuario_id:
+        return _error("La solicitud expiró; empieza de nuevo.")
+    try:
+        credencial_id, clave_publica, contador = llaves.verificar_registro(credencial, datos["reto"])
+    except llaves.ErrorLlave as error:
+        return _error(str(error))
+    try:
+        repositorio.guardar_llave(usuario.usuario_id, credencial_id, clave_publica, contador, datos["nombre"])
+    except oracledb.IntegrityError:
+        return _error("Esa llave de acceso ya está registrada")
+    respuesta = JSONResponse({"ir": f"/perfil?ok={quote('Llave de acceso guardada')}#llaves"})
+    respuesta.delete_cookie(COOKIE_RETO)
+    return respuesta
+
+
+@router.post("/perfil/llaves/{llave_id}/eliminar")
+def eliminar_llave(llave_id: int, usuario: UsuarioActual = Depends(exigir_login)):
+    repositorio.eliminar_llave(usuario.usuario_id, llave_id)
+    return _redirigir("Llave de acceso eliminada", exito=True, ancla="#llaves")

@@ -85,6 +85,8 @@ migración de escritorio a web.
 
 **Cuentas y seguridad (una sola para web y escritorio)**
 - Ingreso en dos pasos obligatorio: contraseña y código de una app autenticadora (TOTP)
+- **Llaves de acceso (passkeys):** ingreso con Windows Hello, huella, rostro o PIN, en la web
+  (Windows, Android y iPhone) y en el escritorio; la misma llave sirve en Edge y en la app del mismo Windows
 - **Códigos de respaldo** y **código por correo** para recuperar el acceso si se pierde el teléfono
 - **Perfil** con datos, plan, categorías, autenticador, códigos de respaldo y contraseña
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
@@ -113,6 +115,7 @@ migración de escritorio a web.
 | Sesiones | JWT en cookie httponly; 6 h sin uso, máximo 8 h | En memoria; 6 h sin uso, máximo 8 h |
 | Contraseñas | PBKDF2-SHA256 | PBKDF2-SHA256 (mismo formato) |
 | Verificación en dos pasos | TOTP; secreto cifrado con AES-256-GCM | TOTP; mismo secreto y misma clave |
+| Llaves de acceso | WebAuthn en el navegador (librería `webauthn`) | Windows Hello (`webauthn.dll` vía JNA) |
 | Distribución | Docker en Google Cloud Run (GitHub Actions) | PRPagos.exe en GitHub Releases (jpackage) |
 | App instalable | PWA (Android, iOS, Windows, macOS, Linux) | Instalador o portable para Windows |
 
@@ -169,6 +172,9 @@ Cada versión tiene su propio diagrama detallado en
 - Verificación en dos pasos obligatoria (TOTP, RFC 6238); un código no se puede
   reutilizar. El secreto se guarda cifrado con AES-256-GCM y la clave vive
   fuera de la base.
+- Llaves de acceso (WebAuthn): en la base solo se guarda la clave pública y un contador; exigen
+  la verificación del dispositivo, solo valen para el sitio de PRPagos y cada firma se comprueba
+  con un reto nuevo. Agregar una pide un código vigente.
 - Recuperación sin el teléfono: 10 códigos de respaldo de un solo uso (solo se
   guarda su huella SHA-256) o un código por correo que vence en 15 minutos; cada
   uso queda en la auditoría.
@@ -217,6 +223,8 @@ Resumen del flujo, igual en ambas:
 6. **Perfil:** nombre, resúmenes por correo, porcentajes del plan, categorías,
    autenticador, códigos de respaldo y contraseña.
 7. **Perdí mi teléfono:** entra con un código de respaldo o pide un código al correo.
+8. **Llave de acceso:** agrega tu dispositivo en Perfil y luego entra con **Ingresar con llave
+   de acceso** (Windows Hello, huella, rostro o PIN), sin contraseña ni código.
 
 ---
 
@@ -234,12 +242,13 @@ Resumen del flujo, igual en ambas:
 ### Base de datos (una sola vez)
 
 Ejecuta, en orden, `sql/DBPagos.sql` y las migraciones `seguridad`, `finanzas` y
-`actualizaciones`. Desde `web/`, con su `.env` configurado:
+`actualizaciones` y `llaves`. Desde `web/`, con su `.env` configurado:
 
 ```bash
 python migrar.py seguridad --aplicar
 python migrar.py finanzas --aplicar
 python migrar.py actualizaciones --aplicar
+python migrar.py llaves --aplicar
 ```
 
 Sin `--aplicar` solo muestra el SQL. Las migraciones son aditivas y se pueden

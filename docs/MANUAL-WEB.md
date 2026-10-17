@@ -57,6 +57,7 @@ Palabras técnicas que aparecen en este manual, explicadas en lenguaje simple.
 | **Base de datos** | Lugar donde la aplicación guarda la información de forma ordenada y permanente. |
 | **Cifrado / TLS / HTTPS** | Protección que codifica la información mientras viaja, para que nadie en el camino pueda leerla. |
 | **Contraseña cifrada (hash)** | La contraseña no se guarda tal cual, sino como una "huella" de la que no se puede recuperar el texto original. |
+| **Llave de acceso (passkey)** | Forma de ingresar sin contraseña ni código: el dispositivo la desbloquea con Windows Hello, la huella, el rostro o el PIN. La huella nunca sale del dispositivo. |
 | **Código de respaldo** | Código de un solo uso (formato `ABCD-EFGH`) para entrar si no tienes el teléfono. |
 | **Cookie** | Pequeño dato que el navegador guarda para recordar tu sesión en ese sitio. |
 | **CSV** | Archivo de texto con datos en columnas, que se abre en Excel o Google Sheets. |
@@ -93,6 +94,7 @@ elección.
 | 1 | Correo | Tu correo |
 | 2 | Contraseña | Tu contraseña |
 | 3 | Continuar | Pasa al código de verificación |
+| 4 | Ingresar con llave de acceso | Entra directo con Windows Hello, la huella, el rostro o el PIN del dispositivo, sin contraseña ni código (ver 4.14) |
 
 ### 4.2 Crear una cuenta
 
@@ -200,7 +202,8 @@ registros.
 | 3 | Categorías | Ver las sugeridas y **agregar** las tuyas (nombre, tipo y grupo del plan); las tuyas se pueden eliminar si no tienen registros |
 | 4 | Verificación en dos pasos | **Cambiar autenticador** (teléfono nuevo o perdido) con un código de la app o de respaldo |
 | 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
-| 6 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
+| 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.14) |
+| 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
 
 ### 4.10 Resúmenes por correo
 
@@ -245,7 +248,31 @@ autenticador.
 | 5 | Repite la nueva contraseña | La misma |
 | 6 | Actualizar contraseña | Aplica el cambio |
 
-### 4.14 Preguntas frecuentes
+### 4.14 Llaves de acceso (Windows Hello, huella o PIN)
+
+![Sección Llaves de acceso en Perfil](img/manual-web/14-llaves.png)
+
+Con una llave de acceso entras sin escribir la contraseña ni el código: el dispositivo te pide
+Windows Hello, la huella, el rostro o su PIN. Funciona en Edge o Chrome en Windows, en Android
+(navegador o app instalada) y en iPhone.
+
+**Agregar este dispositivo** (en **Perfil → Llaves de acceso**):
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Nombre del dispositivo | Un nombre para reconocerlo (por ejemplo, "Portátil" o "Celular") |
+| 2 | Código de la app o de respaldo | Un código vigente, para confirmar que eres tú |
+| 3 | Agregar este dispositivo | El dispositivo pide tu huella, rostro o PIN y guarda la llave |
+
+**Ingresar:** en la portada pulsa **Ingresar con llave de acceso** y confirma con tu huella,
+rostro o PIN. Abre el **Dashboard** directamente.
+
+- Cada dispositivo necesita su propia llave (en Android, Google puede sincronizarla entre tus
+  dispositivos). Una llave creada en Edge sirve también en la app de escritorio del mismo Windows.
+- Si pierdes un dispositivo, elimina su llave en **Perfil**. La contraseña + código y los códigos
+  de respaldo siguen funcionando.
+
+### 4.15 Preguntas frecuentes
 
 **¿Tengo que configurar el autenticador dos veces, en la web y en el escritorio?** No. Es uno solo
 por cuenta: el que configures en una versión sirve en la otra. Lo mismo con los códigos de respaldo.
@@ -273,6 +300,7 @@ protege y no los comparte con terceros.
 | Clave del autenticador | Verificar tus códigos | Oracle, cifrada con AES-256-GCM | Nadie; la clave de cifrado vive fuera de la base |
 | Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella SHA-256 | Nadie los ve después de mostrarlos |
 | Ingresos, gastos, categorías y plan | Tu presupuesto | Oracle, marcados con tu cuenta | Solo tú |
+| Llaves de acceso | Ingresar con huella, rostro o PIN | Oracle, solo la clave pública y un contador | Nadie: la huella y la clave privada nunca salen de tu dispositivo |
 | Sesión | Mantenerte conectado | Cookie en tu navegador | Firmada, invisible para JavaScript |
 
 ### Cómo se protege tu información
@@ -282,6 +310,9 @@ protege y no los comparte con terceros.
 - **Verificación en dos pasos obligatoria (TOTP):** sin el código de tu app (o uno de respaldo), la
   contraseña sola no basta para entrar, recuperar la cuenta ni cambiar la contraseña. Un código no
   se puede usar dos veces.
+- **Llaves de acceso (WebAuthn):** exigen la verificación del dispositivo (huella, rostro o PIN),
+  solo sirven en el sitio de PRPagos (no se pueden usar en una página falsa) y cada firma se
+  comprueba en el servidor con la clave pública guardada. Agregar una pide un código vigente.
 - **Recuperación sin el teléfono controlada:** los códigos de respaldo sirven una sola vez y el
   código por correo vence en 15 minutos; cada uso queda en la auditoría.
 - **Contraseñas con PBKDF2-SHA256** (600.000 iteraciones y sal única por cuenta).
