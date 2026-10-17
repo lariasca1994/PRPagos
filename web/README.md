@@ -67,7 +67,8 @@ detalle de la migración.
 - Pantalla **Seguridad**: cambiar la contraseña o el autenticador
 - Recuperación de contraseña con el código del autenticador
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
-- Sesión de hasta 8 horas en una cookie `httponly`
+- Sesión en una cookie `httponly` que se cierra tras 6 horas sin uso (máximo 8
+  horas); la página vuelve sola al ingreso con un mensaje del motivo
 
 **Pagos**
 - Ingresar, consultar y modificar pagos
@@ -96,7 +97,7 @@ contraseña cuando la URL contiene "pagos".
 | Acceso a datos | python-oracledb (modo thin) |
 | Base de datos | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
-| Sesiones | JWT (HS256) en cookie httponly |
+| Sesiones | JWT (HS256) en cookie httponly; 6 h sin uso, máximo 8 h |
 | Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única), igual que el escritorio |
 | Verificación en dos pasos | TOTP (RFC 6238); QR en SVG; secreto cifrado con AES-256-GCM |
 | App instalable | PWA: manifiesto web y service worker |
@@ -213,7 +214,7 @@ escritorio.
    de 6 dígitos en **Activar e ingresar**. Si ya lo configuraste en el escritorio,
    este paso no aparece.
 3. **Siguientes veces:** escribe el código de 6 dígitos de tu app y pulsa **Ingresar**.
-4. La sesión dura hasta 8 horas.
+4. La sesión se cierra tras 6 horas sin uso o a las 8 horas del ingreso, con un mensaje que explica el motivo.
 
 ### 5.3 Registrar un pago
 

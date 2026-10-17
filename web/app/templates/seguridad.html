@@ -14,7 +14,7 @@
         <p class="estado-totp {{ 'activo' if totp_activo else 'inactivo' }}">
             {{ 'Activa' if totp_activo else 'Sin configurar' }}
         </p>
-        <p class="texto-ayuda">Cada ingreso pide, además de la contraseña, el código de 6 dígitos de tu app autenticadora.</p>
+        <p class="texto-ayuda">Cada ingreso pide, además de la contraseña, el código de 6 dígitos de tu app autenticadora. Es el mismo en la web y en el escritorio.</p>
         <form method="post" action="/seguridad/autenticador">
             <label for="codigo-cambio">Para cambiar de teléfono o de app, escribe un código del autenticador actual</label>
             <input type="text" id="codigo-cambio" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required>

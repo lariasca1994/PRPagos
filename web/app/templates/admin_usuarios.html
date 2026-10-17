@@ -6,7 +6,8 @@
 </div>
 
 {% set qs = request.query_params.get('error') %}
-{% if qs %}<p class="aviso error">{{ qs }}</p>{% endif %}
+{% set ok = request.query_params.get('ok') %}
+{% if qs %}<p class="aviso error">{{ qs }}</p>{% elif ok %}<p class="aviso exito">{{ ok }}</p>{% endif %}
 
 <table class="tabla">
     <thead>
@@ -27,7 +28,7 @@
             <td>{{ "Activo" if u.activo else "Suspendido" }}</td>
             <td class="acciones">
                 {% if u.id == usuario.usuario_id %}
-                <span class="texto-suave">(vos)</span>
+                <span class="texto-suave">(tú)</span>
                 {% else %}
                     {% if u.activo %}
                     <form method="post" action="/admin/usuarios/{{ u.id }}/suspender" class="en-linea">
@@ -51,6 +52,6 @@
 </table>
 <p class="nota-permiso">
     Eliminar solo funciona si esa cuenta no tiene pagos ni auditoría asociados;
-    en ese caso, suspendela en vez de eliminarla.
+    en ese caso, suspéndela en vez de eliminarla.
 </p>
 {% endblock %}

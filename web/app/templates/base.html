@@ -53,6 +53,17 @@
     </footer>
     {% endblock %}
     <script src="/static/tema.js" defer></script>
+    {% if usuario and usuario.vence %}
+    <script>
+        // Como la ventana de escritorio: al vencer la sesión (6 horas sin uso
+        // u 8 horas desde el ingreso) se vuelve sola al ingreso, y el
+        // servidor muestra el mensaje del motivo.
+        (function () {
+            var espera = ({{ usuario.vence }} * 1000) - Date.now() + 2000;
+            setTimeout(function () { window.location.href = "/registros"; }, Math.max(espera, 0));
+        })();
+    </script>
+    {% endif %}
     <script>
         // PWA: registra el service worker que hace instalable la app.
         if ("serviceWorker" in navigator) {

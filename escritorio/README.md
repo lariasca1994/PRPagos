@@ -62,6 +62,7 @@ cada usuario.
 - Pantalla **Seguridad**: cambiar la contraseña o el autenticador
 - Recuperación de contraseña con el código del autenticador
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
+- Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con un mensaje del motivo
 
 **Interfaz**
 - Misma estructura, menú y colores que la versión web, con tema claro y oscuro
@@ -87,6 +88,7 @@ cada usuario.
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
 | Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única) |
 | Verificación en dos pasos | TOTP (RFC 6238); QR con ZXing; secreto cifrado con AES-256-GCM |
+| Sesión | En memoria; 6 h sin uso, máximo 8 h (igual que la web) |
 | Despliegue | Equipo local |
 
 ---
@@ -181,6 +183,7 @@ y oscuro.
    de 6 dígitos en **Activar e ingresar**. Si ya lo configuraste en la web, este paso
    no aparece.
 3. **Siguientes veces:** escribe el código de 6 dígitos de tu app y pulsa **Ingresar**.
+4. La sesión se cierra tras 6 horas sin uso o a las 8 horas del ingreso, con un mensaje que explica el motivo.
 
 ### 5.3 Registrar un pago
 

@@ -129,7 +129,7 @@ Si ya lo configuraste en la versión de escritorio, este paso no aparece.
 | # | Campo | Qué escribir |
 |:-:|---|---|
 | 1 | Código de 6 dígitos | El código actual de tu app (cambia cada 30 segundos) |
-| 2 | Ingresar | Abre **Consultar registros**. La sesión dura hasta 8 horas |
+| 2 | Ingresar | Abre **Consultar registros**. La sesión se cierra tras 6 horas sin uso o a las 8 horas del ingreso, con un mensaje que explica el motivo |
 
 ### 4.6 Registrar un pago
 
@@ -221,7 +221,7 @@ Tu confianza es lo primero: la plataforma solo pide los datos necesarios para fu
 | Contraseña | Iniciar sesión | Oracle, solo su huella PBKDF2-SHA256 con sal | Nadie la ve en texto plano |
 | Clave del autenticador | Verificar tus códigos | Oracle, cifrada con AES-256-GCM | Nadie; la clave de cifrado vive fuera de la base |
 | Pagos (monto, fecha, concepto) | Tu registro de pagos | Oracle, marcados con tu cuenta | Tú y el administrador |
-| Sesión | Mantenerte conectado | Cookie en tu navegador | Firmada, invisible para JavaScript, vence a las 8 horas |
+| Sesión | Mantenerte conectado | Cookie en tu navegador (en el escritorio, en memoria) | Firmada, invisible para JavaScript; se cierra tras 6 horas sin uso o a las 8 horas |
 
 ### Cómo se protege tu información
 
@@ -238,7 +238,8 @@ Comprobado en el código del proyecto (`web/app/seguridad.py`, `routers/auth.py`
 - **Contraseñas con PBKDF2-SHA256** (600.000 iteraciones y sal única por cuenta).
 - **Bloqueo temporal:** 5 intentos fallidos seguidos bloquean la cuenta 5 minutos, en la web y en
   el escritorio a la vez.
-- **Sesión con JWT en cookie `HttpOnly`, `Secure` y `SameSite=Lax`**, válida por 8 horas, que solo
+- **Sesión con JWT en cookie `HttpOnly`, `Secure` y `SameSite=Lax`**: se cierra tras 6 horas sin uso o a
+  las 8 horas del ingreso (con un mensaje que explica el motivo), y solo
   se emite después del código de verificación.
 - **Reglas de negocio en la base:** el inicio de sesión y las operaciones pasan por
   procedimientos almacenados de Oracle con auditoría, y las consultas usan parámetros (sin

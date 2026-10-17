@@ -73,6 +73,101 @@ public final class RepositorioPagos {
         }
     }
 
+    // ───────────── Administración (mismas consultas que web/app/repositorio.py) ─────────────
+
+    /** Pagos de TODOS los usuarios, con el dueño de cada uno. */
+    public static List<Pago> buscarTodos(LocalDate desde, LocalDate hasta, String concepto,
+                                         Double montoMin, Double montoMax) throws SQLException {
+        String sql = "SELECT p.id_pago, p.monto, p.fecha, p.concepto, u.usuario, u.nombre "
+                + "FROM TBPagos p JOIN TBPLogin u ON u.id = p.usuario_id "
+                + "WHERE (? IS NULL OR p.fecha >= ?) AND (? IS NULL OR p.fecha <= ?) "
+                + "AND (? IS NULL OR UPPER(p.concepto) LIKE '%' || UPPER(?) || '%') "
+                + "AND (? IS NULL OR p.monto >= ?) AND (? IS NULL OR p.monto <= ?) "
+                + "ORDER BY p.fecha DESC";
+        try (Connection conn = ConexionBD.obtenerConexion();
+             java.sql.PreparedStatement st = conn.prepareStatement(sql)) {
+            Object[] valores = {
+                desde == null ? null : Date.valueOf(desde), hasta == null ? null : Date.valueOf(hasta),
+                concepto, montoMin, montoMax,
+            };
+            int[] tipos = {Types.DATE, Types.DATE, Types.VARCHAR, Types.NUMERIC, Types.NUMERIC};
+            for (int i = 0; i < valores.length; i++) {
+                for (int repetido = 0; repetido < 2; repetido++) {
+                    int indice = i * 2 + repetido + 1;
+                    if (valores[i] == null) {
+                        st.setNull(indice, tipos[i]);
+                    } else {
+                        st.setObject(indice, valores[i], tipos[i]);
+                    }
+                }
+            }
+            List<Pago> pagos = new ArrayList<>();
+            try (ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    pagos.add(new Pago(rs.getLong(1), rs.getDouble(2), rs.getDate(3).toLocalDate(),
+                            rs.getString(4), rs.getString(5), rs.getString(6)));
+                }
+            }
+            return pagos;
+        }
+    }
+
+    /** Edita el pago de cualquiera y deja auditoría con el admin como autor. */
+    public static boolean actualizarComoAdmin(long adminId, long idPago, double monto, LocalDate fecha,
+                                              String concepto) throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion()) {
+            conn.setAutoCommit(false);
+            int filas;
+            try (java.sql.PreparedStatement up = conn.prepareStatement(
+                    "UPDATE TBPagos SET monto = ?, fecha = ?, concepto = ? WHERE id_pago = ?")) {
+                up.setDouble(1, monto);
+                up.setDate(2, Date.valueOf(fecha));
+                up.setString(3, concepto);
+                up.setLong(4, idPago);
+                filas = up.executeUpdate();
+            }
+            if (filas > 0) {
+                auditar(conn, adminId, idPago, "ACTUALIZAR (admin)",
+                        "Nuevo monto: " + formatoOracle(monto) + ", Nuevo concepto: " + concepto);
+            }
+            conn.commit();
+            return filas == 1;
+        }
+    }
+
+    /** Elimina un pago (solo admin), dejando el registro de la eliminación. */
+    public static boolean eliminar(long adminId, long idPago) throws SQLException {
+        try (Connection conn = ConexionBD.obtenerConexion()) {
+            conn.setAutoCommit(false);
+            auditar(conn, adminId, idPago, "ELIMINAR (admin)", "Pago eliminado");
+            int filas;
+            try (java.sql.PreparedStatement del = conn.prepareStatement("DELETE FROM TBPagos WHERE id_pago = ?")) {
+                del.setLong(1, idPago);
+                filas = del.executeUpdate();
+            }
+            conn.commit();
+            return filas == 1;
+        }
+    }
+
+    private static void auditar(Connection conn, long usuarioId, long idPago, String accion, String detalle)
+            throws SQLException {
+        try (java.sql.PreparedStatement st = conn.prepareStatement(
+                "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+                + "VALUES (tbauditoria_sequence.NEXTVAL, ?, ?, ?, ?)")) {
+            st.setLong(1, usuarioId);
+            st.setLong(2, idPago);
+            st.setString(3, accion);
+            st.setString(4, detalle);
+            st.executeUpdate();
+        }
+    }
+
+    /** Como Python imprime un float (150000.0), para que la auditoría quede igual que desde la web. */
+    private static String formatoOracle(double monto) {
+        return String.valueOf(monto);
+    }
+
     private static void fechaONull(CallableStatement st, int i, LocalDate fecha) throws SQLException {
         if (fecha != null) {
             st.setDate(i, Date.valueOf(fecha));

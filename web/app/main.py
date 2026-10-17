@@ -44,7 +44,20 @@ def manejar_redireccion_login(request: Request, exc: RedireccionLogin):
     # ruta protegida no tiene sesion valida. FastAPI no permite que una
     # Depends() devuelva una Response en rutas que tambien renderizan HTML,
     # asi que se resuelve aca con un exception handler.
-    return respuesta_redireccion_login()
+    return respuesta_redireccion_login(exc.motivo)
+
+
+@app.middleware("http")
+async def renovar_sesion(request: Request, call_next):
+    # Cada peticion con sesion valida reinicia el plazo de 6 horas de
+    # inactividad: dependencias.py deja el token renovado en request.state.
+    respuesta = await call_next(request)
+    nuevo = getattr(request.state, "token_renovado", None)
+    if nuevo and "sesion" not in respuesta.headers.get("set-cookie", ""):
+        respuesta.set_cookie(
+            "sesion", nuevo, httponly=True, secure=True, samesite="lax", max_age=8 * 3600
+        )
+    return respuesta
 
 
 @app.exception_handler(RedireccionSinPermiso)
@@ -120,6 +133,9 @@ def raiz(request: Request):
     # del portafolio; con sesion abierta se va directo a los registros.
     if obtener_usuario_opcional(request):
         return RedirectResponse(url="/registros", status_code=303)
+    motivo = getattr(request.state, "motivo_cierre", None)
+    if motivo:
+        return respuesta_redireccion_login(motivo)
     return templates.TemplateResponse(
         "login.html", {"request": request, "error": None, "ok": None}
     )

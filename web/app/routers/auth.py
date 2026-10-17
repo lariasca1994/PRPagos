@@ -22,6 +22,7 @@ from fastapi.templating import Jinja2Templates
 
 from .. import repositorio
 from ..seguridad import (
+    MENSAJES_CIERRE,
     cifrar_secreto,
     correo_valido,
     crear_token,
@@ -205,7 +206,7 @@ def procesar_configurar(request: Request, codigo: str = Form(...)):
 
 @router.get("/logout")
 def logout():
-    respuesta = _redirigir("/login")
+    respuesta = _redirigir("/login", MENSAJES_CIERRE["salir"], exito=True)
     respuesta.delete_cookie(COOKIE_SESION)
     respuesta.delete_cookie(COOKIE_ACCESO)
     return respuesta

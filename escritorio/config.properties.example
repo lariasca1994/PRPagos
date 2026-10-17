@@ -1,17 +1,28 @@
-# Copia este archivo como config.properties (sin el .example) y completa
-# tus datos reales. config.properties NUNCA se sube a git (ver .gitignore).
+# =====================================================================
+# PRPagos Escritorio — configuración (escritorio/config.properties.example)
+#
+# La lee conexion/ConexionBD.java al conectarse. Plantilla: cópiala sin el .example y completa tus datos reales.
+# =====================================================================
 
-# Ruta a la carpeta donde descomprimiste el Wallet de Oracle Cloud
+# ── Base de datos: Oracle Autonomous Database ────────────────────────
+# Las mismas que web/.env (WALLET_PATH, DB_ALIAS, DB_USUARIO, DB_PASSWORD).
+
+# Carpeta del Wallet descargado de Oracle Cloud (el Wallet está en la raíz
+# del repositorio). El escritorio usa el Wallet SSO: no necesita contraseña.
 wallet.path=../wallet
-
-# Alias de conexion tomado de wallet/tnsnames.ora (usa el que termina en _tp)
+# Alias de conexión de wallet/tnsnames.ora (el que termina en _tp).
 db.alias=TU_BASE_tp
-
-# Usuario y password de tu Autonomous Database (el que creaste al provisionarla)
+# Usuario y contraseña de la base.
 db.usuario=ADMIN
 db.password=TU_PASSWORD_AQUI
 
-# Clave AES-256 (32 bytes en base64) con la que se cifran los secretos TOTP.
-# Debe ser la MISMA que TOTP_CLAVE del .env de la web: asi un autenticador
-# configurado en una interfaz funciona en la otra.
+# ── Verificación en dos pasos (TOTP) ─────────────────────────────────
+# Clave AES-256 (32 bytes en base64) que cifra los autenticadores en la base.
+# Debe ser la MISMA que TOTP_CLAVE de web/.env (y de Cloud Run): así un
+# autenticador configurado en una versión funciona en la otra.
 totp.clave=TU_CLAVE_BASE64_DE_32_BYTES
+
+# ── Correos: Brevo ───────────────────────────────────────────────────
+# API de Brevo para enviar correos desde el escritorio. Es la MISMA clave
+# que BREVO_API_KEY de web/.env (una sola cuenta de Brevo para las dos).
+brevo.api.key=TU_API_KEY_DE_BREVO_AQUI
