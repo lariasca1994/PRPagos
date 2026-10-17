@@ -283,6 +283,8 @@ public final class Actualizador {
                 "-Nueva", nueva.toString(),
                 "-Log", archivoLog().toString(),
                 "-Abrir", abrir ? "1" : "0")
+                // Fuera de la carpeta instalada: si el script corriera ahí, Windows no dejaría renombrarla.
+                .directory(carpetaTrabajo().toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD)
                 .start();
