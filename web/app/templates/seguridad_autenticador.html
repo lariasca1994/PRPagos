@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo autenticador - PRPagos{% endblock %}
+{% block contenido %}
+<section class="tarjeta-formulario">
+    <h1>Nuevo autenticador</h1>
+    {% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% endif %}
+
+    <ol class="pasos-totp">
+        <li>Escanea este código QR con la app nueva, o escribe la clave a mano.</li>
+        <li>Escribe el código de 6 dígitos que muestra.</li>
+    </ol>
+
+    <div class="qr-caja">{{ qr | safe }}</div>
+    <p class="clave-manual">Clave: <code>{{ secreto }}</code></p>
+
+    <form method="post" action="/seguridad/autenticador/confirmar">
+        <label for="codigo">Código de 6 dígitos</label>
+        <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus>
+        <button type="submit" class="boton">Confirmar autenticador</button>
+    </form>
+    <p class="texto-ayuda">Hasta que confirmes, el autenticador anterior sigue siendo el válido.</p>
+    <p><a href="/seguridad">Cancelar</a></p>
+</section>
+{% endblock %}

@@ -27,7 +27,8 @@ PROCEDIMIENTOS = [
         INTO p_nombre, p_usuario_id
         FROM TBPLogin
         WHERE usuario = p_usuario
-          AND password = p_contrasena_hash;
+          AND password = p_contrasena_hash
+          AND activo = 1;
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
             p_nombre := NULL;

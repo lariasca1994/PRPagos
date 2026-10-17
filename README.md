@@ -63,10 +63,18 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 
 ### Funcionalidades
 
-**Cuentas**
-- Registro e inicio de sesión de usuarios
-- Recuperación de contraseña
-- Contraseñas guardadas con hash; la misma cuenta sirve en web y en escritorio
+**Cuentas y seguridad (compartida por web y escritorio)**
+- Registro con cualquier correo real (ahí llegan las notificaciones)
+- Ingreso en dos pasos: contraseña y código de una app autenticadora (TOTP),
+  obligatorio para todas las cuentas
+- Un solo autenticador por cuenta: el que se configure en la web sirve en el
+  escritorio, y al revés
+- Cambio de contraseña y de autenticador, y recuperación con el código
+- Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
+
+**Interfaz**
+- Web y escritorio con la misma estructura, menú, ícono y colores (rojo Oracle
+  y azul de Google Cloud Run), en tema claro y oscuro
 
 **Pagos**
 - Registro, consulta y actualización de pagos
@@ -85,13 +93,14 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 
 | Capa | Web | Escritorio |
 |---|---|---|
-| Interfaz | Jinja2, HTML y CSS | Java Swing |
+| Interfaz | Jinja2, HTML y CSS | Java Swing con FlatLaf |
 | Servidor | FastAPI, Uvicorn | — (aplicación local) |
 | Acceso a datos | python-oracledb (modo thin) | JDBC (ojdbc17 + oraclepki) |
 | Base de datos | Oracle Autonomous Database | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL | Procedimientos almacenados PL/SQL |
 | Sesiones | JWT en cookie httponly | Sesión en memoria de la aplicación |
-| Contraseñas | SHA-256 | SHA-256 |
+| Contraseñas | PBKDF2-SHA256 | PBKDF2-SHA256 (mismo formato) |
+| Verificación en dos pasos | TOTP; secreto cifrado con AES-256-GCM | TOTP; mismo secreto y misma clave |
 | Despliegue | Docker en Google Cloud Run | Equipo local |
 | App instalable | PWA (Android, iOS, Windows, macOS, Linux) | — |
 
@@ -102,7 +111,7 @@ cada usuario (ver [`escritorio/README.md`](./escritorio/README.md)).
 ```
 web/           Aplicación web en Python (FastAPI + Jinja2)
 escritorio/    Aplicación de escritorio en Java (Swing)
-sql/           Tablas, secuencias y procedimientos almacenados (compartido)
+sql/           Tablas, procedimientos y migración de seguridad (compartido)
 wallet/        Wallet de Oracle Autonomous Database (compartido, no se sube a git)
 docs/          Documentación y diagramas (compartido)
 Dockerfile     Imagen de la versión web para Cloud Run (se construye desde la raíz)
@@ -133,9 +142,15 @@ Cada versión tiene su propio diagrama detallado en
 
 ### Seguridad
 
-- Las contraseñas se almacenan con hash, nunca en texto plano, y ese hash es
-  el mismo en ambas versiones para que una cuenta funcione desde cualquiera
-  de las dos interfaces.
+- **Una sola seguridad:** contraseña, autenticador, último código usado y
+  bloqueo por intentos fallidos viven en la misma fila de la base, y las dos
+  versiones aplican las mismas reglas (los procedimientos de
+  `sql/seguridad.sql`).
+- Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única); las cuentas
+  con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
+- Verificación en dos pasos obligatoria (TOTP, RFC 6238); un código no se puede
+  reutilizar. El secreto se guarda cifrado con AES-256-GCM y la clave vive
+  fuera de la base.
 - La visibilidad de los pagos está limitada por usuario, y el procedimiento
   de actualización verifica la autorización antes de modificar un registro.
   Esa regla vive en la base de datos, no en ninguna de las dos aplicaciones
@@ -168,13 +183,15 @@ una aparece en la otra. El paso a paso detallado está en cada carpeta:
 
 Resumen del flujo, igual en ambas:
 
-1. **Crear cuenta:** usuario (correo `@EAN.com`), nombre completo y contraseña.
-2. **Iniciar sesión** con ese usuario y contraseña.
+1. **Crear cuenta:** correo, nombre completo y contraseña (mínimo 8 caracteres).
+2. **Iniciar sesión** con correo y contraseña, y luego el código de 6 dígitos de tu
+   app autenticadora. La primera vez se configura escaneando un QR.
 3. **Ingresar un pago:** monto, fecha y concepto.
 4. **Consultar pagos:** filtra por concepto, monto mínimo y máximo, y rango de fechas.
 5. **Modificar** un pago propio o **exportar** la consulta a CSV.
-6. Si olvidaste la contraseña, **recupérala** con tu correo y el nombre con el que te
-   registraste.
+6. En **Seguridad** cambias la contraseña o el autenticador.
+7. Si olvidaste la contraseña, **recupérala** con tu correo, el nombre con el que te
+   registraste y el código del autenticador.
 
 ---
 
@@ -189,9 +206,12 @@ Resumen del flujo, igual en ambas:
 
 ### Base de datos (una sola vez)
 
-Ejecutar `sql/DBPagos.sql` en la base crea las tablas, las secuencias, los
-procedimientos almacenados y la tabla de auditoría. Solo hace falta hacerlo
-una vez, sin importar qué versión se vaya a usar.
+Ejecutar `sql/DBPagos.sql` y después `sql/seguridad.sql` en la base crea las
+tablas, las secuencias, los procedimientos almacenados (incluidos los de
+acceso y verificación en dos pasos) y la tabla de auditoría. Solo hace falta
+hacerlo una vez, sin importar qué versión se vaya a usar.
+`web/migrar_seguridad.py --aplicar` aplica `sql/seguridad.sql` sin otras
+herramientas.
 
 Luego descomprime el Wallet en `wallet/`, en la raíz del repositorio. No viene
 en el repositorio: está en `.gitignore`.
@@ -210,14 +230,14 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Completa el `.env` con los datos del Wallet y de la base, y un `JWT_SECRET`
-propio. Detalle en [`web/README.md`](./web/README.md#configuración).
+Completa el `.env` con los datos del Wallet y de la base, un `JWT_SECRET`
+propio y la `TOTP_CLAVE` (la misma del escritorio). Detalle en [`web/README.md`](./web/README.md#configuración).
 
 ### Versión de escritorio
 
 En `escritorio/`, copia `config.properties.example` como `config.properties`
-y completa el alias y las credenciales de la base. Agrega `lib/ojdbc17.jar` y
-`lib/oraclepki.jar` al classpath. Detalle en
+y completa el alias, las credenciales de la base y `totp.clave` (la misma
+`TOTP_CLAVE` de la web). Agrega todos los `.jar` de `lib/` al classpath. Detalle en
 [`escritorio/README.md`](./escritorio/README.md#configuración).
 
 ### Ejecución

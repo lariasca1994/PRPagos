@@ -10,3 +10,8 @@ db.alias=TU_BASE_tp
 # Usuario y password de tu Autonomous Database (el que creaste al provisionarla)
 db.usuario=ADMIN
 db.password=TU_PASSWORD_AQUI
+
+# Clave AES-256 (32 bytes en base64) con la que se cifran los secretos TOTP.
+# Debe ser la MISMA que TOTP_CLAVE del .env de la web: asi un autenticador
+# configurado en una interfaz funciona en la otra.
+totp.clave=TU_CLAVE_BASE64_DE_32_BYTES

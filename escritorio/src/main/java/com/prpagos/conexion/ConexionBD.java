@@ -56,6 +56,11 @@ public final class ConexionBD {
         return config;
     }
 
+    /** Cualquier valor de config.properties (por ejemplo totp.clave). */
+    public static String propiedad(String nombre) throws IOException {
+        return cargarConfig().getProperty(nombre);
+    }
+
     public static Connection obtenerConexion() throws SQLException {
         try {
             Properties props = cargarConfig();

@@ -4,24 +4,77 @@ MISMAS sentencias SQL que la version de escritorio (ver sql/DBPagos.sql en
 la raiz del repo) -- no se reimplementa ninguna regla de negocio en Python,
 solo se le habla a la base desde un cliente distinto.
 """
-from datetime import date
+from datetime import date, datetime
 
 import oracledb
 
 from .database import obtener_conexion
 
 
-def validar_login(usuario: str, contrasena_hash: str) -> tuple[str, int] | None:
+def _solo_fecha(valor):
+    """Oracle devuelve las columnas DATE como datetime (con 00:00:00). Se
+    entrega solo la fecha, como la muestra el escritorio y como la espera
+    <input type="date">."""
+    return valor.date() if isinstance(valor, datetime) else valor
+
+
+
+
+def obtener_credenciales(
+    usuario: str | None = None, usuario_id: int | None = None
+) -> dict | None:
+    """Datos de acceso de una cuenta activa, por correo o por id (ver el
+    procedimiento obtener_credenciales en sql/seguridad.sql). La contraseña
+    y el código TOTP se verifican en seguridad.py, no en la base."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        v_nombre = cur.var(str)
-        v_usuario_id = cur.var(int)
-        cur.callproc("validar_login", [usuario, contrasena_hash, v_nombre, v_usuario_id])
-        nombre = v_nombre.getvalue()
-        usuario_id = v_usuario_id.getvalue()
-        if nombre is None:
+        salidas = [
+            cur.var(int), cur.var(str), cur.var(str), cur.var(str),
+            cur.var(str), cur.var(int), cur.var(int), cur.var(int),
+        ]
+        cur.callproc("obtener_credenciales", [usuario, usuario_id, *salidas])
+        (v_id, v_correo, v_nombre, v_password, v_secreto, v_activo, v_paso,
+         v_bloqueada) = (s.getvalue() for s in salidas)
+        if v_id is None:
             return None
-        return nombre, int(usuario_id)
+        return {
+            "usuario_id": int(v_id),
+            "usuario": v_correo,
+            "nombre": v_nombre,
+            "password": v_password,
+            "totp_secreto": v_secreto,
+            "totp_activo": bool(v_activo),
+            "totp_ultimo_paso": int(v_paso or 0),
+            "bloqueada": bool(v_bloqueada),
+        }
+
+
+def registrar_fallo_acceso(usuario_id: int, motivo: str) -> None:
+    """motivo: FALLO_CLAVE, FALLO_TOTP o FALLO_RECUPERAR. Al quinto fallo
+    seguido la cuenta queda bloqueada 5 minutos."""
+    with obtener_conexion() as conn:
+        conn.cursor().callproc("registrar_fallo_acceso", [usuario_id, motivo])
+
+
+def registrar_acceso_exitoso(usuario_id: int, paso: int, motivo: str = "INGRESO") -> bool:
+    """False si ese paso TOTP ya se había usado (otra petición ganó con el
+    mismo código)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        v_aceptado = cur.var(int)
+        cur.callproc("registrar_acceso_exitoso", [usuario_id, paso, motivo, v_aceptado])
+        return bool(v_aceptado.getvalue())
+
+
+def guardar_totp(usuario_id: int, secreto_cifrado: str, paso: int) -> None:
+    with obtener_conexion() as conn:
+        conn.cursor().callproc("guardar_totp", [usuario_id, secreto_cifrado, paso])
+
+
+def cambiar_password(usuario_id: int, contrasena_hash: str, motivo: str) -> None:
+    """motivo: CAMBIO_CLAVE, RECUPERAR_CLAVE o MIGRAR_HASH."""
+    with obtener_conexion() as conn:
+        conn.cursor().callproc("cambiar_password", [usuario_id, contrasena_hash, motivo])
 
 
 def crear_usuario(usuario: str, nombre: str, contrasena_hash: str, rol: str = "usuario") -> bool:
@@ -124,24 +177,8 @@ def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
         return (afectadas == 1), ("" if afectadas == 1 else "No se encontró el usuario")
 
 
-def buscar_nombre_por_usuario(usuario: str) -> str | None:
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT nombre FROM TBPLogin WHERE usuario = :usuario", usuario=usuario)
-        fila = cur.fetchone()
-        return fila[0] if fila else None
 
 
-def actualizar_password(usuario: str, nueva_contrasena_hash: str) -> bool:
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE TBPLogin SET password = :password WHERE usuario = :usuario",
-            password=nueva_contrasena_hash, usuario=usuario,
-        )
-        afectadas = cur.rowcount
-        conn.commit()
-        return afectadas == 1
 
 
 def insertar_pago(monto: float, fecha: date, concepto: str, usuario_id: int) -> None:
@@ -208,7 +245,7 @@ def buscar_pagos(
             pagos.append({
                 "id_pago": id_pago,
                 "monto": float(monto),
-                "fecha": fecha,
+                "fecha": _solo_fecha(fecha),
                 "concepto": concepto_fila,
             })
         return pagos
@@ -249,7 +286,7 @@ def buscar_todos_los_pagos(
             pagos.append({
                 "id_pago": id_pago,
                 "monto": float(monto),
-                "fecha": fecha,
+                "fecha": _solo_fecha(fecha),
                 "concepto": concepto_fila,
                 "usuario_id": usuario_id,
                 "usuario": correo_dueno,
@@ -270,7 +307,7 @@ def obtener_pago_por_id(id_pago: int) -> dict | None:
         fila = cur.fetchone()
         if not fila:
             return None
-        return {"id_pago": fila[0], "monto": float(fila[1]), "fecha": fila[2], "concepto": fila[3]}
+        return {"id_pago": fila[0], "monto": float(fila[1]), "fecha": _solo_fecha(fila[2]), "concepto": fila[3]}
 
 
 def actualizar_pago_admin(
@@ -336,4 +373,4 @@ def obtener_pago_de_usuario(id_pago: int, usuario_id: int) -> dict | None:
         fila = cur.fetchone()
         if not fila:
             return None
-        return {"id_pago": fila[0], "monto": float(fila[1]), "fecha": fila[2], "concepto": fila[3]}
+        return {"id_pago": fila[0], "monto": float(fila[1]), "fecha": _solo_fecha(fila[2]), "concepto": fila[3]}

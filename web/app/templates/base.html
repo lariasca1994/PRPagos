@@ -32,9 +32,12 @@
         {% include "fragmentos/cabecera.html" %}
         <nav class="nav-principal">
             {% if usuario %}
-                <a href="/registros">Consultar registros</a>
-                <a href="/registros/nuevo">Nuevo registro</a>
-                {% if usuario.es_admin %}<a href="/admin/usuarios">Usuarios (admin)</a>{% endif %}
+                {# Mismo menú, en el mismo orden, que la barra de la versión de escritorio. #}
+                {% set ruta = request.url.path %}
+                <a href="/registros" {% if ruta == "/registros" or (ruta.startswith("/registros/") and not ruta.endswith("/nuevo")) %}class="activo" aria-current="page"{% endif %}>Consultar registros</a>
+                <a href="/registros/nuevo" {% if ruta == "/registros/nuevo" %}class="activo" aria-current="page"{% endif %}>Nuevo registro</a>
+                <a href="/seguridad" {% if ruta.startswith("/seguridad") %}class="activo" aria-current="page"{% endif %}>Seguridad</a>
+                {% if usuario.es_admin %}<a href="/admin/usuarios" {% if ruta.startswith("/admin") %}class="activo" aria-current="page"{% endif %}>Usuarios (admin)</a>{% endif %}
                 <a href="/logout">Salir ({{ usuario.nombre }})</a>
             {% else %}
                 <a href="/login">Ingresar</a>

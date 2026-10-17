@@ -1,13 +1,10 @@
 """
 Crea o asciende a admin las cuentas indicadas en TBPLogin.
 
-A diferencia del registro público (POST /registro en routers/auth.py),
-este script NO exige que el "usuario" sea un correo @EAN.com -- esa regla
-(heredada de la versión de escritorio) solo tiene sentido para las cuentas
-de prueba/clientes; las 2 cuentas admin reales de este portafolio son
-@proton.me. Por eso este script llama directo a repositorio.crear_usuario
-/ repositorio.ascender_a_admin, sin pasar por el router ni por
-PATRON_CORREO.
+Llama directo a repositorio.crear_usuario / repositorio.ascender_a_admin,
+sin pasar por el router de registro. La contraseña se guarda con PBKDF2
+(seguridad.hash_password) y, como cualquier cuenta, configura su
+verificación en dos pasos en el primer ingreso.
 
 No abre ninguna conexión nueva ni agrega ningún procedimiento almacenado:
 usa las MISMAS funciones de acceso a datos (repositorio.py) que ya usa el
@@ -16,13 +13,13 @@ resto de la app, solo que con rol='admin'.
 Uso (desde la carpeta web/, con el entorno virtual activado y el .env de
 web/ completo -- ver app/config.py):
 
-    python -m app.comandos.crear_admin correo1@proton.me:clave1 correo2@proton.me:clave2
+    python -m app.comandos.crear_admin correo1@ejemplo.com:clave1 correo2@ejemplo.com:clave2
 
 Cada argumento es "correo:contrasena". Si preferís no dejar las
 contraseñas en el historial de la terminal, definí en tu .env (el de
 web/, que NUNCA se sube a git -- ver .gitignore) una línea:
 
-    PRPAGOS_ADMINS=correo1@proton.me:clave1,correo2@proton.me:clave2
+    PRPAGOS_ADMINS=correo1@ejemplo.com:clave1,correo2@ejemplo.com:clave2
 
 y corré el script sin argumentos; los toma de ahí.
 

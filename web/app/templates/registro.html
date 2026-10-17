@@ -1,20 +1,23 @@
 {% extends "acceso_base.html" %}
-{% block titulo %}Crear usuario - PRPagos{% endblock %}
+{% block titulo %}Crear cuenta - PRPagos{% endblock %}
 {% block paso %}Cuenta nueva{% endblock %}
-{% block titulo_form %}Crear usuario{% endblock %}
-{% block subtitulo %}El usuario es tu correo @EAN.com; con él verás únicamente tus propios pagos.{% endblock %}
+{% block titulo_form %}Crear cuenta{% endblock %}
+{% block subtitulo %}Usa un correo real: ahí te llegarán las notificaciones. Solo verás tus propios pagos.{% endblock %}
 {% block formulario %}
 <form method="post" action="/registro">
-    <label for="usuario">Usuario (correo @EAN.com)</label>
-    <input type="email" id="usuario" name="usuario" autocomplete="username" placeholder="nombre@ean.com" required autofocus>
+    <label for="usuario">Correo</label>
+    <input type="email" id="usuario" name="usuario" autocomplete="email" placeholder="nombre@dominio.com" maxlength="100" required autofocus>
 
     <label for="nombre">Nombre completo</label>
-    <input type="text" id="nombre" name="nombre" autocomplete="name" required>
+    <input type="text" id="nombre" name="nombre" autocomplete="name" maxlength="100" required>
 
-    <label for="contrasena">Contraseña</label>
-    <input type="password" id="contrasena" name="contrasena" autocomplete="new-password" required>
+    <label for="contrasena">Contraseña (mínimo 8 caracteres)</label>
+    <input type="password" id="contrasena" name="contrasena" autocomplete="new-password" minlength="8" required>
 
-    <button type="submit" class="boton">Crear usuario</button>
+    <label for="confirmacion">Repite la contraseña</label>
+    <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="8" required>
+
+    <button type="submit" class="boton">Crear cuenta</button>
 </form>
 {% endblock %}
 {% block enlaces %}
