@@ -27,12 +27,24 @@
 -- Despues corre tambien el CREATE OR REPLACE PROCEDURE validar_login de
 -- mas abajo (podes pegar solo ese bloque) -- ese si conviene reaplicarlo,
 -- porque ahora exige activo = 1 para dejar entrar.
+--
+-- SEGURIDAD (contrasenas PBKDF2, verificacion en dos pasos y bloqueo por
+-- intentos fallidos): despues de este script corre SIEMPRE seguridad.sql
+-- (o web/migrar_seguridad.py). En una base nueva sus ALTER se saltan porque
+-- las columnas ya vienen en el CREATE TABLE de abajo; en una base existente
+-- las agrega sin tocar datos. Los procedimientos de acceso viven ahi.
 
 CREATE TABLE TBPLogin (
     id NUMBER PRIMARY KEY,
     usuario VARCHAR2(100) UNIQUE,
     nombre VARCHAR2(100),
-    password VARCHAR2(100),
+    -- Hash PBKDF2 ("pbkdf2_sha256$..."), ver sql/seguridad.sql.
+    password VARCHAR2(255),
+    totp_secreto VARCHAR2(255),
+    totp_activo NUMBER(1) DEFAULT 0 NOT NULL,
+    totp_ultimo_paso NUMBER DEFAULT 0 NOT NULL,
+    intentos_fallidos NUMBER DEFAULT 0 NOT NULL,
+    bloqueo_hasta TIMESTAMP,
     -- Rol y estado de la cuenta: solo los usa la app web (routers/usuarios.py
     -- y dependencias.py) para el panel de administracion -- la version de
     -- escritorio no las lee ni las escribe, y validar_login() (mas abajo)

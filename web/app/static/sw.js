@@ -5,7 +5,7 @@
 // íconos) y la página sin conexión. Las páginas con pagos, la sesión y las
 // exportaciones a CSV siempre van a la red: nada con datos del usuario
 // queda guardado en el dispositivo.
-const CACHE = "prpagos-v1";
+const CACHE = "prpagos-v2";
 const OFFLINE = "/static/offline.html";
 const PRECARGA = [
   OFFLINE,

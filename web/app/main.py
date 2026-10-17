@@ -19,7 +19,7 @@ from .dependencias import (
     respuesta_redireccion_login,
     respuesta_redireccion_sin_permiso,
 )
-from .routers import auth, registros, usuarios
+from .routers import auth, registros, seguridad, usuarios
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 logger = logging.getLogger("prpagos")
@@ -32,6 +32,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
 app.include_router(registros.router)
+app.include_router(seguridad.router)
 app.include_router(usuarios.router)
 
 templates = Jinja2Templates(directory="app/templates")
@@ -120,5 +121,5 @@ def raiz(request: Request):
     if obtener_usuario_opcional(request):
         return RedirectResponse(url="/registros", status_code=303)
     return templates.TemplateResponse(
-        "login.html", {"request": request, "error": None}
+        "login.html", {"request": request, "error": None, "ok": None}
     )

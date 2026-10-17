@@ -5,10 +5,18 @@
     --texto: #1f2430;
     --texto-suave: #5a6072;
     --borde: #dde1ea;
+    /* Proyecto no destacado: rojo Oracle (motor de BD) para las acciones
+       principales y azul de Google Cloud Run (plataforma de despliegue) para
+       enlaces, navegación, foco y acciones secundarias. */
     --acento: #c74634;
     --acento-suave: #fbe7e4;
+    --plataforma: #1a73e8;
+    --plataforma-suave: #e8f0fe;
     --aviso-error-bg: #fdeaea;
     --aviso-error-borde: #e0a1a1;
+    --aviso-exito-bg: #ecfdf3;
+    --aviso-exito-borde: #9bd8b6;
+    --exito: #067647;
 }
 
 [data-tema="oscuro"] {
@@ -18,8 +26,13 @@
     --texto-suave: #a3a9bd;
     --borde: #2c3145;
     --acento-suave: #3a1f1c;
+    --plataforma: #8ab4f8;
+    --plataforma-suave: #1c2b45;
     --aviso-error-bg: #3a2222;
     --aviso-error-borde: #6b3535;
+    --aviso-exito-bg: #12291f;
+    --aviso-exito-borde: #2c6a4c;
+    --exito: #75e0a7;
 }
 
 html { color-scheme: light; }
@@ -37,7 +50,7 @@ body {
     min-height: 100vh;
 }
 
-a { color: var(--acento); }
+a { color: var(--plataforma); }
 
 .barra {
     display: flex;
@@ -91,7 +104,7 @@ main { flex: 1; padding: 2rem; max-width: 960px; margin: 0 auto; width: 100%; }
     cursor: pointer;
     font-size: 1rem;
 }
-.boton-secundario { background: transparent; color: var(--acento); border: 1px solid var(--acento); }
+.boton-secundario { background: transparent; color: var(--plataforma); border: 1px solid var(--plataforma); }
 
 .caracteristicas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 2rem; }
 .tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 1.25rem; }
@@ -122,6 +135,11 @@ input, textarea, select {
     font-family: inherit;
 }
 form .boton { margin-top: 1rem; }
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--plataforma);
+    box-shadow: 0 0 0 3px var(--plataforma-suave);
+}
 
 .aviso { padding: 0.6rem 0.9rem; border-radius: 8px; font-size: 0.9rem; }
 .aviso.error { background: var(--aviso-error-bg); border: 1px solid var(--aviso-error-borde); }
@@ -139,7 +157,7 @@ form .boton { margin-top: 1rem; }
     background: none;
     border: none;
     padding: 0;
-    color: var(--acento);
+    color: var(--plataforma);
     cursor: pointer;
     font-size: inherit;
     text-decoration: underline;
@@ -155,9 +173,38 @@ form .boton { margin-top: 1rem; }
     margin-bottom: 1.5rem;
 }
 .fila-filtros { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 0.4rem; }
-.fila-filtros label { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0; }
+.fila-filtros label { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0; flex: 1 1 0; min-width: 9rem; }
 .fila-filtros input { padding: 0.45rem 0.6rem; }
 .fila-filtros .boton, .fila-filtros .boton-secundario { padding: 0.5rem 1rem; }
+
+.aviso.exito { background: var(--aviso-exito-bg); border: 1px solid var(--aviso-exito-borde); }
+
+/* Menú: la sección actual se marca igual que en la barra de escritorio. */
+.nav-principal a { color: var(--texto-suave); text-decoration: none; padding: 0.35rem 0; border-bottom: 2px solid transparent; }
+.nav-principal a:hover { color: var(--plataforma); }
+.nav-principal a.activo { color: var(--plataforma); font-weight: 600; border-bottom-color: var(--plataforma); }
+
+/* ───── Verificación en dos pasos ───── */
+.pasos-totp { margin: 0 0 1rem; padding-left: 1.2rem; color: var(--texto-suave); line-height: 1.5; font-size: 0.92rem; }
+.qr-caja {
+    background: #fff;            /* el QR necesita fondo claro también en tema oscuro */
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 0.75rem;
+    width: min(220px, 100%);
+    margin: 0 auto 0.75rem;
+}
+.qr-caja svg.qr { display: block; width: 100%; height: auto; }
+.clave-manual { text-align: center; font-size: 0.85rem; color: var(--texto-suave); margin: 0 0 0.5rem; }
+.clave-manual code { font-size: 0.9rem; letter-spacing: 0.05em; color: var(--texto); word-break: break-all; }
+.campo-codigo { font-size: 1.35rem; letter-spacing: 0.3em; text-align: center; font-variant-numeric: tabular-nums; }
+.ayuda-campo, .texto-ayuda { font-size: 0.8rem; color: var(--texto-suave); }
+
+.rejilla-seguridad { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+.rejilla-seguridad h2 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+.estado-totp { display: inline-block; margin: 0 0 0.5rem; padding: 0.2rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+.estado-totp.activo { background: var(--aviso-exito-bg); color: var(--exito); }
+.estado-totp.inactivo { background: var(--aviso-error-bg); color: var(--acento); }
 
 .total-pagado { font-size: 1.05rem; margin: 0 0 1rem; }
 .nota-permiso { margin-top: 1rem; font-size: 0.8rem; color: var(--texto-suave); }

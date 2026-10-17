@@ -1,12 +1,11 @@
 {% extends "base.html" %}
-{# Portada común de ingreso, registro y recuperación. Las hijas definen
-   paso, titulo_form, subtitulo, formulario y enlaces. Los avisos llegan
-   como ?error=..., también los de éxito (ver routers/auth.py): esos se
-   reconocen por su texto para mostrarlos en verde. #}
+{# Portada común de ingreso (contraseña, código y configuración del
+   autenticador), registro y recuperación. Las hijas definen paso,
+   titulo_form, subtitulo, formulario y enlaces. Los avisos llegan como
+   ?error=... o ?ok=... (ver routers/auth.py). #}
 {% block cabeza %}<link rel="stylesheet" href="/static/acceso.css">{% endblock %}
 {% block clase_body %}acceso{% endblock %}
 {% block cuerpo %}
-{% set exito = error and (error.startswith("Usuario creado") or error.startswith("Contraseña actualizada")) %}
 <div class="portada">
     <main class="lado">
         <div class="lado-barra">
@@ -20,7 +19,9 @@
                 <p class="acceso-subtitulo">{% block subtitulo %}{% endblock %}</p>
 
                 {% if error %}
-                <p class="aviso-acceso {{ 'exito' if exito else 'error' }}" role="{{ 'status' if exito else 'alert' }}">{{ error }}</p>
+                <p class="aviso-acceso error" role="alert">{{ error }}</p>
+                {% elif ok %}
+                <p class="aviso-acceso exito" role="status">{{ ok }}</p>
                 {% endif %}
 
                 {% block formulario %}{% endblock %}
@@ -58,7 +59,7 @@
         <ul class="marca-puntos">
             <li><strong>Filtra</strong> por concepto, monto o fecha</li>
             <li><strong>Exporta</strong> a CSV</li>
-            <li><strong>Audita</strong> cada cambio</li>
+            <li><strong>Protege</strong> tu cuenta en dos pasos</li>
         </ul>
     </aside>
 </div>

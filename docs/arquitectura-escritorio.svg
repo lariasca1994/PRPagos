@@ -28,7 +28,7 @@
 <text x="331" y="244" font-size="11" fill="#94A3B8">com.prpagos.ui · VentanaLogin</text>
 <g filter="url(#sh)"><rect x="275" y="350" width="240" height="58" rx="18" fill="#162033" stroke="#D63AFF" stroke-width="2"/><circle cx="304" cy="379" r="17" fill="#D63AFF"/><g transform="translate(304,379)"><rect x="-7.5" y="-2" width="15" height="11" rx="2.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M-4.5,-2 v-3.5 a4.5,4.5 0 0 1 9,0 v3.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g>
 <text x="331" y="377" font-size="13.5" font-weight="700" fill="#F1F5F9">Seguridad</text>
-<text x="331" y="394" font-size="11" fill="#94A3B8">hash SHA-256 de contraseñas</text>
+<text x="331" y="394" font-size="11" fill="#94A3B8">PBKDF2 · TOTP · AES-GCM</text>
 <g filter="url(#sh)"><rect x="555" y="200" width="240" height="58" rx="18" fill="#162033" stroke="#5382A1" stroke-width="2"/><circle cx="584" cy="229" r="17" fill="#5382A1"/><g transform="translate(584,229)"><path d="M-4,-9 v5 M4,-9 v5 M-7.5,-4 h15 v3 a7.5,7.5 0 0 1 -15,0 z M0,6.5 v3.5" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></g>
 <text x="611" y="227" font-size="13.5" font-weight="700" fill="#F1F5F9">ConexionBD</text>
 <text x="611" y="244" font-size="11" fill="#94A3B8">JDBC · ojdbc17 + oraclepki</text>

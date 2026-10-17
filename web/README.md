@@ -58,12 +58,16 @@ detalle de la migración.
 
 ### Funcionalidades
 
-**Cuentas**
-- Registro e ingreso con contraseñas hasheadas (el usuario es un correo
-  `@EAN.com`)
-- Recuperación de contraseña
+**Cuentas y seguridad**
+- Registro con cualquier correo real (ahí llegan las notificaciones)
+- Ingreso en dos pasos: contraseña y código de una app autenticadora (TOTP),
+  obligatorio para todas las cuentas
+- El autenticador se configura una sola vez (con un QR) y sirve también en la
+  versión de escritorio
+- Pantalla **Seguridad**: cambiar la contraseña o el autenticador
+- Recuperación de contraseña con el código del autenticador
+- Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
 - Sesión de hasta 8 horas en una cookie `httponly`
-- La misma cuenta sirve en la versión de escritorio
 
 **Pagos**
 - Ingresar, consultar y modificar pagos
@@ -93,7 +97,8 @@ contraseña cuando la URL contiene "pagos".
 | Base de datos | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
 | Sesiones | JWT (HS256) en cookie httponly |
-| Contraseñas | SHA-256, compatible con la versión de escritorio |
+| Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única), igual que el escritorio |
+| Verificación en dos pasos | TOTP (RFC 6238); QR en SVG; secreto cifrado con AES-256-GCM |
 | App instalable | PWA: manifiesto web y service worker |
 | Despliegue | Docker en Google Cloud Run |
 
@@ -104,15 +109,19 @@ contraseña cuando la URL contiene "pagos".
 ```
 web/
 ├── requirements.txt
+├── requirements-dev.txt  + pytest
 ├── .env.example          Plantilla de configuración
+├── migrar_seguridad.py   Aplica sql/seguridad.sql a la base (aditivo)
+├── tests/                Pruebas de contraseñas, TOTP, cifrado y sesiones
 └── app/
     ├── main.py           Punto de entrada y manejo de errores
     ├── config.py         Carga del .env
     ├── database.py       Conexión a Oracle con el Wallet
     ├── repositorio.py    Llamadas a los procedimientos almacenados
-    ├── seguridad.py      Hash de contraseñas y sesiones JWT
+    ├── seguridad.py      PBKDF2, TOTP, cifrado AES-GCM y sesiones JWT
+    ├── qr.py             Código QR del autenticador (SVG)
     ├── dependencias.py   Identificación del usuario en cada petición
-    ├── routers/          Rutas de autenticación y de pagos
+    ├── routers/          Ingreso en dos pasos, pagos y Seguridad
     ├── templates/        Plantillas Jinja2
     └── static/           Hoja de estilos, tema, íconos y PWA
                           (manifest.webmanifest, sw.js, offline.html)
@@ -132,7 +141,8 @@ escritorio.
 
 - Una sola app FastAPI sirve páginas Jinja2 protegidas por una sesión JWT en
   cookie.
-- Cada petición **valida la sesión** antes de responder.
+- El ingreso tiene **dos pasos** (contraseña y código TOTP); la sesión solo
+  se emite al final, y cada petición la valida antes de responder.
 - `repositorio.py` concentra el acceso a datos: usa `python-oracledb` en modo
   thin y el **Wallet**, copiado a la imagen al construirla, para conectarse
   por TLS.
@@ -141,11 +151,21 @@ escritorio.
 
 ### Seguridad
 
-- Las contraseñas se guardan con el mismo hash SHA-256 que usa la tabla
-  `TBPLogin` desde la versión de escritorio, para que un usuario pueda
-  iniciar sesión desde cualquiera de las dos interfaces sin migrar datos.
-- Sesión en cookie `httponly` y `SameSite=Lax`: JavaScript no puede leer el
-  token.
+- **Una sola seguridad para las dos interfaces:** la contraseña, el
+  autenticador, el último código usado y el bloqueo por intentos fallidos
+  viven en la misma fila de la base. Un autenticador configurado aquí sirve
+  en el escritorio, y al revés.
+- Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única). Las cuentas
+  creadas con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
+- Verificación en dos pasos obligatoria (TOTP); un código no se puede usar dos
+  veces. El secreto se guarda cifrado con AES-256-GCM; la clave (`TOTP_CLAVE`)
+  vive fuera de la base. Mientras se configura, el secreto viaja cifrado en
+  una cookie firmada y solo se guarda al confirmarlo con un código válido.
+- Cinco intentos fallidos seguidos bloquean la cuenta 5 minutos; lo decide la
+  base, igual que para el escritorio.
+- Cambiar la contraseña o el autenticador pide un código vigente.
+- Sesión en cookie `httponly`, `Secure` y `SameSite=Lax`: JavaScript no puede
+  leer el token.
 - Un usuario solo puede ver y modificar sus propios pagos; esa regla vive en
   los procedimientos almacenados (`buscar_tbpagos`, `actualizar_tbpago`), no
   se reimplementa en la capa web.
@@ -155,7 +175,7 @@ escritorio.
   (estilos, scripts, íconos) y la página sin conexión: las páginas con pagos,
   la sesión y los CSV siempre van a la red y no quedan guardados en el
   dispositivo.
-- El Wallet y el `.env` no se suben al repositorio.
+- El Wallet y el `.env` (con las claves) no se suben al repositorio.
 
 ---
 
@@ -178,17 +198,22 @@ escritorio.
 
    | Campo | Dato |
    |---|---|
-   | Usuario (correo @EAN.com) | Tu usuario de acceso |
+   | Correo | Tu correo real; es tu usuario de acceso |
    | Nombre completo | Se usa también para recuperar la contraseña |
-   | Contraseña | Tu contraseña |
+   | Contraseña | Mínimo 8 caracteres |
+   | Repite la contraseña | La misma |
 
-3. Pulsa **Crear usuario**. La misma cuenta sirve en la versión de escritorio.
+3. Pulsa **Crear cuenta**. La misma cuenta sirve en la versión de escritorio.
 
-### 5.2 Iniciar sesión
+### 5.2 Iniciar sesión (dos pasos)
 
-1. Pulsa **Ya tengo cuenta** o **Ingresar**.
-2. Escribe **Usuario (correo @EAN.com)** y **Contraseña** y pulsa **Ingresar**.
-3. La sesión dura hasta 8 horas.
+1. Escribe **Correo** y **Contraseña** y pulsa **Continuar**.
+2. **Primera vez:** escanea el QR con una app autenticadora (Google Authenticator,
+   Microsoft Authenticator, Authy…) o escribe la clave a mano, y escribe el código
+   de 6 dígitos en **Activar e ingresar**. Si ya lo configuraste en el escritorio,
+   este paso no aparece.
+3. **Siguientes veces:** escribe el código de 6 dígitos de tu app y pulsa **Ingresar**.
+4. La sesión dura hasta 8 horas.
 
 ### 5.3 Registrar un pago
 
@@ -205,11 +230,14 @@ escritorio.
    **Guardar cambios**.
 5. **Exportar a CSV** descarga la consulta con los filtros aplicados.
 
-### 5.5 Recuperar la contraseña
+### 5.5 Seguridad y recuperación
 
-1. En el inicio de sesión, pulsa **Olvidé mi contraseña**.
-2. Escribe tu **Correo (@EAN.com)**, el **Nombre registrado** y la **Nueva
-   contraseña**, y pulsa **Actualizar contraseña**.
+- **Seguridad** (menú): cambia la contraseña (actual, nueva dos veces y un código
+  del autenticador) o el autenticador (un código del actual, el QR nuevo y su
+  primer código).
+- **Olvidé mi contraseña** (inicio de sesión): escribe tu **Correo**, el **Nombre
+  registrado**, el **Código del autenticador** y la nueva contraseña dos veces, y
+  pulsa **Actualizar contraseña**.
 
 ### 5.6 Instalar la app (PWA)
 
@@ -259,17 +287,34 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ### Configuración
 
 El `.env` necesita la ruta y la contraseña del Wallet, el alias de conexión
-(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base, y un
-secreto propio para las sesiones:
+(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base, y dos
+claves propias:
 
 ```bash
+# JWT_SECRET: firma las sesiones
 python -c "import secrets; print(secrets.token_urlsafe(48))"
+# TOTP_CLAVE: cifra los autenticadores (32 bytes en base64)
+python -c "import base64, secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())"
 ```
 
-- `JWT_SECRET` firma las sesiones
+`TOTP_CLAVE` debe ser **la misma** que `totp.clave` en el `config.properties`
+del escritorio; si no, ninguna de las dos versiones podrá leer los
+autenticadores configurados en la otra. Una vez haya cuentas con autenticador,
+no se debe cambiar.
 
 La plantilla indica el nombre y el propósito de cada variable. El `.env`
 nunca se sube a git.
+
+### Base de datos
+
+Además de `../sql/DBPagos.sql`, aplica la migración de seguridad (columnas y
+procedimientos de la verificación en dos pasos). Es aditiva y se puede
+repetir:
+
+```bash
+python migrar_seguridad.py            # muestra el SQL, sin ejecutar
+python migrar_seguridad.py --aplicar  # lo aplica
+```
 
 ### Ejecución
 
@@ -280,6 +325,13 @@ uvicorn app.main:app --reload
 
 El `cd web` es necesario: las rutas de plantillas y archivos estáticos se
 resuelven desde ahí.
+
+Pruebas (sin base de datos):
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests -q
+```
 
 | Recurso | Dirección |
 |---|---|

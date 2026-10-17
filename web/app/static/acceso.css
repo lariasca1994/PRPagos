@@ -8,6 +8,9 @@
   --a-acento-fuerte: #A83A2B;
   --a-acento-suave: rgba(199, 70, 52, 0.14);
   --a-enlace: #A83A2B;
+  /* Azul de Google Cloud Run (plataforma): pasos, enlaces y foco. */
+  --a-plataforma: #1A73E8;
+  --a-plataforma-suave: rgba(66, 133, 244, 0.18);
 
   --a-fondo: #F7F5F4;
   --a-superficie: #FFFFFF;
@@ -32,6 +35,8 @@
 [data-tema="oscuro"] {
   --a-acento-suave: rgba(240, 138, 122, 0.18);
   --a-enlace: #F08A7A;
+  --a-plataforma: #8AB4F8;
+  --a-plataforma-suave: rgba(138, 180, 248, 0.2);
 
   --a-fondo: #14161F;
   --a-superficie: #1D2130;
@@ -104,7 +109,7 @@ body.acceso {
 
 .acceso-paso {
   margin: 0 0 0.5rem;
-  color: var(--a-enlace);
+  color: var(--a-plataforma);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -142,9 +147,9 @@ body.acceso {
 }
 
 .formulario-acceso input:focus {
-  border-color: var(--a-acento);
+  border-color: var(--a-plataforma);
   outline: none;
-  box-shadow: 0 0 0 3px var(--a-acento-suave);
+  box-shadow: 0 0 0 3px var(--a-plataforma-suave);
 }
 
 .formulario-acceso .boton {
@@ -187,7 +192,7 @@ body.acceso {
 }
 
 .enlaces-acceso a {
-  color: var(--a-enlace);
+  color: var(--a-plataforma);
   font-weight: 600;
   text-decoration: none;
 }
@@ -231,7 +236,7 @@ body.acceso {
 
 .marca-etiqueta {
   margin: 0 0 0.9rem;
-  color: var(--a-enlace);
+  color: var(--a-plataforma);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;

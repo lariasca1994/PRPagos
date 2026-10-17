@@ -2,17 +2,24 @@
 {% block titulo %}Recuperar contraseña - PRPagos{% endblock %}
 {% block paso %}Recuperar acceso{% endblock %}
 {% block titulo_form %}Recuperar contraseña{% endblock %}
-{% block subtitulo %}Confirma tu correo y el nombre con el que te registraste para definir una contraseña nueva.{% endblock %}
+{% block subtitulo %}Confirma tu correo, el nombre con el que te registraste y el código de tu autenticador para definir una contraseña nueva.{% endblock %}
 {% block formulario %}
 <form method="post" action="/recuperar">
-    <label for="correo">Correo (@EAN.com)</label>
-    <input type="email" id="correo" name="correo" autocomplete="username" placeholder="nombre@ean.com" required autofocus>
+    <label for="correo">Correo</label>
+    <input type="email" id="correo" name="correo" autocomplete="username" placeholder="nombre@dominio.com" maxlength="100" required autofocus>
 
     <label for="nombre_registrado">Nombre registrado</label>
     <input type="text" id="nombre_registrado" name="nombre_registrado" autocomplete="name" required>
 
-    <label for="nueva_contrasena">Nueva contraseña</label>
-    <input type="password" id="nueva_contrasena" name="nueva_contrasena" autocomplete="new-password" required>
+    <label for="codigo">Código del autenticador</label>
+    <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456">
+    <small class="ayuda-campo">Si todavía no configuraste tu autenticador, déjalo vacío.</small>
+
+    <label for="nueva_contrasena">Nueva contraseña (mínimo 8 caracteres)</label>
+    <input type="password" id="nueva_contrasena" name="nueva_contrasena" autocomplete="new-password" minlength="8" required>
+
+    <label for="confirmacion">Repite la nueva contraseña</label>
+    <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="8" required>
 
     <button type="submit" class="boton">Actualizar contraseña</button>
 </form>

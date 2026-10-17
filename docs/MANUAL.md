@@ -29,22 +29,18 @@ procedimientos almacenados de Oracle, compartidos por la versión web y la de es
 ### Alcance: qué necesitas y qué esperar
 
 - Solo necesitas un navegador; también se puede **instalar como app** (PWA) desde el navegador.
-- El **usuario** debe tener forma de correo terminado en `@EAN.com`. Es una regla heredada de la
-  aplicación original: **no es un buzón real** y nunca se le envía nada.
+- Un **correo real**: es tu usuario y ahí llegarán las notificaciones.
+- Una **app autenticadora** en el celular (Google Authenticator, Microsoft Authenticator, Authy…):
+  la verificación en dos pasos es obligatoria. Se configura una sola vez y sirve en la web y en la
+  versión de escritorio.
 
 ### Límites
 
-PRPagos reproduce a propósito una aplicación académica original, y conserva algunas de sus
-decisiones para que web y escritorio compartan las mismas cuentas. Por eso:
-
-- **La recuperación de contraseña solo pide el usuario y el nombre registrado.** Quien conozca
-  ambos datos puede cambiar tu contraseña. No uses tu nombre real ni una contraseña que uses en
-  otros sitios.
-- **La contraseña se guarda con SHA-256 sin sal**, compatible con la versión de escritorio en Java.
-  En un sistema real lo correcto sería bcrypt o PBKDF2 (el propio código lo indica).
-- No hay reglas de longitud mínima ni bloqueo por intentos fallidos.
-- La recuperación indica si un usuario existe o no.
 - **Registra solo datos de ejemplo**: es un simulador, no un sistema de pagos real.
+- Si pierdes el teléfono con el autenticador, no podrás ingresar ni recuperar la contraseña por tu
+  cuenta: la recuperación pide un código del autenticador.
+- Las cuentas creadas antes de la verificación en dos pasos pueden recuperar la contraseña con el
+  correo y el nombre registrado hasta que configuren su autenticador en el primer ingreso.
 
 ## 2. Glosario
 
@@ -64,6 +60,7 @@ Palabras técnicas que aparecen en este manual, explicadas en lenguaje simple.
 | **Nube** | Servidores de una empresa (Amazon, Microsoft, Google, Oracle…) donde la aplicación funciona sin depender de un computador propio. |
 | **PWA (app instalable)** | Página web que se puede instalar en el celular o el computador y abrir como una app. |
 | **Rate limit (límite de intentos)** | Tope de intentos en poco tiempo, para frenar a quien intenta adivinar contraseñas. |
+| **TOTP (código de verificación)** | Código de 6 dígitos que cambia cada 30 segundos en tu app autenticadora; se pide además de la contraseña. |
 | **Rol** | Tipo de cuenta que define qué puede hacer cada persona (por ejemplo, usuario o administrador). |
 | **Servidor** | Computador en la nube que atiende las peticiones de la aplicación. |
 | **Sesión** | El tiempo en que la aplicación te reconoce después de iniciar sesión, sin pedirte la contraseña de nuevo. |
@@ -86,7 +83,8 @@ Qué servicio de nube, base de datos o API usa el proyecto y para qué sirve cad
 
 ![Portada de PRPagos](img/manual/01-portada.png)
 
-Desde la portada eliges **Crear cuenta** o **Ya tengo cuenta**.
+La portada es el inicio de sesión. Desde ahí eliges **Regístrate** u **Olvidé mi contraseña**. El
+botón ◐ cambia entre tema claro y oscuro.
 
 ### 4.2 Crear una cuenta
 
@@ -94,25 +92,48 @@ Desde la portada eliges **Crear cuenta** o **Ya tengo cuenta**.
 
 | # | Campo | Qué escribir | Reglas |
 |:-:|---|---|---|
-| 1 | Usuario (correo @EAN.com) | Tu usuario de acceso | Debe terminar en `@EAN.com` y ser único |
+| 1 | Correo | Tu correo real; es tu usuario | Forma `nombre@dominio.com` y único |
 | 2 | Nombre completo | Tu nombre | Se usa también para recuperar la contraseña |
-| 3 | Contraseña | Tu contraseña | Obligatoria |
-| 4 | Crear usuario | Botón | Crea la cuenta; sirve en web y en escritorio |
+| 3 | Contraseña | Tu contraseña | Mínimo 8 caracteres |
+| 4 | Repite la contraseña | La misma | Debe coincidir |
+| 5 | Crear cuenta | Botón | Crea la cuenta; sirve en web y en escritorio |
 
-### 4.3 Iniciar sesión
+### 4.3 Iniciar sesión (paso 1: contraseña)
 
 ![Formulario de inicio de sesión](img/manual/03-login.png)
 
 | # | Campo | Qué escribir |
 |:-:|---|---|
-| 1 | Usuario | Tu usuario `@EAN.com` |
+| 1 | Correo | Tu correo |
 | 2 | Contraseña | Tu contraseña |
-| 3 | Ingresar | Abre **Consultar registros**. La sesión dura hasta 8 horas |
-| 4 | Olvidé mi contraseña | Abre la recuperación (ver 3.7) |
+| 3 | Continuar | Pasa al código de verificación |
+| 4 | Olvidé mi contraseña | Abre la recuperación (ver 4.10) |
 
-### 4.4 Registrar un pago
+### 4.4 Configurar la verificación en dos pasos (solo la primera vez)
 
-![Formulario de nuevo registro](img/manual/04-nuevo.png)
+![Configuración del autenticador con código QR](img/manual/04-configurar.png)
+
+| # | Campo | Qué hacer |
+|:-:|---|---|
+| 1 | Código QR | Escanéalo con tu app autenticadora |
+| 2 | Clave | La misma información, para escribirla a mano si no puedes escanear |
+| 3 | Código de 6 dígitos | El que muestra la app para **PRPagos** |
+| 4 | Activar e ingresar | Guarda el autenticador y abre **Consultar registros** |
+
+Si ya lo configuraste en la versión de escritorio, este paso no aparece.
+
+### 4.5 Iniciar sesión (paso 2: código)
+
+![Código de verificación](img/manual/05-codigo.png)
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Código de 6 dígitos | El código actual de tu app (cambia cada 30 segundos) |
+| 2 | Ingresar | Abre **Consultar registros**. La sesión dura hasta 8 horas |
+
+### 4.6 Registrar un pago
+
+![Formulario de nuevo registro](img/manual/06-nuevo.png)
 
 | # | Campo | Qué escribir | Reglas |
 |:-:|---|---|---|
@@ -121,9 +142,9 @@ Desde la portada eliges **Crear cuenta** o **Ya tengo cuenta**.
 | 3 | Concepto | Para qué fue el pago | Obligatorio |
 | 4 | Guardar | Botón | Registra el pago a tu nombre |
 
-### 4.5 Consultar y exportar
+### 4.7 Consultar y exportar
 
-![Consulta de registros con filtros](img/manual/05-consulta.png)
+![Consulta de registros con filtros](img/manual/07-consulta.png)
 
 | # | Campo | Qué escribir |
 |:-:|---|---|
@@ -138,9 +159,9 @@ Desde la portada eliges **Crear cuenta** o **Ya tengo cuenta**.
 
 El **Total** suma los pagos que cumplen los filtros. Solo ves **tus** pagos.
 
-### 4.6 Modificar un pago
+### 4.8 Modificar un pago
 
-![Formulario de modificación](img/manual/06-editar.png)
+![Formulario de modificación](img/manual/08-editar.png)
 
 | # | Campo | Qué escribir |
 |:-:|---|---|
@@ -149,21 +170,38 @@ El **Total** suma los pagos que cumplen los filtros. Solo ves **tus** pagos.
 | 3 | Concepto | El concepto corregido |
 | 4 | Guardar cambios | Aplica la corrección |
 
-### 4.7 Recuperar la contraseña
+### 4.9 Seguridad
 
-![Formulario de recuperación de contraseña](img/manual/07-recuperar.png)
+![Pantalla Seguridad](img/manual/09-seguridad.png)
+
+| # | Campo | Qué es / qué escribir |
+|:-:|---|---|
+| 1 | Estado | **Activa** cuando tu autenticador está configurado |
+| 2 | Código del autenticador actual | Para **Cambiar autenticador** (nuevo teléfono o nueva app): luego escaneas un QR nuevo y lo confirmas |
+| 3 | Contraseña actual | La que usas hoy |
+| 4 | Nueva contraseña | Mínimo 8 caracteres |
+| 5 | Repite la nueva contraseña | La misma |
+| 6 | Código del autenticador | El código actual de tu app; con **Guardar contraseña** se aplica el cambio |
+
+### 4.10 Recuperar la contraseña
+
+![Formulario de recuperación de contraseña](img/manual/10-recuperar.png)
 
 | # | Campo | Qué escribir |
 |:-:|---|---|
-| 1 | Correo (@EAN.com) | Tu usuario |
+| 1 | Correo | Tu correo |
 | 2 | Nombre registrado | El nombre completo con el que te registraste (no distingue mayúsculas) |
-| 3 | Nueva contraseña | La contraseña nueva |
-| 4 | Actualizar contraseña | Aplica el cambio |
+| 3 | Código del autenticador | El código actual de tu app (vacío solo si nunca lo configuraste) |
+| 4 | Nueva contraseña | La contraseña nueva (mínimo 8 caracteres) |
+| 5 | Repite la nueva contraseña | La misma |
+| 6 | Actualizar contraseña | Aplica el cambio |
 
-### 4.8 Preguntas frecuentes
+### 4.11 Preguntas frecuentes
 
-**¿Tengo que tener un correo de la EAN?** No. Basta con que el usuario termine en `@EAN.com`; no se
-envía ningún correo.
+**¿Qué correo uso?** Uno real tuyo: es tu usuario y ahí llegarán las notificaciones.
+
+**¿Tengo que configurar el autenticador dos veces, en la web y en el escritorio?** No. Es uno solo
+por cuenta: el que configures en una versión sirve en la otra.
 
 **¿Lo que registro en la web aparece en la app de escritorio?** Sí. Ambas usan la misma base de
 datos y las mismas cuentas.
@@ -180,7 +218,8 @@ Tu confianza es lo primero: la plataforma solo pide los datos necesarios para fu
 | Dato | Para qué se usa | Dónde se guarda | Quién lo ve |
 |---|---|---|---|
 | Usuario y nombre | Identificar tu cuenta y recuperar la contraseña | Oracle Autonomous Database (tabla `TBPLogin`) | Tú y el administrador |
-| Contraseña | Iniciar sesión | Oracle, solo su huella SHA-256 | Nadie la ve en texto plano |
+| Contraseña | Iniciar sesión | Oracle, solo su huella PBKDF2-SHA256 con sal | Nadie la ve en texto plano |
+| Clave del autenticador | Verificar tus códigos | Oracle, cifrada con AES-256-GCM | Nadie; la clave de cifrado vive fuera de la base |
 | Pagos (monto, fecha, concepto) | Tu registro de pagos | Oracle, marcados con tu cuenta | Tú y el administrador |
 | Sesión | Mantenerte conectado | Cookie en tu navegador | Firmada, invisible para JavaScript, vence a las 8 horas |
 
@@ -193,7 +232,14 @@ Comprobado en el código del proyecto (`web/app/seguridad.py`, `routers/auth.py`
   que inició sesión. Cambiar el número del pago en la URL no abre pagos ajenos.
 - **Eliminar pagos y administrar cuentas** (suspender, reactivar, eliminar) es exclusivo del rol
   administrador, que no se puede obtener desde el registro.
-- **Sesión con JWT en cookie `HttpOnly` y `SameSite=Lax`**, válida por 8 horas.
+- **Verificación en dos pasos obligatoria (TOTP):** sin el código de tu app, la contraseña sola no
+  basta para entrar, recuperar la cuenta ni cambiar la contraseña. Un código no se puede usar dos
+  veces.
+- **Contraseñas con PBKDF2-SHA256** (600.000 iteraciones y sal única por cuenta).
+- **Bloqueo temporal:** 5 intentos fallidos seguidos bloquean la cuenta 5 minutos, en la web y en
+  el escritorio a la vez.
+- **Sesión con JWT en cookie `HttpOnly`, `Secure` y `SameSite=Lax`**, válida por 8 horas, que solo
+  se emite después del código de verificación.
 - **Reglas de negocio en la base:** el inicio de sesión y las operaciones pasan por
   procedimientos almacenados de Oracle con auditoría, y las consultas usan parámetros (sin
   concatenar texto del usuario en el SQL).

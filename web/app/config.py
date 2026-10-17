@@ -1,3 +1,4 @@
+import base64
 import os
 from pathlib import Path
 
@@ -25,6 +26,11 @@ class Settings:
     db_usuario: str = os.getenv("DB_USUARIO", "ADMIN")
     db_password: str = os.getenv("DB_PASSWORD", "")
     jwt_secret: str = os.getenv("JWT_SECRET", "")
+    # Clave AES-256 (32 bytes en base64) con la que se cifran los secretos
+    # TOTP en la base. Es la MISMA que totp.clave en el config.properties
+    # de la version de escritorio: si difieren, una interfaz no puede leer
+    # los autenticadores configurados en la otra.
+    totp_clave: str = os.getenv("TOTP_CLAVE", "")
 
     def validar(self) -> None:
         faltantes = [
@@ -33,6 +39,7 @@ class Settings:
                 ("DB_PASSWORD", self.db_password),
                 ("JWT_SECRET", self.jwt_secret),
                 ("WALLET_PASSWORD", self.wallet_password),
+                ("TOTP_CLAVE", self.totp_clave),
             )
             if not valor
         ]
@@ -40,6 +47,16 @@ class Settings:
             raise RuntimeError(
                 "Faltan variables de entorno: " + ", ".join(faltantes)
                 + ". Copia .env.example como .env y completa tus datos."
+            )
+        try:
+            clave_valida = len(base64.b64decode(self.totp_clave, validate=True)) == 32
+        except ValueError:
+            clave_valida = False
+        if not clave_valida:
+            raise RuntimeError(
+                "TOTP_CLAVE debe ser una clave de 32 bytes en base64. Genera una con: "
+                'python -c "import base64, secrets; '
+                'print(base64.b64encode(secrets.token_bytes(32)).decode())"'
             )
 
 

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}Seguridad - PRPagos{% endblock %}
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>Seguridad</h1>
+</div>
+
+{% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% endif %}
+{% if ok %}<p class="aviso exito" role="status">{{ ok }}</p>{% endif %}
+
+<div class="rejilla-seguridad">
+    <section class="tarjeta">
+        <h2>Verificación en dos pasos</h2>
+        <p class="estado-totp {{ 'activo' if totp_activo else 'inactivo' }}">
+            {{ 'Activa' if totp_activo else 'Sin configurar' }}
+        </p>
+        <p class="texto-ayuda">Cada ingreso pide, además de la contraseña, el código de 6 dígitos de tu app autenticadora.</p>
+        <form method="post" action="/seguridad/autenticador">
+            <label for="codigo-cambio">Para cambiar de teléfono o de app, escribe un código del autenticador actual</label>
+            <input type="text" id="codigo-cambio" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required>
+            <button type="submit" class="boton boton-secundario">Cambiar autenticador</button>
+        </form>
+    </section>
+
+    <section class="tarjeta">
+        <h2>Cambiar contraseña</h2>
+        <form method="post" action="/seguridad/contrasena">
+            <label for="actual">Contraseña actual</label>
+            <input type="password" id="actual" name="actual" autocomplete="current-password" required>
+
+            <label for="nueva">Nueva contraseña (mínimo 8 caracteres)</label>
+            <input type="password" id="nueva" name="nueva" autocomplete="new-password" minlength="8" required>
+
+            <label for="confirmacion">Repite la nueva contraseña</label>
+            <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="8" required>
+
+            <label for="codigo-clave">Código del autenticador</label>
+            <input type="text" id="codigo-clave" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required>
+
+            <button type="submit" class="boton">Guardar contraseña</button>
+        </form>
+    </section>
+</div>
+
+<p class="nota-permiso">Las contraseñas se guardan con PBKDF2-SHA256 y la clave de tu autenticador, cifrada con AES-256-GCM. Tras 5 intentos fallidos seguidos la cuenta se bloquea 5 minutos.</p>
+{% endblock %}

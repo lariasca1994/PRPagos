@@ -1,0 +1,25 @@
+{% extends "acceso_base.html" %}
+{% block titulo %}Configura tu verificación en dos pasos - PRPagos{% endblock %}
+{% block paso %}Acceso · Paso 2 de 2{% endblock %}
+{% block titulo_form %}Verificación en dos pasos{% endblock %}
+{% block subtitulo %}Es obligatoria para todas las cuentas. Configúrala una sola vez y sirve en la web y en la versión de escritorio.{% endblock %}
+{% block formulario %}
+<ol class="pasos-totp">
+    <li>Instala una app autenticadora (Google Authenticator, Microsoft Authenticator, Authy…).</li>
+    <li>Escanea este código QR, o escribe la clave a mano.</li>
+    <li>Escribe el código de 6 dígitos que muestra la app.</li>
+</ol>
+
+<div class="qr-caja">{{ qr | safe }}</div>
+<p class="clave-manual">Clave: <code>{{ secreto }}</code></p>
+
+<form method="post" action="/login/configurar">
+    <label for="codigo">Código de 6 dígitos</label>
+    <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus>
+
+    <button type="submit" class="boton">Activar e ingresar</button>
+</form>
+{% endblock %}
+{% block enlaces %}
+<a href="/logout">Usar otra cuenta</a>
+{% endblock %}
