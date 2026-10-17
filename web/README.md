@@ -26,11 +26,13 @@
 
 ## 1. Presentación
 
-Versión web de PRPagos, construida con FastAPI. Habla con la **misma** base
-de datos, el **mismo** Wallet de Oracle y los **mismos** procedimientos
-almacenados que la versión de escritorio ([`../escritorio`](../escritorio)):
-no es una reescritura de las reglas de negocio, es la misma aplicación
-expuesta como páginas web en vez de ventanas Swing.
+Versión web de PRPagos, construida con FastAPI: un gestor de presupuesto
+personal con ingresos, gastos, plan 50/30/20, dashboard con gráficas
+(Chart.js) y resúmenes por correo. Habla con la **misma** base de datos, el
+**mismo** Wallet de Oracle, los **mismos** procedimientos almacenados y las
+**mismas** consultas y plantillas de correo (`../compartido/`) que la versión
+de escritorio ([`../escritorio`](../escritorio)): las dos muestran las mismas
+cifras y envían los mismos correos.
 
 Además es una **PWA** (aplicación web progresiva): se puede instalar como app
 en Android, iPhone/iPad, Windows, macOS y Linux desde el navegador, con su
@@ -42,12 +44,12 @@ detalle de la migración.
 
 ### En pocas palabras
 
-- **Qué hace:** permite registrar, consultar, modificar y exportar pagos desde
-  el navegador o desde la app instalada (PWA). Cada persona ve solo sus propios
-  pagos.
+- **Qué hace:** registra ingresos y gastos por categoría, muestra el mes en un
+  dashboard frente al plan 50/30/20 y envía el resumen por correo cada viernes
+  y cada día 29. Cada persona ve solo lo suyo.
 - **Qué lo hace interesante:** la capa web no reimplementa las reglas: la
-  autorización y la auditoría viven en procedimientos almacenados de Oracle,
-  los mismos que usa la versión de escritorio.
+  autorización y la auditoría viven en procedimientos de Oracle, y el dashboard
+  y los correos salen de archivos compartidos con el escritorio.
 - **Cómo probarlo:** entra a la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
   y crea un usuario. Para correrlo en tu equipo, ve a
   [Instalación para pruebas](#6-instalación-para-pruebas).
@@ -58,45 +60,50 @@ detalle de la migración.
 
 ### Funcionalidades
 
+**Presupuesto**
+- Ingresos y gastos con tipo, monto, fecha, categoría y concepto
+- Categorías sugeridas y propias, cada una de gasto en un grupo del plan
+- Plan 50/30/20 con porcentajes editables en Perfil
+- **Dashboard** por mes: ingresos, gastos, balance y ahorro; ingresos vs.
+  gastos de 6 meses, gastos por categoría y avance del plan con su estado
+- Consulta con filtros (tipo, concepto, montos y fechas), totales y CSV
+
+**Resúmenes por correo (Brevo)**
+- Semanal (viernes) y mensual (día 29; en febrero, el último día), a las 08:00
+  de Colombia, disparados por GitHub Actions; se desactivan desde Perfil
+- Botones **Enviarme el resumen semanal / del mes** en el dashboard
+
 **Cuentas y seguridad**
-- Registro con cualquier correo real (ahí llegan las notificaciones)
-- Ingreso en dos pasos: contraseña y código de una app autenticadora (TOTP),
-  obligatorio para todas las cuentas
-- El autenticador se configura una sola vez (con un QR) y sirve también en la
-  versión de escritorio
-- Pantalla **Seguridad**: cambiar la contraseña o el autenticador
-- Recuperación de contraseña con el código del autenticador
+- Ingreso en dos pasos obligatorio: contraseña y código TOTP; el autenticador
+  se configura una sola vez y sirve también en el escritorio
+- 10 **códigos de respaldo** de un solo uso y **código por correo** si se pierde el teléfono
+- **Perfil**: datos, resúmenes, plan, categorías, autenticador, códigos de
+  respaldo y contraseña
 - Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
 - Sesión en una cookie `httponly` que se cierra tras 6 horas sin uso (máximo 8
   horas); la página vuelve sola al ingreso con un mensaje del motivo
-
-**Pagos**
-- Ingresar, consultar y modificar pagos
-- Filtros por concepto, monto y rango de fechas
-- Exportar la consulta a CSV
-- Cada usuario ve y modifica únicamente sus propios pagos
-
-**Auditoría**
-- Cada operación queda registrada por la base de datos
 
 **App instalable (PWA)**
 - Se instala en el celular, la tablet o el computador desde el navegador
 - Abre en su propia ventana, con ícono y nombre propios
 - Muestra una página propia cuando no hay conexión
 
-Las rutas de pagos usan `/registros` en la URL en lugar de `/pagos`: algunos
-antivirus con protección de banca en línea interceptan los formularios con
-contraseña cuando la URL contiene "pagos".
+Las rutas de registros usan `/registros` en la URL en lugar de `/pagos`:
+algunos antivirus con protección de banca en línea interceptan los formularios
+con contraseña cuando la URL contiene "pagos".
 
 ### Stack
 
 | Capa | Tecnología |
 |---|---|
 | Servidor | FastAPI, Uvicorn |
-| Interfaz | Jinja2, HTML y CSS |
+| Interfaz | Jinja2, HTML, CSS y Chart.js (incluido en `static/vendor`) |
 | Acceso a datos | python-oracledb (modo thin) |
+| Consultas del dashboard | `../compartido/consultas/*.sql`, las mismas del escritorio |
 | Base de datos | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
+| Correos | Brevo (API HTTPS) con las plantillas de `../compartido/correo/` |
+| Tareas programadas | GitHub Actions → `POST /tareas/resumenes` con token |
 | Sesiones | JWT (HS256) en cookie httponly; 6 h sin uso, máximo 8 h |
 | Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única), igual que el escritorio |
 | Verificación en dos pasos | TOTP (RFC 6238); QR en SVG; secreto cifrado con AES-256-GCM |
@@ -112,70 +119,76 @@ web/
 ├── requirements.txt
 ├── requirements-dev.txt  + pytest
 ├── .env.example          Plantilla de configuración
-├── migrar_seguridad.py   Aplica sql/seguridad.sql a la base (aditivo)
-├── tests/                Pruebas de contraseñas, TOTP, cifrado y sesiones
+├── migrar.py             Aplica una migración de ../sql/ (aditiva)
+├── tests/                Pruebas de seguridad, finanzas, resúmenes y tareas
 └── app/
     ├── main.py           Punto de entrada y manejo de errores
     ├── config.py         Carga del .env
     ├── database.py       Conexión a Oracle con el Wallet
-    ├── repositorio.py    Llamadas a los procedimientos almacenados
-    ├── seguridad.py      PBKDF2, TOTP, cifrado AES-GCM y sesiones JWT
+    ├── repositorio.py    Procedimientos almacenados y consultas compartidas
+    ├── compartido.py     Lee ../compartido/ (consultas SQL y plantillas de correo)
+    ├── finanzas.py       Periodos, formato de moneda, plan 50/30/20 y HTML de correos
+    ├── resumenes.py      Arma y envía los resúmenes; tarea diaria
+    ├── correo.py         Cliente de la API de Brevo
+    ├── seguridad.py      PBKDF2, TOTP, cifrado AES-GCM, códigos de respaldo y JWT
     ├── qr.py             Código QR del autenticador (SVG)
     ├── dependencias.py   Identificación del usuario en cada petición
-    ├── routers/          Ingreso en dos pasos, pagos y Seguridad
+    ├── routers/          Ingreso en dos pasos, dashboard, registros, perfil y tareas
     ├── templates/        Plantillas Jinja2
-    └── static/           Hoja de estilos, tema, íconos y PWA
+    └── static/           Estilos, tema, gráficas (dashboard.js), íconos y PWA
                           (manifest.webmanifest, sw.js, offline.html)
 ```
 
-Las tablas y procedimientos (`../sql/`), el Wallet (`../wallet/`) y el
-`Dockerfile` están en la raíz del repositorio, compartidos con la versión de
-escritorio.
+Las tablas y procedimientos (`../sql/`), las consultas y plantillas
+compartidas (`../compartido/`), el Wallet (`../wallet/`) y el `Dockerfile`
+están en la raíz del repositorio, compartidos con la versión de escritorio.
 
 ---
 
 ## 3. Arquitectura
 
 <p align="center">
-  <img src="../docs/arquitectura-web.svg" alt="Diagrama de arquitectura: el navegador llega por HTTPS a PRPagos Web (FastAPI) en Google Cloud Run, que valida la sesión JWT y, mediante repositorio.py y el Wallet, se conecta por TLS a los procedimientos almacenados de Oracle Autonomous Database" width="100%">
+  <img src="../docs/arquitectura-web.svg" alt="Diagrama de arquitectura: el navegador llega por HTTPS a PRPagos Web (FastAPI) en Google Cloud Run, que valida la sesión JWT y, mediante repositorio.py y el Wallet, se conecta por TLS a los procedimientos de Oracle Autonomous Database; el módulo de dashboard y resúmenes usa compartido/ y envía los correos por Brevo, y GitHub Actions lo dispara cada día" width="100%">
 </p>
 
 - Una sola app FastAPI sirve páginas Jinja2 protegidas por una sesión JWT en
   cookie.
-- El ingreso tiene **dos pasos** (contraseña y código TOTP); la sesión solo
-  se emite al final, y cada petición la valida antes de responder.
-- `repositorio.py` concentra el acceso a datos: usa `python-oracledb` en modo
-  thin y el **Wallet**, copiado a la imagen al construirla, para conectarse
-  por TLS.
-- Los **procedimientos almacenados** de Oracle deciden qué pagos ve cada
-  usuario, verifican la autorización y registran la auditoría.
+- El ingreso tiene **dos pasos** (contraseña y código TOTP o de respaldo); la
+  sesión solo se emite al final, y cada petición la valida antes de responder.
+- `repositorio.py` concentra el acceso a datos: llama a los procedimientos y a
+  las consultas de `../compartido/consultas`, con `python-oracledb` en modo thin
+  y el **Wallet** (copiado a la imagen al construirla) por TLS.
+- `finanzas.py` y `resumenes.py` calculan el dashboard y los resúmenes; los
+  correos usan las plantillas de `../compartido/correo` y salen por **Brevo**.
+- **GitHub Actions** llama cada día a `POST /tareas/resumenes`; la app decide si
+  hoy toca el semanal (viernes) o el mensual (día 29 o último de febrero) y no
+  repite un envío ya hecho.
 
 ### Seguridad
 
-- **Una sola seguridad para las dos interfaces:** la contraseña, el
-  autenticador, el último código usado y el bloqueo por intentos fallidos
-  viven en la misma fila de la base. Un autenticador configurado aquí sirve
-  en el escritorio, y al revés.
+- **Una sola seguridad para las dos interfaces:** contraseña, autenticador,
+  último código usado, códigos de respaldo y bloqueo viven en la base. Un
+  autenticador configurado aquí sirve en el escritorio, y al revés.
 - Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única). Las cuentas
   creadas con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
 - Verificación en dos pasos obligatoria (TOTP); un código no se puede usar dos
   veces. El secreto se guarda cifrado con AES-256-GCM; la clave (`TOTP_CLAVE`)
-  vive fuera de la base. Mientras se configura, el secreto viaja cifrado en
-  una cookie firmada y solo se guarda al confirmarlo con un código válido.
+  vive fuera de la base.
+- Códigos de respaldo y código por correo: solo se guarda su huella SHA-256,
+  sirven una vez (el de correo vence en 15 minutos) y cada uso queda auditado.
 - Cinco intentos fallidos seguidos bloquean la cuenta 5 minutos; lo decide la
   base, igual que para el escritorio.
 - Cambiar la contraseña o el autenticador pide un código vigente.
 - Sesión en cookie `httponly`, `Secure` y `SameSite=Lax`: JavaScript no puede
   leer el token.
-- Un usuario solo puede ver y modificar sus propios pagos; esa regla vive en
-  los procedimientos almacenados (`buscar_tbpagos`, `actualizar_tbpago`), no
-  se reimplementa en la capa web.
+- Un usuario solo ve y modifica sus propios registros; esa regla vive en los
+  procedimientos y en las consultas, siempre filtradas por la cuenta.
+- `/tareas/*` exige el token `TAREAS_TOKEN` (comparación en tiempo constante);
+  sin token configurado, la tarea queda desactivada.
 - Los errores de base de datos muestran un mensaje genérico; el detalle queda
   solo en el log del servidor.
-- El service worker de la PWA solo guarda en caché archivos estáticos
-  (estilos, scripts, íconos) y la página sin conexión: las páginas con pagos,
-  la sesión y los CSV siempre van a la red y no quedan guardados en el
-  dispositivo.
+- El service worker solo guarda en caché archivos estáticos y la página sin
+  conexión: las páginas con datos, la sesión y los CSV siempre van a la red.
 - El Wallet y el `.env` (con las claves) no se suben al repositorio.
 
 ---
@@ -185,62 +198,50 @@ escritorio.
 | Plataforma | Función en el proyecto |
 |---|---|
 | ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Corre la app FastAPI en un contenedor Docker construido con el `Dockerfile` de la raíz. |
-| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda usuarios y pagos, y ejecuta los procedimientos almacenados con las reglas y la auditoría. Conexión por TLS con el Wallet; no requiere ningún otro servicio, cuenta ni clave de API. |
+| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda cuentas, registros, categorías y planes, y ejecuta los procedimientos con las reglas y la auditoría. Conexión por TLS con el Wallet. |
+| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes y los códigos de recuperación (plan gratuito). |
+| ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) | Despliega la app en cada push a `main` y dispara cada día la tarea de los resúmenes. |
 | ![qa-evidencia](https://img.shields.io/badge/qa--evidencia-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) | Prueba la demo automáticamente dos veces al día y publica la evidencia. |
 
 ---
 
 ## 5. Cómo usar la plataforma
 
-### 5.1 Crear una cuenta
+El paso a paso con capturas de cada pantalla está en el
+**[Manual web](../docs/MANUAL-WEB.md)**. En resumen:
 
-1. En la portada, pulsa **Crear cuenta** (o **Registrarme** en el menú).
-2. Completa:
+### 5.1 Crear una cuenta e ingresar
 
-   | Campo | Dato |
-   |---|---|
-   | Correo | Tu correo real; es tu usuario de acceso |
-   | Nombre completo | Se usa también para recuperar la contraseña |
-   | Contraseña | Mínimo 8 caracteres |
-   | Repite la contraseña | La misma |
+1. En la portada, pulsa **Regístrate**: correo, nombre completo y contraseña
+   (mínimo 8 caracteres). La misma cuenta sirve en el escritorio.
+2. Ingresa con **Correo** y **Contraseña** y pulsa **Continuar**.
+3. **Primera vez:** escanea el QR con tu app autenticadora, escribe el código y
+   pulsa **Activar e ingresar**; guarda los 10 **códigos de respaldo** que
+   aparecen. Si ya lo configuraste en el escritorio, este paso no aparece.
+4. **Siguientes veces:** escribe el código de 6 dígitos (o uno de respaldo).
 
-3. Pulsa **Crear cuenta**. La misma cuenta sirve en la versión de escritorio.
+### 5.2 Dashboard
 
-### 5.2 Iniciar sesión (dos pasos)
+Elige el mes y revisa ingresos, gastos, balance y ahorro; la gráfica de 6
+meses, los gastos por categoría y el plan 50/30/20 con su estado. Abajo, pide
+el resumen semanal o del mes por correo.
 
-1. Escribe **Correo** y **Contraseña** y pulsa **Continuar**.
-2. **Primera vez:** escanea el QR con una app autenticadora (Google Authenticator,
-   Microsoft Authenticator, Authy…) o escribe la clave a mano, y escribe el código
-   de 6 dígitos en **Activar e ingresar**. Si ya lo configuraste en el escritorio,
-   este paso no aparece.
-3. **Siguientes veces:** escribe el código de 6 dígitos de tu app y pulsa **Ingresar**.
-4. La sesión se cierra tras 6 horas sin uso o a las 8 horas del ingreso, con un mensaje que explica el motivo.
+### 5.3 Registrar, consultar y exportar
 
-### 5.3 Registrar un pago
+1. **Nuevo registro:** tipo (ingreso o gasto), monto, fecha, categoría y concepto.
+2. **Consultar registros:** filtra por tipo, concepto, montos y fechas; revisa
+   los totales; **Modificar** corrige un registro; **Exportar a CSV** descarga la consulta.
 
-1. En el menú, elige **Nuevo registro**.
-2. Completa **Monto**, **Fecha** y **Concepto** y pulsa **Guardar**.
+### 5.4 Perfil y recuperación
 
-### 5.4 Consultar, modificar y exportar
+- **Perfil:** nombre y resúmenes por correo, porcentajes del plan, categorías
+  propias, cambio de autenticador, códigos de respaldo nuevos y contraseña.
+- **Perdí mi teléfono** (paso del código): usa un código de respaldo o pide un
+  código al correo para configurar un autenticador nuevo.
+- **Olvidé mi contraseña** (portada): correo, nombre registrado, un código del
+  autenticador o de respaldo y la nueva contraseña dos veces.
 
-1. Elige **Consultar registros**.
-2. Filtra con **Concepto contiene**, **Monto mínimo**, **Monto máximo**, **Desde** y
-   **Hasta**, y pulsa **Buscar** (**Limpiar** quita los filtros).
-3. La tabla muestra **ID**, **Monto**, **Fecha** y **Concepto** de tus pagos.
-4. **Modificar** abre el pago para cambiar monto, fecha o concepto; pulsa
-   **Guardar cambios**.
-5. **Exportar a CSV** descarga la consulta con los filtros aplicados.
-
-### 5.5 Seguridad y recuperación
-
-- **Seguridad** (menú): cambia la contraseña (actual, nueva dos veces y un código
-  del autenticador) o el autenticador (un código del actual, el QR nuevo y su
-  primer código).
-- **Olvidé mi contraseña** (inicio de sesión): escribe tu **Correo**, el **Nombre
-  registrado**, el **Código del autenticador** y la nueva contraseña dos veces, y
-  pulsa **Actualizar contraseña**.
-
-### 5.6 Instalar la app (PWA)
+### 5.5 Instalar la app (PWA)
 
 Abre la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app) y:
 
@@ -252,7 +253,7 @@ Abre la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app) y:
 
 La app queda con su ícono junto a las demás y abre en su propia ventana. Usa
 la misma cuenta y los mismos datos que la versión web y la de escritorio, y
-necesita conexión para consultar y guardar pagos.
+necesita conexión para consultar y guardar.
 
 ---
 
@@ -264,6 +265,7 @@ necesita conexión para consultar y guardar pagos.
 - Una base Oracle accesible, preparada con `../sql/DBPagos.sql` (una sola vez)
 - El Wallet de esa base descomprimido en `../wallet`. No viene en el
   repositorio: se descarga desde la consola de Oracle Cloud.
+- Para los correos: una cuenta de Brevo (plan gratuito) con un remitente verificado
 
 ### Instalación
 
@@ -288,7 +290,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ### Configuración
 
 El `.env` necesita la ruta y la contraseña del Wallet, el alias de conexión
-(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base, y dos
+(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base, y estas
 claves propias:
 
 ```bash
@@ -296,6 +298,8 @@ claves propias:
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 # TOTP_CLAVE: cifra los autenticadores (32 bytes en base64)
 python -c "import base64, secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())"
+# TAREAS_TOKEN: protege la tarea de resúmenes (el mismo va como secreto en GitHub)
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 `TOTP_CLAVE` debe ser **la misma** que `totp.clave` en el `config.properties`
@@ -303,18 +307,22 @@ del escritorio; si no, ninguna de las dos versiones podrá leer los
 autenticadores configurados en la otra. Una vez haya cuentas con autenticador,
 no se debe cambiar.
 
+Para los correos: `BREVO_API_KEY` y `BREVO_REMITENTE` (un remitente verificado
+en Brevo); son los mismos del escritorio. `URL_PUBLICA` es el enlace del botón
+"Abrir el dashboard" de los correos.
+
 La plantilla indica el nombre y el propósito de cada variable. El `.env`
 nunca se sube a git.
 
 ### Base de datos
 
-Además de `../sql/DBPagos.sql`, aplica la migración de seguridad (columnas y
-procedimientos de la verificación en dos pasos). Es aditiva y se puede
-repetir:
+Además de `../sql/DBPagos.sql`, aplica las migraciones. Son aditivas y se
+pueden repetir; sin `--aplicar` solo muestran el SQL:
 
 ```bash
-python migrar_seguridad.py            # muestra el SQL, sin ejecutar
-python migrar_seguridad.py --aplicar  # lo aplica
+python migrar.py seguridad --aplicar        # verificación en dos pasos
+python migrar.py finanzas --aplicar         # ingresos, categorías, plan, respaldo y resúmenes
+python migrar.py actualizaciones --aplicar  # versiones del escritorio
 ```
 
 ### Ejecución
@@ -343,13 +351,17 @@ pytest tests -q
 
 La aplicación corre en Google Cloud Run, con Oracle Autonomous Database como
 base de datos. El despliegue es continuo: cada push a `main` que cambie
-`web/`, el `Dockerfile` o el propio flujo ejecuta
+`web/`, `compartido/`, el `Dockerfile` o el propio flujo ejecuta
 [`.github/workflows/desplegar.yml`](../.github/workflows/desplegar.yml), que:
 
 1. Construye la imagen con el `Dockerfile` de la **raíz** del repositorio
-   (necesita copiar tanto `web/app/` como `wallet/`).
+   (copia `web/app/`, `compartido/` y `wallet/`).
 2. La publica en Artifact Registry.
 3. Actualiza el servicio de Cloud Run, conservando sus variables de entorno.
+
+[`.github/workflows/resumenes.yml`](../.github/workflows/resumenes.yml) llama
+cada día a las 08:00 (hora de Colombia) a `POST /tareas/resumenes` con el
+secreto `TAREAS_TOKEN`; se puede lanzar a mano forzando el semanal o el mensual.
 
 - El Wallet no está en Git: el flujo lo toma de Secret Manager al construir
   la imagen.
@@ -361,6 +373,8 @@ base de datos. El despliegue es continuo: cada push a `main` que cambie
 ---
 
 ## 7. Autor y licencia
+
+> 📘 **[Manual web](../docs/MANUAL-WEB.md)**: cómo usar la versión web campo por campo, qué datos se ingresan y qué garantiza en seguridad.
 
 **Luis Felipe Arias Carriazo**
 [GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1)
