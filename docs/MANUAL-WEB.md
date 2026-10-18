@@ -277,8 +277,8 @@ rostro o PIN. Abre el **Dashboard** directamente.
 **¿Tengo que configurar el autenticador dos veces, en la web y en el escritorio?** No. Es uno solo
 por cuenta: el que configures en una versión sirve en la otra. Lo mismo con los códigos de respaldo.
 
-**¿Lo que registro en la web aparece en la app de escritorio?** Sí. Ambas usan la misma base de
-datos y muestran las mismas cifras y gráficas.
+**¿Lo que registro en la web aparece en la app de escritorio?** Sí, al instante: la app de
+escritorio pide los datos a este mismo servidor, así que muestra las mismas cifras y gráficas.
 
 **¿Cómo instalo la app en el celular?** En Chrome o Edge, menú ⋮ → **Instalar aplicación** (en
 iPhone, Safari → Compartir → **Agregar a inicio**).

@@ -32,15 +32,17 @@ un dashboard con gráficas y envía un resumen por correo cada semana y cada mes
 Nació como un registro de pagos en el curso de Desarrollo de Software de la
 Universidad EAN.
 
-El repositorio tiene dos versiones de la misma aplicación, que comparten la
-misma base de datos, las mismas cuentas y las mismas reglas:
+El repositorio tiene dos interfaces de la misma aplicación, alimentadas por
+**un solo origen**: la lógica, las reglas y los datos viven en el servidor web
+y las dos interfaces los muestran.
 
 - **[`web/`](./web)** — versión web en Python (FastAPI + Jinja2 + Chart.js),
   desplegada en Google Cloud Run. Es además una **PWA**: se instala como app en
   Android, iPhone/iPad, Windows, macOS y Linux desde el navegador.
 - **[`escritorio/`](./escritorio)** — aplicación de escritorio en Java/Swing
   (FlatLaf + JFreeChart), publicada como **PRPagos.exe** con Java incluido y
-  con actualización automática.
+  con actualización automática. No tiene base de datos ni claves: pide todo a
+  la API de la web.
 
 Ver [`CHANGELOG-migracion.md`](./CHANGELOG-migracion.md) para el detalle de la
 migración de escritorio a web.
@@ -50,11 +52,10 @@ migración de escritorio a web.
 - **Qué hace:** registra ingresos y gastos, muestra en un dashboard cuánto se
   va en cada categoría y si el mes va dentro del plan 50/30/20, y manda el
   resumen por correo. Cada persona ve solo lo suyo.
-- **Qué lo hace interesante:** dos aplicaciones (web y escritorio) que funcionan
-  y se ven igual, con **la misma base, las mismas consultas y los mismos
-  correos**: las reglas viven en procedimientos almacenados de Oracle y las
-  consultas del dashboard y las plantillas de correo están en archivos
-  compartidos (`compartido/`) que leen las dos.
+- **Qué lo hace interesante:** una sola lógica para dos interfaces. Las reglas,
+  los cálculos y los mensajes viven en la capa de servicios del servidor
+  (`web/app/servicios/`); las páginas web la usan directamente y la app de
+  escritorio por una API JSON. Un dato es uno solo, se vea donde se vea.
 - **Cómo probarlo:** entra a la [demo web](https://prpagos-web-1087929107584.southamerica-east1.run.app)
   y crea un usuario, o descarga la [aplicación de escritorio](https://github.com/lariasca1994/PRPagos/releases/latest).
   Para correrlo desde el código, ve a [Instalación para pruebas](#6-instalación-para-pruebas).
@@ -64,8 +65,7 @@ migración de escritorio a web.
 **Aplicación web:** [abrir la demo en vivo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
 
 **Aplicación de escritorio:** [descargar la última versión](https://github.com/lariasca1994/PRPagos/releases/latest)
-(instalador o portable para Windows; necesita su archivo de configuración, ver
-[`escritorio/README.md`](./escritorio/README.md)).
+(instalador o portable para Windows; se instala y se usa, sin configuración).
 
 ### Funcionalidades
 
@@ -93,9 +93,9 @@ migración de escritorio a web.
 - Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con un mensaje del motivo
 
 **Escritorio**
-- **PRPagos.exe** con Java incluido: instalador por usuario o versión portable
+- **PRPagos.exe** con Java incluido: instalador por usuario o versión portable,
+  sin configuración ni claves dentro
 - **Actualización automática** desde GitHub Releases, verificada con SHA-256
-- Secretos de la configuración cifrados con **DPAPI** de Windows
 
 **Interfaz**
 - Web y escritorio con la misma estructura, menú, ícono, portada animada y
@@ -106,16 +106,13 @@ migración de escritorio a web.
 | Capa | Web | Escritorio |
 |---|---|---|
 | Interfaz | Jinja2, HTML, CSS y Chart.js | Java Swing con FlatLaf y JFreeChart |
-| Servidor | FastAPI, Uvicorn | — (aplicación local) |
-| Acceso a datos | python-oracledb (modo thin) | JDBC (ojdbc17 + oraclepki) |
-| Consultas del dashboard | `compartido/consultas/*.sql` | Las mismas |
-| Base de datos | Oracle Autonomous Database | Oracle Autonomous Database |
-| Reglas de negocio | Procedimientos almacenados PL/SQL | Procedimientos almacenados PL/SQL |
-| Correos | Brevo (API HTTPS) con `compartido/correo/` | Brevo con las mismas plantillas |
-| Sesiones | JWT en cookie httponly; 6 h sin uso, máximo 8 h | En memoria; 6 h sin uso, máximo 8 h |
-| Contraseñas | PBKDF2-SHA256 | PBKDF2-SHA256 (mismo formato) |
-| Verificación en dos pasos | TOTP; secreto cifrado con AES-256-GCM | TOTP; mismo secreto y misma clave |
-| Llaves de acceso | WebAuthn en el navegador (librería `webauthn`) | Windows Hello (`webauthn.dll` vía JNA) |
+| Lógica y reglas | `web/app/servicios/` (FastAPI) | La misma, por la API JSON (`/api/...`) |
+| Acceso a datos | python-oracledb (modo thin), usuario de la app sin permisos de DDL | — (solo la API) |
+| Base de datos | Oracle Autonomous Database | La misma, a través del servidor |
+| Correos | Brevo (API HTTPS) desde el servidor | Los envía el servidor |
+| Sesiones | JWT en cookie httponly; 6 h sin uso, máximo 8 h | El mismo JWT, en la cabecera Bearer |
+| Contraseñas y TOTP | PBKDF2-SHA256; secreto TOTP cifrado con AES-256-GCM | Validados en el servidor |
+| Llaves de acceso | WebAuthn en el navegador (librería `webauthn`) | Windows Hello (`webauthn.dll` vía JNA), verificadas en el servidor |
 | Distribución | Docker en Google Cloud Run (GitHub Actions) | PRPagos.exe en GitHub Releases (jpackage) |
 | App instalable | PWA (Android, iOS, Windows, macOS, Linux) | Instalador o portable para Windows |
 
@@ -125,35 +122,35 @@ migración de escritorio a web.
 
 ```
 web/           Aplicación web en Python (FastAPI + Jinja2)
-escritorio/    Aplicación de escritorio en Java (Swing) y su empaquetado (empaquetar.ps1)
-compartido/    Consultas SQL del dashboard y plantillas de correo que usan las dos versiones
-sql/           Tablas, procedimientos y migraciones (seguridad, finanzas, actualizaciones)
+escritorio/    Aplicación de escritorio en Java (Swing), cliente de la API, y su empaquetado
+compartido/    Consultas SQL del dashboard y plantillas de correo (las usa el servidor)
+sql/           Tablas, procedimientos y migraciones (seguridad, finanzas, actualizaciones, llaves)
 wallet/        Wallet de Oracle Autonomous Database (no se sube a git)
 docs/          Manuales, diagramas y capturas
 .github/       Despliegue web, resúmenes programados y publicación del escritorio
 Dockerfile     Imagen de la versión web para Cloud Run (se construye desde la raíz)
 ```
 
-`compartido/`, `sql/`, `wallet/` y `docs/` están en la raíz porque los usan
-tanto `escritorio/` como `web/`: ambas versiones hablan con la misma base de
-datos, calculan el dashboard con las mismas consultas y envían los mismos
-correos.
+Solo el servidor (`web/`) usa `compartido/`, `sql/` y `wallet/`: es el único
+que habla con la base y envía correos. El escritorio no tiene acceso a nada de
+eso; recibe los datos ya calculados por la API.
 
 ---
 
 ## 3. Arquitectura
 
 <p align="center">
-  <img src="docs/arquitectura.svg" alt="Diagrama de arquitectura: PRPagos Web (FastAPI) en Google Cloud Run y PRPagos Escritorio (Java Swing) en el equipo local, ambos conectados por TLS con Wallet a los procedimientos almacenados de Oracle Autonomous Database, con Brevo para los correos y GitHub Actions para el despliegue, las tareas y los Releases" width="100%">
+  <img src="docs/arquitectura.svg" alt="Diagrama de arquitectura: el navegador y PRPagos Escritorio llegan por HTTPS a PRPagos Web (FastAPI) en Google Cloud Run, que tiene la única lógica y es el único que se conecta por TLS con Wallet a Oracle Autonomous Database y envía los correos por Brevo; GitHub Actions despliega, programa las tareas y publica los Releases" width="100%">
 </p>
 
-- La versión web (FastAPI + Jinja2) corre en un contenedor Docker; la sesión
-  viaja en un JWT dentro de una cookie.
-- La **versión de escritorio** (Java Swing) corre en el equipo del usuario y se
-  conecta por JDBC.
-- Ambas llegan a la base con TLS y Wallet, llaman a los mismos procedimientos
-  almacenados (autorización y auditoría) y leen las mismas consultas y
-  plantillas de `compartido/`.
+- **Un solo origen:** la web (FastAPI) corre en un contenedor Docker en Cloud
+  Run y concentra toda la lógica en `app/servicios/`. Las páginas HTML y la API
+  JSON (`/api/...`) llaman a las mismas funciones.
+- La **versión de escritorio** (Java Swing) corre en el equipo del usuario y es
+  un cliente de esa API: recibe los datos, las cifras y los mensajes ya listos.
+- Solo el servidor llega a la base (TLS con Wallet, con un usuario propio de la
+  app que no puede crear ni borrar tablas) y llama a los procedimientos
+  almacenados, que verifican la autorización y registran la auditoría.
 - **GitHub Actions** despliega la web, la llama cada día a las 08:00 para enviar
   los resúmenes por **Brevo**, y publica el ejecutable de escritorio como
   Release, del que se actualizan las aplicaciones instaladas.
@@ -164,9 +161,9 @@ Cada versión tiene su propio diagrama detallado en
 
 ### Seguridad
 
-- **Una sola seguridad:** contraseña, autenticador, último código usado,
-  códigos de respaldo y bloqueo por intentos fallidos viven en la base, y las
-  dos versiones aplican las mismas reglas.
+- **Una sola seguridad:** contraseña, autenticador, códigos de respaldo, llaves
+  de acceso, bloqueos y sesiones se validan en el servidor, para la web y para
+  el escritorio. El escritorio no guarda claves ni datos de conexión.
 - Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única); las cuentas
   con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
 - Verificación en dos pasos obligatoria (TOTP, RFC 6238); un código no se puede
@@ -182,10 +179,11 @@ Cada versión tiene su propio diagrama detallado en
   de actualización verifica la autorización antes de modificar un registro.
 - La tarea de resúmenes y el registro de versiones exigen un token; las
   actualizaciones del escritorio solo se aceptan desde GitHub por HTTPS y con la
-  huella SHA-256 registrada en la base.
-- En el escritorio, los secretos de `config.properties` se cifran con DPAPI.
-- Conexión a la base por TLS con Wallet. El Wallet, `.env` y
-  `config.properties` no se suben al repositorio; solo sus plantillas de ejemplo.
+  huella SHA-256 que entrega el servidor.
+- La base se usa con un usuario de la aplicación de privilegios mínimos (sin
+  permisos para crear ni borrar tablas) sobre el esquema dueño de los datos.
+- Conexión a la base por TLS con Wallet. El Wallet y el `.env` no se suben al
+  repositorio; solo la plantilla de ejemplo.
 
 ---
 
@@ -195,7 +193,7 @@ Cada versión tiene su propio diagrama detallado en
 |---|---|
 | ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Corre la versión web (FastAPI + Jinja2) en un contenedor Docker. |
 | ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda cuentas, registros, categorías, planes y versiones del escritorio, y ejecuta los procedimientos almacenados con las reglas de negocio y la auditoría. Conexión por TLS con Wallet. |
-| ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La versión de escritorio corre en el equipo de cada usuario como PRPagos.exe, con Java incluido. |
+| ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La versión de escritorio corre en el equipo de cada usuario como PRPagos.exe, con Java incluido; pide los datos a la API de la web. |
 | ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes semanales y mensuales y los códigos de recuperación (plan gratuito). |
 | ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) | Despliega la web, programa los resúmenes diarios y publica el ejecutable de escritorio en GitHub Releases. |
 | ![qa-evidencia](https://img.shields.io/badge/qa--evidencia-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) | Prueba la versión web automáticamente dos veces al día y publica la evidencia. |
@@ -204,8 +202,8 @@ Cada versión tiene su propio diagrama detallado en
 
 ## 5. Cómo usar la plataforma
 
-Las dos versiones comparten las mismas cuentas y los mismos datos: lo que registras en
-una aparece en la otra. Cada una tiene su manual con capturas:
+Las dos versiones muestran los mismos datos del mismo servidor: lo que registras en una
+aparece en la otra al instante. Cada una tiene su manual con capturas:
 
 - **Versión web:** [Manual web](docs/MANUAL-WEB.md) (incluye cómo instalarla como app)
 - **Versión de escritorio:** [Manual de escritorio](docs/MANUAL-ESCRITORIO.md) (incluye la
@@ -236,13 +234,14 @@ Resumen del flujo, igual en ambas:
 - El Wallet de esa base, descargado desde la consola de Oracle Cloud
 - Para la versión web: Python 3.11 o superior
 - Para compilar la versión de escritorio: JDK 17 o superior (para usarla basta
-  el ejecutable de Releases)
+  el ejecutable de Releases; no necesita base ni configuración)
 - Para los correos: una cuenta de Brevo (plan gratuito) con un remitente verificado
 
 ### Base de datos (una sola vez)
 
-Ejecuta, en orden, `sql/DBPagos.sql` y las migraciones `seguridad`, `finanzas` y
-`actualizaciones` y `llaves`. Desde `web/`, con su `.env` configurado:
+Ejecuta, en orden, `sql/DBPagos.sql` y las migraciones `seguridad`, `finanzas`,
+`actualizaciones` y `llaves` con el usuario **dueño** del esquema (el de la app
+no tiene permisos para crear tablas). Desde `web/`, con su `.env` configurado:
 
 ```bash
 python migrar.py seguridad --aplicar
@@ -269,16 +268,15 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Completa el `.env` con los datos del Wallet y de la base, un `JWT_SECRET`
-propio, la `TOTP_CLAVE` (la misma del escritorio) y, para los correos,
+Completa el `.env` con los datos del Wallet y de la base (usuario de la app y
+`DB_ESQUEMA`), un `JWT_SECRET` propio, la `TOTP_CLAVE` y, para los correos,
 `BREVO_API_KEY` y `BREVO_REMITENTE`. Detalle en [`web/README.md`](./web/README.md#configuración).
 
 ### Versión de escritorio
 
-Copia `escritorio/config.properties.example` como `config.properties` y completa
-el alias, las credenciales de la base, `totp.clave` (la misma `TOTP_CLAVE` de la
-web) y los datos de Brevo. Desde el código va en `escritorio/`; con el ejecutable,
-en `%APPDATA%\PRPagos\`. Detalle en [`escritorio/README.md`](./escritorio/README.md#configuración).
+No necesita configuración: usa la web de producción. Para probarla contra la
+web local, ejecútala con `PRPAGOS_URL=http://localhost:8000`. Detalle en
+[`escritorio/README.md`](./escritorio/README.md#ejecución).
 
 ### Ejecución
 
@@ -290,9 +288,10 @@ en `%APPDATA%\PRPagos\`. Detalle en [`escritorio/README.md`](./escritorio/README
 
 ### Despliegue
 
-Todo sale de GitHub: un push a `main` despliega la web en Cloud Run
-(`desplegar.yml`) y publica el escritorio como Release (`escritorio.yml`);
-`resumenes.yml` llama cada día a la tarea de los correos.
+Todo sale de GitHub: cada commit y push a `main` despliega la web en Cloud Run
+(`desplegar.yml`) y publica el escritorio como Release (`escritorio.yml`), que
+las aplicaciones instaladas toman solas; `resumenes.yml` llama cada día a la
+tarea de los correos. Nada se despliega a mano.
 
 ---
 

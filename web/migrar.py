@@ -3,7 +3,12 @@ Aplica una migración de sql/ a la base de PRPagos. Las migraciones son
 aditivas: no borran ni modifican datos existentes, y se pueden correr más
 de una vez (lo que ya existe se salta).
 
-Usa las mismas credenciales y el mismo Wallet que la app web (web/.env).
+Usa el mismo Wallet que la app web (web/.env), pero debe correr con el usuario
+DUEÑO del esquema (DB_USUARIO y DB_PASSWORD del dueño, DB_ESQUEMA vacío): el
+usuario de la aplicación no tiene permisos para crear tablas. Después de crear
+objetos nuevos, hay que dar al usuario de la aplicación los permisos sobre ellos
+(SELECT/INSERT/UPDATE/DELETE en tablas, SELECT en secuencias, EXECUTE en
+procedimientos).
 
 Uso, parado en web/ con la venv activada:
     python migrar.py seguridad            # muestra el SQL de sql/seguridad.sql
