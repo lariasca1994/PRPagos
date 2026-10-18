@@ -7,7 +7,7 @@ import logging
 
 import oracledb
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -19,7 +19,8 @@ from .dependencias import (
     respuesta_redireccion_login,
     respuesta_redireccion_sin_permiso,
 )
-from .routers import auth, dashboard, perfil, registros, tareas, usuarios
+from .routers import api, auth, dashboard, perfil, registros, tareas, usuarios
+from .servicios import ErrorServicio
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
 logger = logging.getLogger("prpagos")
@@ -36,12 +37,15 @@ app.include_router(registros.router)
 app.include_router(perfil.router)
 app.include_router(usuarios.router)
 app.include_router(tareas.router)
+app.include_router(api.router)
 
 templates = Jinja2Templates(directory="app/templates")
 
 
 @app.exception_handler(RedireccionLogin)
 def manejar_redireccion_login(request: Request, exc: RedireccionLogin):
+    if _es_api(request):
+        return api.respuesta_sesion_cerrada(exc.motivo)
     # exigir_login() (en dependencias.py) lanza esta excepcion cuando una
     # ruta protegida no tiene sesion valida. FastAPI no permite que una
     # Depends() devuelva una Response en rutas que tambien renderizan HTML,
@@ -55,15 +59,31 @@ async def renovar_sesion(request: Request, call_next):
     # inactividad: dependencias.py deja el token renovado en request.state.
     respuesta = await call_next(request)
     nuevo = getattr(request.state, "token_renovado", None)
-    if nuevo and "sesion" not in respuesta.headers.get("set-cookie", ""):
+    if nuevo and request.url.path.startswith("/api/"):
+        # La app de escritorio guarda el token renovado de esta cabecera.
+        respuesta.headers["X-Sesion"] = nuevo
+    elif nuevo and "sesion" not in respuesta.headers.get("set-cookie", ""):
         respuesta.set_cookie(
             "sesion", nuevo, httponly=True, secure=True, samesite="lax", max_age=8 * 3600
         )
     return respuesta
 
 
+def _es_api(request: Request) -> bool:
+    return request.url.path.startswith("/api/")
+
+
+@app.exception_handler(ErrorServicio)
+def manejar_error_servicio(request: Request, exc: ErrorServicio):
+    # Regla de negocio no cumplida (las páginas web la atrapan antes y la
+    # muestran en la misma pantalla; aquí solo llega desde la API).
+    return JSONResponse({"error": exc.mensaje}, status_code=400)
+
+
 @app.exception_handler(RedireccionSinPermiso)
 def manejar_redireccion_sin_permiso(request: Request, exc: RedireccionSinPermiso):
+    if _es_api(request):
+        return JSONResponse({"error": "No tienes permiso para esta acción."}, status_code=403)
     # exigir_admin() lanza esta excepcion cuando SI hay sesion valida pero
     # el usuario no es admin -- mismo mecanismo que RedireccionLogin.
     return respuesta_redireccion_sin_permiso()
@@ -80,6 +100,10 @@ def manejar_error_oracle(request: Request, exc: oracledb.Error):
     # aparte al de la excepcion original, y ahi sys.exc_info() ya esta
     # vacio, por eso salia "NoneType: None" en vez del error real.
     logger.error("Error de base de datos", exc_info=exc)
+    mensaje = ("No se pudo completar la operación por un problema con la base de datos. "
+               "Intenta de nuevo en unos minutos.")
+    if _es_api(request):
+        return JSONResponse({"error": mensaje}, status_code=503)
     return templates.TemplateResponse(
         "error.html",
         {
@@ -94,6 +118,8 @@ def manejar_error_oracle(request: Request, exc: oracledb.Error):
 @app.exception_handler(Exception)
 def manejar_error_generico(request: Request, exc: Exception):
     logger.error("Error inesperado", exc_info=exc)
+    if _es_api(request):
+        return JSONResponse({"error": "Ocurrió un error inesperado. Intenta de nuevo."}, status_code=500)
     return templates.TemplateResponse(
         "error.html",
         {

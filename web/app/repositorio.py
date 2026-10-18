@@ -594,3 +594,13 @@ def usar_llave(llave_id: int, usuario_id: int, contador: int) -> None:
 def eliminar_llave(usuario_id: int, llave_id: int) -> None:
     with obtener_conexion() as conn:
         conn.cursor().execute(consulta("llave_eliminar"), id=llave_id, usuario_id=usuario_id)
+
+
+def ultima_version_escritorio() -> dict | None:
+    """Última versión publicada en GitHub Releases (la registra escritorio.yml)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT version, url, sha256 FROM TBVersionesEscritorio "
+                    "ORDER BY publicada DESC FETCH FIRST 1 ROWS ONLY")
+        fila = cur.fetchone()
+        return {"version": fila[0], "url": fila[1], "sha256": fila[2]} if fila else None

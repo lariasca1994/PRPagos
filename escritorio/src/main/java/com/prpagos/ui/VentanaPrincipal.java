@@ -19,9 +19,9 @@ import javax.swing.JScrollPane;
 import javax.swing.Timer;
 
 import com.formdev.flatlaf.FlatClientProperties;
-import com.prpagos.datos.Cuenta;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 import com.prpagos.datos.Pago;
-import com.prpagos.datos.RepositorioUsuarios;
 import com.prpagos.datos.Sesion;
 
 /**
@@ -30,11 +30,12 @@ import com.prpagos.datos.Sesion;
  * (Dashboard · Consultar registros · Nuevo registro · Perfil · Usuarios
  * (admin) · Salir), el contenido al centro con un ancho máximo y el pie.
  *
- * Sesión con las mismas reglas y mensajes que la web: se cierra tras 6 horas
- * sin uso (cada tecla o clic reinicia el plazo) y como máximo a las 8 horas;
- * en cada cambio de pantalla se vuelve a consultar la cuenta (como
- * dependencias.py en cada petición), así que una suspensión o un cambio de
- * rol tienen efecto inmediato.
+ * La sesión la controla el servidor, igual que en la web: 6 horas sin uso
+ * (cada petición renueva el plazo) y como máximo 8 horas. Cuando el plazo del
+ * token vence, o cuando cualquier petición responde que la sesión ya no vale
+ * (cuenta suspendida, por ejemplo), se vuelve al ingreso con el mensaje que da
+ * el servidor. En cada cambio de pantalla se pide la cuenta a la API, así que un
+ * cambio de rol tiene efecto inmediato.
  */
 public class VentanaPrincipal extends JFrame {
 
@@ -45,12 +46,7 @@ public class VentanaPrincipal extends JFrame {
     static final String PERFIL = "perfil";
     static final String USUARIOS = "usuarios";
 
-    private static final int INACTIVIDAD_MS = 6 * 60 * 60 * 1000;
-    private static final int DURACION_MAXIMA_MS = 8 * 60 * 60 * 1000;
-    /** Los mismos textos que MENSAJES_CIERRE en web/app/seguridad.py. */
-    static final String CIERRE_INACTIVIDAD = "Tu sesión se cerró tras 6 horas de inactividad. Ingresa de nuevo.";
-    static final String CIERRE_MAXIMO = "Tu sesión se cerró al cumplir 8 horas. Ingresa de nuevo.";
-    static final String CIERRE_SUSPENDIDA = "Tu sesión se cerró porque tu cuenta ya no está activa.";
+    /** El mismo texto que MENSAJES_CIERRE["salir"] en la web. */
     static final String CIERRE_SALIR = "Cerraste sesión.";
 
     private final CardLayout tarjetas = new CardLayout();
@@ -62,9 +58,9 @@ public class VentanaPrincipal extends JFrame {
     private final PanelDashboard dashboard;
     private final PanelPerfil perfil;
     private final PanelUsuarios usuarios;
-    private final Timer inactividad;
-    private final Timer duracionMaxima;
-    private final java.awt.event.AWTEventListener actividad;
+    /** Revisa cada 30 s si el token ya venció; entonces el servidor da el motivo del cierre. */
+    private final Timer vigilancia;
+    private boolean cerrada;
     private Sesion sesion;
     private String actual;
     private final Map<String, JScrollPane> desplazables = new java.util.HashMap<>();
@@ -101,21 +97,14 @@ public class VentanaPrincipal extends JFrame {
         raiz.add(pie(), BorderLayout.SOUTH);
         setContentPane(raiz);
 
-        inactividad = new Timer(INACTIVIDAD_MS, e -> cerrarSesion(CIERRE_INACTIVIDAD, false));
-        inactividad.setRepeats(false);
-        inactividad.start();
-        duracionMaxima = new Timer(DURACION_MAXIMA_MS, e -> cerrarSesion(CIERRE_MAXIMO, false));
-        duracionMaxima.setRepeats(false);
-        duracionMaxima.start();
-        // Cualquier tecla o clic en esta ventana cuenta como actividad.
-        actividad = evento -> {
-            if (evento.getSource() instanceof java.awt.Component c
-                    && javax.swing.SwingUtilities.getWindowAncestor(c) == this) {
-                inactividad.restart();
+        // Si el servidor da la sesión por cerrada (en cualquier petición), se vuelve al ingreso.
+        Api.alCerrarSesion(mensaje -> javax.swing.SwingUtilities.invokeLater(() -> cerrarSesion(mensaje, false)));
+        vigilancia = new Timer(30_000, e -> {
+            if (Api.vence() > 0 && System.currentTimeMillis() / 1000 >= Api.vence()) {
+                Tarea.ejecutar(contenido, () -> Api.get("/api/sesion"), r -> { }, err -> { });
             }
-        };
-        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(actividad,
-                java.awt.AWTEvent.KEY_EVENT_MASK | java.awt.AWTEvent.MOUSE_EVENT_MASK);
+        });
+        vigilancia.start();
 
         mostrar(DASHBOARD);
     }
@@ -208,32 +197,19 @@ public class VentanaPrincipal extends JFrame {
     }
 
     /**
-     * Cambio de pantalla. Antes se revisa la cuenta en la base: si fue
-     * suspendida o eliminada se vuelve al ingreso; si cambió el rol, el menú
-     * y los permisos se actualizan. La pantalla de usuarios exige rol admin
-     * (si no, se va a la consulta, como exigir_admin en la web).
+     * Cambio de pantalla. Antes se pide la cuenta a la API: si la sesión ya no
+     * vale, el servidor responde con el motivo y se vuelve al ingreso; si cambió
+     * el rol, el menú se actualiza. La pantalla de usuarios exige rol admin.
      */
     void ir(String seccion) {
-        Tarea.ejecutar(contenido, () -> RepositorioUsuarios.estado(sesion.usuarioId()), cuenta -> {
-            if (!vigente(cuenta)) {
-                cerrarSesion(CIERRE_SUSPENDIDA, false);
-                return;
-            }
+        Tarea.ejecutar(contenido, () -> Api.get("/api/sesion"), r -> {
+            sesion = Sesion.de(Json.objeto(r, "usuario"));
             mostrar(USUARIOS.equals(seccion) && !sesion.admin() ? DASHBOARD : seccion);
-        }, e -> mostrar(seccion));
-    }
-
-    /** Antes de una acción que escribe en la base: false si la cuenta ya no vale. */
-    boolean verificarCuenta() throws java.sql.SQLException {
-        return vigente(RepositorioUsuarios.estado(sesion.usuarioId()));
-    }
-
-    private boolean vigente(Cuenta cuenta) {
-        if (cuenta == null || !cuenta.activo()) {
-            return false;
-        }
-        sesion = sesion.conAdmin(cuenta.esAdmin());
-        return true;
+        }, e -> {
+            if (!(e instanceof Api.SesionCerrada)) {
+                mostrar(seccion);
+            }
+        });
     }
 
     private void mostrar(String seccion) {
@@ -273,16 +249,15 @@ public class VentanaPrincipal extends JFrame {
         consulta.avisar(mensaje, exito);
     }
 
-    /** Cuenta suspendida o eliminada mientras se usaba la aplicación. */
-    void cuentaNoVigente() {
-        cerrarSesion(CIERRE_SUSPENDIDA, false);
-    }
-
     /** Vuelve al ingreso con el mensaje del motivo, como la web. */
     void cerrarSesion(String mensaje, boolean exito) {
-        inactividad.stop();
-        duracionMaxima.stop();
-        java.awt.Toolkit.getDefaultToolkit().removeAWTEventListener(actividad);
+        if (cerrada) {
+            return;
+        }
+        cerrada = true;
+        vigilancia.stop();
+        Api.cerrarSesion();
+        Api.alCerrarSesion(null);
         new VentanaLogin(mensaje, exito).setVisible(true);
         dispose();
     }

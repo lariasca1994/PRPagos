@@ -24,6 +24,9 @@ class Settings:
     db_alias: str = os.getenv("DB_ALIAS", "prpagosdb_tp")
     db_usuario: str = os.getenv("DB_USUARIO", "ADMIN")
     db_password: str = os.getenv("DB_PASSWORD", "")
+    # Esquema dueño de las tablas y procedimientos, si la app entra con otro
+    # usuario (vacío = el mismo usuario de la conexión).
+    db_esquema: str = os.getenv("DB_ESQUEMA", "")
     jwt_secret: str = os.getenv("JWT_SECRET", "")
     # Clave AES-256 (32 bytes en base64) con la que se cifran los secretos
     # TOTP en la base. Es la MISMA que totp.clave en el config.properties

@@ -23,7 +23,12 @@ class UsuarioActual:
 
 
 def obtener_usuario_opcional(request: Request) -> UsuarioActual | None:
+    """Sesión de la web (cookie "sesion") o de la app de escritorio
+    (cabecera "Authorization: Bearer ..."): el mismo token y las mismas reglas."""
     token = request.cookies.get("sesion")
+    autorizacion = request.headers.get("authorization", "")
+    if autorizacion.lower().startswith("bearer "):
+        token = autorizacion[7:].strip()
     if not token:
         return None
     datos = leer_token(token)

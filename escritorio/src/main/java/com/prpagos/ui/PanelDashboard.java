@@ -8,12 +8,14 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Paint;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.FieldPosition;
 import java.text.NumberFormat;
 import java.text.ParsePosition;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
@@ -39,32 +41,26 @@ import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 
-import com.prpagos.datos.RepositorioFinanzas;
-import com.prpagos.finanzas.Correo;
-import com.prpagos.finanzas.Finanzas;
-import com.prpagos.finanzas.Resumenes;
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 
 /**
- * Dashboard: misma composición, datos y colores que dashboard.html de la web
- * (allá con Chart.js, aquí con JFreeChart). Tarjetas del mes, ingresos vs
- * gastos de 6 meses, gastos por categoría, plan 50/30/20 y resúmenes por correo.
+ * Dashboard: misma composición y colores que dashboard.html de la web (allá
+ * con Chart.js, aquí con JFreeChart). Las cifras, las series, el plan y sus
+ * textos los calcula el servidor (servicios/dashboard.py) y son exactamente
+ * los mismos que ve la web; aquí solo se dibujan.
  */
 class PanelDashboard extends JPanel {
 
-    /** Opción del selector de mes. */
-    private record OpcionMes(LocalDate mes) {
+    /** Opción del selector de mes ("2026-09" / "Septiembre 2026"). */
+    private record OpcionMes(String valor, String texto) {
         @Override
         public String toString() {
-            return Finanzas.nombreMes(mes);
+            return texto;
         }
     }
 
-    /** Lo que se dibuja: se conserva para redibujar al cambiar de tema. */
-    private record Datos(LocalDate mes, RepositorioFinanzas.Totales totales, List<Finanzas.Mes> serie,
-                         List<Finanzas.Categoria> categorias, Map<String, Double> pcts, List<Finanzas.FilaPlan> plan) {
-    }
-
-    private final VentanaPrincipal ventana;
     private final JComboBox<OpcionMes> selectorMes = new JComboBox<>();
     private final Ui.Aviso aviso = new Ui.Aviso();
     private final JLabel ingresos = cifra();
@@ -81,11 +77,11 @@ class PanelDashboard extends JPanel {
     private final JPanel tablaPlan = new JPanel(new GridLayout(0, 5, 0, 0));
     private final JButton semanal = Ui.secundario("Enviarme el resumen semanal", e -> enviarResumen("semanal"));
     private final JButton mensual = Ui.secundario("Enviarme el resumen del mes", e -> enviarResumen("mensual"));
-    private Datos ultimo;
+    /** La última vista recibida: se conserva para redibujar al cambiar de tema. */
+    private JsonObject ultima;
     private boolean cargandoMeses;
 
     PanelDashboard(VentanaPrincipal ventana) {
-        this.ventana = ventana;
         setOpaque(false);
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 
@@ -157,8 +153,8 @@ class PanelDashboard extends JPanel {
         add(correos);
 
         Tema.alCambiar(() -> {
-            if (ultimo != null) {
-                dibujar(ultimo);
+            if (ultima != null) {
+                dibujar(ultima);
             }
         });
     }
@@ -210,56 +206,49 @@ class PanelDashboard extends JPanel {
 
     void recargar() {
         aviso.ocultar();
-        boolean correoListo = Correo.disponible();
-        semanal.setEnabled(correoListo);
-        mensual.setEnabled(correoListo);
+        OpcionMes elegido = (OpcionMes) selectorMes.getSelectedItem();
+        String mes = elegido == null ? "" : elegido.valor();
+        Tarea.ejecutar(this, () -> Api.get("/api/dashboard", Map.of("mes", mes)), this::dibujar,
+                e -> aviso.error(Ui.mensajeError("cargar el dashboard").apply(e)));
+    }
+
+    private void dibujar(JsonObject v) {
+        ultima = v;
         if (selectorMes.getItemCount() == 0) {
             cargandoMeses = true;
             DefaultComboBoxModel<OpcionMes> modelo = new DefaultComboBoxModel<>();
-            LocalDate hoy = Finanzas.hoy().withDayOfMonth(1);
-            for (int i = 0; i < 12; i++) {
-                modelo.addElement(new OpcionMes(Finanzas.mesesAtras(hoy, i)));
+            for (JsonObject m : Json.lista(v, "meses")) {
+                OpcionMes opcion = new OpcionMes(Json.texto(m, "valor"), Json.texto(m, "texto"));
+                modelo.addElement(opcion);
+                if (opcion.valor().equals(Json.texto(v, "mes"))) {
+                    modelo.setSelectedItem(opcion);
+                }
             }
             selectorMes.setModel(modelo);
             cargandoMeses = false;
         }
-        LocalDate mes = ((OpcionMes) selectorMes.getSelectedItem()).mes();
-        long usuarioId = ventana.sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            LocalDate siguiente = Finanzas.mesesAtras(mes, -1);
-            RepositorioFinanzas.Totales t = RepositorioFinanzas.totales(usuarioId, mes, siguiente);
-            List<Finanzas.Mes> serie = Finanzas.completarMeses(mes,
-                    RepositorioFinanzas.serieMeses(usuarioId, Finanzas.mesesAtras(mes, 5), siguiente), 6);
-            List<Finanzas.Categoria> cats = RepositorioFinanzas.gastosPorCategoria(usuarioId, mes, siguiente);
-            Map<String, Double> pcts = RepositorioFinanzas.plan(usuarioId);
-            List<Finanzas.FilaPlan> plan = Finanzas.calcularPlan(t.ingresos(), pcts,
-                    RepositorioFinanzas.gastosPorGrupo(usuarioId, mes, siguiente));
-            return new Datos(mes, t, serie, cats, pcts, plan);
-        }, this::dibujar, e -> aviso.error(Ui.mensajeError("cargar el dashboard").apply(e)));
-    }
+        boolean correoListo = Json.logico(v, "correo_disponible");
+        semanal.setEnabled(correoListo);
+        mensual.setEnabled(correoListo);
 
-    private void dibujar(Datos d) {
-        ultimo = d;
         Tema.Paleta p = Tema.c();
-        double bal = d.totales().ingresos() - d.totales().gastos();
-        ingresos.setText(Finanzas.moneda(d.totales().ingresos()));
+        JsonObject t = Json.objeto(v, "tarjetas");
+        ingresos.setText(Json.texto(t, "ingresos"));
         ingresos.setForeground(p.plataforma());
-        gastos.setText(Finanzas.moneda(d.totales().gastos()));
+        gastos.setText(Json.texto(t, "gastos"));
         gastos.setForeground(p.acento());
-        balance.setText(Finanzas.moneda(bal));
-        balance.setForeground(bal >= 0 ? p.exitoTexto() : p.acento());
-        ahorro.setText(Finanzas.porcentaje(Math.max(bal, 0), d.totales().ingresos()));
-        movimientos.setText(d.totales().movimientos() + " movimientos");
+        balance.setText(Json.texto(t, "balance"));
+        balance.setForeground(Json.logico(t, "balance_positivo") ? p.exitoTexto() : p.acento());
+        ahorro.setText(Json.texto(t, "ahorro"));
+        movimientos.setText(Json.texto(t, "movimientos"));
 
-        String nombreMes = Finanzas.nombreMes(d.mes());
-        String planTexto = Finanzas.textoPct(d.pcts().get("NECESIDADES")) + "/" + Finanzas.textoPct(d.pcts().get("DESEOS"))
-                + "/" + Finanzas.textoPct(d.pcts().get("AHORRO"));
-        tituloCategorias.setText("Gastos por categoría · " + nombreMes);
-        tituloPlanGrafica.setText("Plan " + planTexto + " · " + nombreMes);
-        tituloPlanTabla.setText("Plan " + planTexto);
+        tituloCategorias.setText(Json.texto(v, "titulo_categorias"));
+        tituloPlanGrafica.setText(Json.texto(v, "titulo_plan_mes"));
+        tituloPlanTabla.setText(Json.texto(v, "titulo_plan"));
 
-        mostrar(graficaMeses, graficaMeses(d));
-        if (d.categorias().isEmpty()) {
+        mostrar(graficaMeses, graficaMeses(v));
+        List<JsonObject> categorias = Json.lista(v, "categorias");
+        if (categorias.isEmpty()) {
             graficaCategorias.removeAll();
             JLabel vacio = new JLabel("No hay gastos en este mes.", JLabel.CENTER);
             vacio.setForeground(p.textoSuave());
@@ -267,10 +256,10 @@ class PanelDashboard extends JPanel {
             graficaCategorias.revalidate();
             graficaCategorias.repaint();
         } else {
-            mostrar(graficaCategorias, graficaCategorias(d));
+            mostrar(graficaCategorias, graficaCategorias(categorias));
         }
-        mostrar(graficaPlan, graficaPlan(d));
-        llenarTablaPlan(d);
+        mostrar(graficaPlan, graficaPlan(Json.lista(v, "plan")));
+        llenarTablaPlan(Json.lista(v, "plan"));
     }
 
     private static void mostrar(JPanel contenedor, JFreeChart grafica) {
@@ -294,11 +283,14 @@ class PanelDashboard extends JPanel {
         return Color.decode(hex);
     }
 
-    /** "$ 1.500.000" en los ejes, como la web. */
+    /** "$ 1.500.000" en los ejes, como dashboard.js de la web (solo presentación). */
     private static final NumberFormat FORMATO_EJE = new NumberFormat() {
+        private final DecimalFormat miles = new DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(new Locale("es", "CO")));
+
         @Override
         public StringBuffer format(double numero, StringBuffer destino, FieldPosition pos) {
-            return destino.append(Finanzas.moneda(numero).replace(",00", ""));
+            String texto = miles.format(Math.abs(Math.round(numero))).replace(',', '.').replace(' ', '.');
+            return destino.append(numero < 0 ? "-$ " : "$ ").append(texto);
         }
 
         @Override
@@ -351,27 +343,28 @@ class PanelDashboard extends JPanel {
         }
     }
 
-    private static JFreeChart graficaMeses(Datos d) {
+    private static JFreeChart graficaMeses(JsonObject v) {
         DefaultCategoryDataset datos = new DefaultCategoryDataset();
-        for (Finanzas.Mes m : d.serie()) {
-            String etiqueta = Finanzas.etiquetaMesCorta(m.mes());
-            datos.addValue(m.ingresos(), "Ingresos", etiqueta);
-            datos.addValue(m.gastos(), "Gastos", etiqueta);
+        for (JsonObject m : Json.lista(v, "serie")) {
+            String etiqueta = Json.texto(m, "etiqueta");
+            datos.addValue(Json.numero(m, "ingresos"), "Ingresos", etiqueta);
+            datos.addValue(Json.numero(m, "gastos"), "Gastos", etiqueta);
         }
         JFreeChart g = ChartFactory.createBarChart(null, null, null, datos, PlotOrientation.VERTICAL, true, true, false);
         estilo(g);
         g.getLegend().setPosition(RectangleEdge.TOP);
         BarRenderer r = (BarRenderer) g.getCategoryPlot().getRenderer();
-        r.setSeriesPaint(0, color(Finanzas.COLOR_INGRESOS));
-        r.setSeriesPaint(1, color(Finanzas.COLOR_GASTOS));
+        JsonObject colores = Json.objeto(v, "colores");
+        r.setSeriesPaint(0, color(Json.texto(colores, "ingresos")));
+        r.setSeriesPaint(1, color(Json.texto(colores, "gastos")));
         r.setMaximumBarWidth(0.06);
         return g;
     }
 
-    private static JFreeChart graficaCategorias(Datos d) {
+    private static JFreeChart graficaCategorias(List<JsonObject> categorias) {
         DefaultPieDataset<String> datos = new DefaultPieDataset<>();
-        for (Finanzas.Categoria c : d.categorias()) {
-            datos.setValue(c.nombre(), c.total());
+        for (JsonObject c : categorias) {
+            datos.setValue(Json.texto(c, "nombre"), Json.numero(c, "total"));
         }
         JFreeChart g = ChartFactory.createRingChart(null, datos, true, true, false);
         estilo(g);
@@ -385,21 +378,20 @@ class PanelDashboard extends JPanel {
         plot.setLabelGenerator(null);
         plot.setDefaultSectionOutlinePaint(Tema.c().superficie());
         plot.setDefaultSectionOutlineStroke(new BasicStroke(2f));
-        for (int i = 0; i < d.categorias().size(); i++) {
-            plot.setSectionPaint(d.categorias().get(i).nombre(),
-                    color(Finanzas.PALETA_CATEGORIAS.get(i % Finanzas.PALETA_CATEGORIAS.size())));
+        for (JsonObject c : categorias) {
+            plot.setSectionPaint(Json.texto(c, "nombre"), color(Json.texto(c, "color")));
         }
         return g;
     }
 
-    private static JFreeChart graficaPlan(Datos d) {
+    private static JFreeChart graficaPlan(List<JsonObject> plan) {
         DefaultCategoryDataset datos = new DefaultCategoryDataset();
         List<String> colores = new ArrayList<>();
-        for (Finanzas.FilaPlan f : d.plan()) {
-            String grupo = Finanzas.NOMBRE_GRUPO.get(f.grupo());
-            datos.addValue(f.presupuesto(), "Presupuesto", grupo);
-            datos.addValue(f.real(), "Real", grupo);
-            colores.add(Finanzas.COLOR_GRUPO.get(f.grupo()));
+        for (JsonObject f : plan) {
+            String grupo = Json.texto(f, "grupo");
+            datos.addValue(Json.numero(f, "presupuesto"), "Presupuesto", grupo);
+            datos.addValue(Json.numero(f, "real"), "Real", grupo);
+            colores.add(Json.texto(f, "color_grupo"));
         }
         Color presupuesto = Tema.esOscuro() ? color("#3A4157") : color("#C9CED8");
         JFreeChart g = ChartFactory.createBarChart(null, null, null, datos, PlotOrientation.HORIZONTAL, true, true, false);
@@ -417,44 +409,40 @@ class PanelDashboard extends JPanel {
         r.setShadowVisible(false);
         r.setItemMargin(0.08);
         r.setSeriesPaint(0, presupuesto);
-        r.setSeriesPaint(1, color(Finanzas.COLOR_INGRESOS));
+        r.setSeriesPaint(1, colores.isEmpty() ? presupuesto : color(colores.get(0)));
         plot.setRenderer(r);
         return g;
     }
 
     // ───────────────────────── Tabla del plan ─────────────────────────
 
-    private void llenarTablaPlan(Datos d) {
+    private void llenarTablaPlan(List<JsonObject> plan) {
         tablaPlan.removeAll();
         Tema.Paleta p = Tema.c();
         for (String encabezado : new String[] {"Grupo", "Presupuesto", "Real", "Usado", "Estado"}) {
-            JLabel l = celda(encabezado, p.textoSuave(), Font.BOLD);
-            tablaPlan.add(l);
+            tablaPlan.add(celda(encabezado, p.textoSuave(), Font.BOLD));
         }
-        for (Finanzas.FilaPlan f : d.plan()) {
-            JLabel grupo = celda(Finanzas.NOMBRE_GRUPO.get(f.grupo()) + " (" + Finanzas.textoPct(f.pct()) + "%)",
-                    p.texto(), Font.PLAIN);
-            grupo.setIcon(new Punto(color(Finanzas.COLOR_GRUPO.get(f.grupo()))));
+        for (JsonObject f : plan) {
+            JLabel grupo = celda(Json.texto(f, "texto_grupo"), p.texto(), Font.PLAIN);
+            grupo.setIcon(new Punto(color(Json.texto(f, "color_grupo"))));
             tablaPlan.add(grupo);
-            tablaPlan.add(celda(Finanzas.moneda(f.presupuesto()), p.texto(), Font.PLAIN));
-            tablaPlan.add(celda(Finanzas.moneda(f.real()), p.texto(), Font.PLAIN));
-            tablaPlan.add(celda(Math.round(f.usado()) + " %", p.texto(), Font.PLAIN));
-            tablaPlan.add(celda(f.estado(), colorEstado(f.color()), Font.BOLD));
+            tablaPlan.add(celda(Json.texto(f, "texto_presupuesto"), p.texto(), Font.PLAIN));
+            tablaPlan.add(celda(Json.texto(f, "texto_real"), p.texto(), Font.PLAIN));
+            tablaPlan.add(celda(Json.texto(f, "usado"), p.texto(), Font.PLAIN));
+            tablaPlan.add(celda(Json.texto(f, "estado"), colorEstado(Json.texto(f, "clase_estado")), Font.BOLD));
         }
         tablaPlan.revalidate();
         tablaPlan.repaint();
     }
 
-    /** Mismo tono que la web: el del correo en claro, más luminoso en oscuro (.estado-bien/mal/alerta). */
-    private static Color colorEstado(String color) {
+    /** Mismo tono que .estado-bien / .estado-mal / .estado-alerta de la web, en claro y oscuro. */
+    private static Color colorEstado(String clase) {
         boolean oscuro = Tema.esOscuro();
-        if (Finanzas.COLOR_BIEN.equals(color)) {
-            return oscuro ? color("#75e0a7") : color("#067647");
-        }
-        if (Finanzas.COLOR_MAL.equals(color)) {
-            return oscuro ? color("#fda29b") : color("#a8221a");
-        }
-        return oscuro ? color("#f7b27a") : color("#b54708");
+        return switch (clase) {
+            case "bien" -> oscuro ? color("#75e0a7") : color("#067647");
+            case "mal" -> oscuro ? color("#fda29b") : color("#a8221a");
+            default -> oscuro ? color("#f7b27a") : color("#b54708");
+        };
     }
 
     private static JLabel celda(String texto, Color color, int estilo) {
@@ -489,24 +477,10 @@ class PanelDashboard extends JPanel {
 
     // ───────────────────────── Resumen por correo ─────────────────────────
 
-    /** "Enviarme el resumen ahora": el semanal (últimos 7 días) o el del mes en curso. */
+    /** "Enviarme el resumen ahora": lo arma y lo envía el servidor, igual que desde la web. */
     private void enviarResumen(String tipo) {
-        LocalDate dia = Finanzas.hoy();
-        Finanzas.Periodo periodo = "semanal".equals(tipo) ? Finanzas.periodoSemanal(dia) : Finanzas.periodoMensual(dia);
-        var s = ventana.sesion();
-        Tarea.ejecutar(this, () -> {
-            try {
-                Resumenes.enviar(s.usuarioId(), s.correo(), s.nombre(), periodo);
-                return null;
-            } catch (Correo.ErrorCorreo e) {
-                return e.getMessage();
-            }
-        }, error -> {
-            if (error != null) {
-                aviso.error(error);
-            } else {
-                aviso.exito("Te enviamos el resumen a " + s.correo());
-            }
-        }, e -> aviso.error(Ui.mensajeError("enviar el resumen").apply(e)));
+        Tarea.ejecutar(this, () -> Api.post("/api/dashboard/resumen", Json.de("tipo", tipo)),
+                r -> aviso.exito(Json.texto(r, "mensaje")),
+                e -> aviso.error(Ui.mensajeError("enviar el resumen").apply(e)));
     }
 }

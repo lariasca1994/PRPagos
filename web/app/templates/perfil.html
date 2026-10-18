@@ -29,11 +29,11 @@
         <p class="texto-ayuda">Cómo repartir tus ingresos del mes. Los tres porcentajes deben sumar 100.</p>
         <form method="post" action="/perfil/plan">
             <label for="necesidades">Necesidades (%)</label>
-            <input type="text" id="necesidades" name="necesidades" inputmode="decimal" value="{{ texto_pct(pcts.NECESIDADES) }}" required>
+            <input type="text" id="necesidades" name="necesidades" inputmode="decimal" value="{{ textos_pct.NECESIDADES }}" required>
             <label for="deseos">Deseos (%)</label>
-            <input type="text" id="deseos" name="deseos" inputmode="decimal" value="{{ texto_pct(pcts.DESEOS) }}" required>
+            <input type="text" id="deseos" name="deseos" inputmode="decimal" value="{{ textos_pct.DESEOS }}" required>
             <label for="ahorro">Ahorro y deudas (%)</label>
-            <input type="text" id="ahorro" name="ahorro" inputmode="decimal" value="{{ texto_pct(pcts.AHORRO) }}" required>
+            <input type="text" id="ahorro" name="ahorro" inputmode="decimal" value="{{ textos_pct.AHORRO }}" required>
             <button type="submit" class="boton">Guardar plan</button>
         </form>
     </section>

@@ -18,7 +18,7 @@ from .config import settings
 
 
 def obtener_conexion():
-    return oracledb.connect(
+    conexion = oracledb.connect(
         user=settings.db_usuario,
         password=settings.db_password,
         dsn=settings.db_alias,
@@ -26,3 +26,8 @@ def obtener_conexion():
         wallet_location=settings.wallet_path,
         wallet_password=settings.wallet_password,
     )
+    # La app entra con un usuario propio de privilegios mínimos (sin poder
+    # crear ni borrar tablas) y trabaja sobre el esquema dueño de los datos.
+    if settings.db_esquema:
+        conexion.current_schema = settings.db_esquema
+    return conexion

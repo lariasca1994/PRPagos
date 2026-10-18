@@ -1,58 +1,41 @@
-"""
-Gestión de cuentas para el admin: listar, suspender, reactivar, eliminar.
-Estas rutas nunca existieron en la versión de escritorio -- son
-exclusivas del panel web, igual que en el resto del portafolio.
-"""
+"""Página de gestión de cuentas (rol admin). La lógica está en servicios/usuarios.py."""
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from .. import repositorio
 from ..dependencias import UsuarioActual, exigir_admin
+from ..servicios import ErrorServicio
+from ..servicios import usuarios as servicio
 
 router = APIRouter(prefix="/admin/usuarios")
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _resultado(funcion, *args) -> RedirectResponse:
+    try:
+        return RedirectResponse(url=f"/admin/usuarios?ok={quote(funcion(*args))}", status_code=303)
+    except ErrorServicio as e:
+        return RedirectResponse(url=f"/admin/usuarios?error={quote(e.mensaje)}", status_code=303)
+
+
 @router.get("")
 def listar(request: Request, usuario: UsuarioActual = Depends(exigir_admin)):
-    usuarios = repositorio.listar_usuarios()
-    return templates.TemplateResponse(
-        "admin_usuarios.html",
-        {"request": request, "usuario": usuario, "usuarios": usuarios},
-    )
+    return templates.TemplateResponse("admin_usuarios.html",
+                                      {"request": request, "usuario": usuario, "usuarios": servicio.listar()})
 
 
 @router.post("/{usuario_id}/suspender")
 def suspender(usuario_id: int, usuario: UsuarioActual = Depends(exigir_admin)):
-    # Un admin no puede suspender su propia cuenta -- se quedaría afuera
-    # del panel sin que nadie más pueda reactivarlo. Mismo resguardo que
-    # ColombiaTech2 / gestor-casos-qa / taskflow / verificador-api.
-    if usuario_id == usuario.usuario_id:
-        return RedirectResponse(
-            url=f"/admin/usuarios?error={quote('No puedes suspender tu propia cuenta')}",
-            status_code=303,
-        )
-    repositorio.suspender_usuario(usuario_id)
-    return RedirectResponse(url=f"/admin/usuarios?ok={quote('Cuenta suspendida')}", status_code=303)
+    return _resultado(servicio.suspender, usuario.usuario_id, usuario_id)
 
 
 @router.post("/{usuario_id}/reactivar")
 def reactivar(usuario_id: int, usuario: UsuarioActual = Depends(exigir_admin)):
-    repositorio.reactivar_usuario(usuario_id)
-    return RedirectResponse(url=f"/admin/usuarios?ok={quote('Cuenta reactivada')}", status_code=303)
+    return _resultado(servicio.reactivar, usuario_id)
 
 
 @router.post("/{usuario_id}/eliminar")
 def eliminar(usuario_id: int, usuario: UsuarioActual = Depends(exigir_admin)):
-    if usuario_id == usuario.usuario_id:
-        return RedirectResponse(
-            url=f"/admin/usuarios?error={quote('No puedes eliminar tu propia cuenta')}",
-            status_code=303,
-        )
-    exito, motivo = repositorio.eliminar_usuario(usuario_id)
-    if not exito:
-        return RedirectResponse(url=f"/admin/usuarios?error={quote(motivo)}", status_code=303)
-    return RedirectResponse(url=f"/admin/usuarios?ok={quote('Cuenta eliminada')}", status_code=303)
+    return _resultado(servicio.eliminar, usuario.usuario_id, usuario_id)

@@ -10,12 +10,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFileChooser;
@@ -27,15 +29,16 @@ import javax.swing.JTextField;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 import com.prpagos.datos.Pago;
-import com.prpagos.datos.RepositorioPagos;
-import com.prpagos.datos.Sesion;
 
 /**
  * "Consultar registros": misma pantalla que registros_lista.html de la web
- * (filtros, total, tabla con "Modificar" y exportar a CSV). Para el admin,
- * igual que en la web: ve los pagos de todos con su dueño, puede eliminar y
- * el CSV lleva las columnas Usuario y Nombre.
+ * (filtros, totales, tabla con "Modificar" y exportar a CSV). Los filtros se
+ * envían tal cual a la API: el servidor los interpreta, calcula los totales y
+ * arma el CSV, igual que para la web. El admin ve los registros de todos.
  */
 class PanelConsulta extends JPanel {
 
@@ -61,7 +64,6 @@ class PanelConsulta extends JPanel {
     };
     private final JTable tabla = new JTable(modelo);
     private List<Pago> pagos = new ArrayList<>();
-    private boolean comoAdmin;
 
     PanelConsulta(VentanaPrincipal ventana) {
         this.ventana = ventana;
@@ -94,10 +96,6 @@ class PanelConsulta extends JPanel {
         add(tablaEnTarjeta());
         add(Ui.espacio(16));
         add(Ui.secundario("Exportar a CSV", e -> exportarCsv()));
-    }
-
-    private Sesion sesion() {
-        return ventana.sesion();
     }
 
     private JPanel filtros() {
@@ -236,45 +234,43 @@ class PanelConsulta extends JPanel {
         buscar();
     }
 
-    private void buscar() {
-        String textoConcepto = concepto.getText().trim();
-        // Igual que la web: campo vacío = sin filtro, monto inválido se ignora.
-        Double min = monto(montoMin.getText());
-        Double max = monto(montoMax.getText());
-        LocalDate fDesde = desde.getFechaSeleccionada();
-        LocalDate fHasta = hasta.getFechaSeleccionada();
-        String filtroConcepto = textoConcepto.isEmpty() ? null : textoConcepto;
-        String tipo = switch (tipoFiltro.getSelectedIndex()) {
+    /** Los filtros tal como los escribió la persona; el servidor los interpreta (igual que en la web). */
+    private Map<String, String> valoresFiltros() {
+        Map<String, String> f = new LinkedHashMap<>();
+        f.put("tipo", switch (tipoFiltro.getSelectedIndex()) {
             case 1 -> "GASTO";
             case 2 -> "INGRESO";
-            default -> null;
-        };
-        boolean admin = sesion().admin();
-        long usuarioId = sesion().usuarioId();
-        RepositorioPagos.Filtros filtros = new RepositorioPagos.Filtros(tipo, fDesde, fHasta, filtroConcepto, min, max);
-        Tarea.ejecutar(this, () -> RepositorioPagos.buscar(admin ? null : usuarioId, filtros),
-                resultado -> mostrar(resultado, admin),
+            default -> "";
+        });
+        f.put("concepto", concepto.getText());
+        f.put("monto_min", montoMin.getText());
+        f.put("monto_max", montoMax.getText());
+        LocalDate fDesde = desde.getFechaSeleccionada();
+        LocalDate fHasta = hasta.getFechaSeleccionada();
+        f.put("fecha_desde", fDesde == null ? "" : fDesde.toString());
+        f.put("fecha_hasta", fHasta == null ? "" : fHasta.toString());
+        return f;
+    }
+
+    private void buscar() {
+        Map<String, String> f = valoresFiltros();
+        Tarea.ejecutar(this, () -> Api.get("/api/registros", f), this::mostrar,
                 e -> aviso.error(Ui.mensajeError("consultar los registros").apply(e)));
     }
 
-    private static Double monto(String texto) {
-        try {
-            return texto.trim().isEmpty() ? null : Double.parseDouble(texto.trim());
-        } catch (NumberFormatException e) {
-            return null;
+    private void mostrar(JsonObject respuesta) {
+        boolean admin = Json.logico(respuesta, "admin");
+        JsonObject tipos = Json.objeto(respuesta, "tipos");
+        List<Pago> resultado = new ArrayList<>();
+        for (JsonObject r : Json.lista(respuesta, "registros")) {
+            resultado.add(Pago.de(r, tipos));
         }
-    }
-
-    private void mostrar(List<Pago> resultado, boolean admin) {
         pagos = resultado;
-        comoAdmin = admin;
         notaAdmin.setVisible(admin);
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(admin
                 ? new Object[] {"ID", "Usuario", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", "", ""}
                 : new Object[] {"ID", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", ""});
-        double ingresos = 0;
-        double gastos = 0;
         for (Pago p : resultado) {
             String monto = String.format(Locale.ROOT, "%.2f", p.monto());
             if (admin) {
@@ -284,12 +280,10 @@ class PanelConsulta extends JPanel {
                 modelo.addRow(new Object[] {p.idPago(), p.tipoTexto(), monto, p.fecha().toString(), p.categoria(),
                     p.concepto(), MODIFICAR});
             }
-            if (p.esIngreso()) {
-                ingresos += p.monto();
-            } else {
-                gastos += p.monto();
-            }
         }
+        double ingresos = Json.numero(respuesta, "ingresos");
+        double gastos = Json.numero(respuesta, "gastos");
+        double balance = Json.numero(respuesta, "balance");
         if (resultado.isEmpty()) {
             Object[] vacia = new Object[modelo.getColumnCount()];
             vacia[0] = "No hay registros para los filtros seleccionados.";
@@ -301,29 +295,18 @@ class PanelConsulta extends JPanel {
         total.setText("<html>Ingresos: <b style='color:" + hex(pal.plataforma()) + "'>"
                 + String.format(Locale.ROOT, "%.2f", ingresos) + "</b> &middot; Gastos: <b style='color:"
                 + hex(pal.acento()) + "'>" + String.format(Locale.ROOT, "%.2f", gastos)
-                + "</b> &middot; Balance: <b>" + String.format(Locale.ROOT, "%.2f", ingresos - gastos) + "</b></html>");
+                + "</b> &middot; Balance: <b>" + String.format(Locale.ROOT, "%.2f", balance) + "</b></html>");
         revalidate();
     }
 
     private void eliminar(Pago pago) {
-        long adminId = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            // Como exigir_admin en la web: la cuenta debe seguir activa y con rol admin.
-            if (!ventana.verificarCuenta() || !ventana.sesion().admin()) {
-                return Boolean.FALSE;
-            }
-            RepositorioPagos.eliminar(adminId, pago.idPago());
-            return Boolean.TRUE;
-        }, ok -> {
-            if (!ok) {
-                ventana.ir(VentanaPrincipal.CONSULTA);  // revisa la cuenta: suspendida o sin rol admin
-                return;
-            }
+        Tarea.ejecutar(this, () -> Api.delete("/api/registros/" + pago.idPago()), r -> {
             recargar();
-            aviso.exito("Registro #" + pago.idPago() + " eliminado");
+            aviso.exito(Json.texto(r, "mensaje"));
         }, e -> aviso.error(Ui.mensajeError("eliminar el registro").apply(e)));
     }
 
+    /** El mismo CSV que /registros/exportar.csv de la web: lo arma el servidor. */
     private void exportarCsv() {
         JFileChooser selector = new JFileChooser();
         selector.setSelectedFile(new File("registros.csv"));
@@ -331,33 +314,16 @@ class PanelConsulta extends JPanel {
             return;
         }
         File archivo = selector.getSelectedFile();
-        // Mismas columnas que /registros/exportar.csv de la web.
-        try (PrintWriter w = new PrintWriter(archivo, StandardCharsets.UTF_8)) {
-            w.println(comoAdmin ? "ID,Usuario,Nombre,Tipo,Monto,Fecha,Categoría,Concepto"
-                    : "ID,Tipo,Monto,Fecha,Categoría,Concepto");
-            for (Pago p : pagos) {
-                String fijo = p.tipoTexto() + "," + com.prpagos.finanzas.Finanzas.numero(p.monto()) + "," + p.fecha() + "," + csv(p.categoria()) + ","
-                        + csv(p.concepto());
-                w.println(comoAdmin
-                        ? p.idPago() + "," + csv(p.duenoCorreo()) + "," + csv(p.duenoNombre()) + "," + fijo
-                        : p.idPago() + "," + fijo);
-            }
-        } catch (IOException e) {
-            aviso.error("No se pudo exportar: " + e.getMessage());
-        }
+        Map<String, String> f = valoresFiltros();
+        Tarea.ejecutar(this, () -> {
+            Files.writeString(archivo.toPath(), Api.texto("/api/registros/exportar.csv", f), StandardCharsets.UTF_8);
+            return archivo.getName();
+        }, nombre -> aviso.exito("Exportado: " + nombre), e -> aviso.error(e instanceof IOException
+                ? "No se pudo exportar: " + e.getMessage() : Ui.mensajeError("exportar").apply(e)));
     }
 
     private static String hex(java.awt.Color c) {
         return String.format("#%06x", c.getRGB() & 0xFFFFFF);
     }
 
-    private static String csv(String texto) {
-        if (texto == null) {
-            return "";
-        }
-        if (texto.contains(",") || texto.contains("\"") || texto.contains("\n")) {
-            return "\"" + texto.replace("\"", "\"\"") + "\"";
-        }
-        return texto;
-    }
 }

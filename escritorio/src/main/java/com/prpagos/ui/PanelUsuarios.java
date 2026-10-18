@@ -19,13 +19,14 @@ import javax.swing.JTextArea;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-import com.prpagos.datos.Cuenta;
-import com.prpagos.datos.RepositorioUsuarios;
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 
 /**
- * "Usuarios (admin)": misma pantalla y mismas reglas que admin_usuarios.html
- * y routers/usuarios.py de la web. Suspender, reactivar y eliminar cuentas;
- * la propia cuenta no se puede suspender ni eliminar.
+ * "Usuarios (admin)": misma pantalla que admin_usuarios.html de la web.
+ * Suspender, reactivar y eliminar cuentas por la API: las reglas (la propia
+ * cuenta no se puede suspender ni eliminar) y los mensajes son del servidor.
  */
 class PanelUsuarios extends JPanel {
 
@@ -43,7 +44,7 @@ class PanelUsuarios extends JPanel {
         }
     };
     private final JTable tabla = new JTable(modelo);
-    private List<Cuenta> cuentas = new ArrayList<>();
+    private List<JsonObject> cuentas = new ArrayList<>();
 
     PanelUsuarios(VentanaPrincipal ventana) {
         this.ventana = ventana;
@@ -130,18 +131,20 @@ class PanelUsuarios extends JPanel {
     }
 
     private void cargar() {
-        Tarea.ejecutar(this, RepositorioUsuarios::listar, this::mostrar,
+        Tarea.ejecutar(this, () -> Json.lista(Api.get("/api/usuarios"), "usuarios"), this::mostrar,
                 e -> aviso.error(Ui.mensajeError("listar los usuarios").apply(e)));
     }
 
-    private void mostrar(List<Cuenta> lista) {
+    private void mostrar(List<JsonObject> lista) {
         cuentas = lista;
         modelo.setRowCount(0);
         long yo = ventana.sesion().usuarioId();
-        for (Cuenta c : lista) {
-            boolean propia = c.id() == yo;
-            modelo.addRow(new Object[] {c.nombre(), c.usuario(), c.rol(), c.activo() ? "Activo" : "Suspendido",
-                propia ? "(tú)" : (c.activo() ? SUSPENDER : REACTIVAR), propia ? "" : ELIMINAR});
+        for (JsonObject c : lista) {
+            boolean propia = Json.entero(c, "id") == yo;
+            boolean activo = Json.logico(c, "activo");
+            modelo.addRow(new Object[] {Json.texto(c, "nombre"), Json.texto(c, "usuario"), Json.texto(c, "rol"),
+                activo ? "Activo" : "Suspendido", propia ? "(tú)" : (activo ? SUSPENDER : REACTIVAR),
+                propia ? "" : ELIMINAR});
         }
         if (lista.isEmpty()) {
             modelo.addRow(new Object[] {"No hay usuarios registrados.", "", "", "", "", ""});
@@ -149,42 +152,18 @@ class PanelUsuarios extends JPanel {
         revalidate();
     }
 
-    private void accion(String accion, Cuenta cuenta) {
-        long yo = ventana.sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            // Como exigir_admin: la cuenta del admin debe seguir activa y con rol admin.
-            if (!ventana.verificarCuenta() || !ventana.sesion().admin()) {
-                return null;
-            }
-            if (cuenta.id() == yo) {
-                return new String[] {"error", SUSPENDER.equals(accion)
-                        ? "No puedes suspender tu propia cuenta" : "No puedes eliminar tu propia cuenta"};
-            }
-            switch (accion) {
-                case SUSPENDER -> {
-                    RepositorioUsuarios.suspender(cuenta.id());
-                    return new String[] {"ok", "Cuenta suspendida"};
-                }
-                case REACTIVAR -> {
-                    RepositorioUsuarios.reactivar(cuenta.id());
-                    return new String[] {"ok", "Cuenta reactivada"};
-                }
-                default -> {
-                    String motivo = RepositorioUsuarios.eliminar(cuenta.id());
-                    return motivo == null ? new String[] {"ok", "Cuenta eliminada"} : new String[] {"error", motivo};
-                }
-            }
-        }, resultado -> {
-            if (resultado == null) {
-                ventana.ir(VentanaPrincipal.USUARIOS);  // revisa la cuenta: suspendida o sin rol admin
-                return;
-            }
+    private void accion(String accion, JsonObject cuenta) {
+        long id = Json.entero(cuenta, "id");
+        Tarea.ejecutar(this, () -> switch (accion) {
+            case SUSPENDER -> Api.post("/api/usuarios/" + id + "/suspender", null);
+            case REACTIVAR -> Api.post("/api/usuarios/" + id + "/reactivar", null);
+            default -> Api.delete("/api/usuarios/" + id);
+        }, r -> {
             cargar();
-            if ("ok".equals(resultado[0])) {
-                aviso.exito(resultado[1]);
-            } else {
-                aviso.error(resultado[1]);
-            }
-        }, e -> aviso.error(Ui.mensajeError("actualizar la cuenta").apply(e)));
+            aviso.exito(Json.texto(r, "mensaje"));
+        }, e -> {
+            cargar();
+            aviso.error(Ui.mensajeError("actualizar la cuenta").apply(e));
+        });
     }
 }

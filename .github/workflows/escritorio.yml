@@ -7,8 +7,8 @@
 # El enlace estable es /releases/latest. Repositorio público: sin costo.
 # Luego registra la versión y la huella SHA-256 del .zip en la base: las
 # aplicaciones instaladas se actualizan solas (ver Actualizador.java).
-# La configuración (config.properties y la billetera) no va en el paquete:
-# cada equipo la pone en %APPDATA%\PRPagos\ (ver escritorio/README.md).
+# El paquete no lleva configuración ni claves: la aplicación pide todos los
+# datos a la API de la web. Se instala y se usa, sin nada más.
 name: Publicar escritorio
 
 on:
@@ -19,7 +19,6 @@ on:
       - 'escritorio/lib/**'
       - 'escritorio/resources/**'
       - 'escritorio/empaquetar.ps1'
-      - 'compartido/**'
       - '.github/workflows/escritorio.yml'
   workflow_dispatch:
 
@@ -76,7 +75,7 @@ jobs:
           - **PRPagos-$env:VERSION.exe**: instalador; crea el acceso directo en el escritorio y en el menú Inicio.
           - **PRPagos-Escritorio-$env:VERSION.zip**: versión portable; descomprime y abre ``PRPagos.exe``.
 
-          Antes del primer uso copia ``config.properties`` y la billetera de Oracle en ``%APPDATA%\PRPagos\`` (ver el README del escritorio).
+          Se instala y se usa: no necesita configuración. Los datos son los mismos de la web (misma cuenta).
           "@
           gh release create "escritorio-v$env:VERSION" `
             "$dist/PRPagos-$env:VERSION.exe" "$dist/PRPagos-Escritorio-$env:VERSION.zip" `
