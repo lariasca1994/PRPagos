@@ -7,7 +7,9 @@
 # Dónde va:
 #   - Desde el código: escritorio/config.properties.
 #   - Aplicación instalada (PRPagos.exe): %APPDATA%\PRPagos\config.properties,
-#     con wallet.path como ruta absoluta (o relativa a esa carpeta).
+#     con la carpeta wallet al lado (wallet.path=wallet).
+#   - Otro equipo: copia este archivo con las claves EN CLARO; uno que ya dice
+#     "dpapi:..." solo sirve en el equipo y el usuario de Windows que lo cifró.
 #
 # Protección: en Windows, la primera vez que la aplicación lee el archivo
 # cifra db.password, totp.clave y brevo.api.key con DPAPI (quedan como
