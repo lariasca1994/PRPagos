@@ -28,11 +28,13 @@
 
 Versión web de PRPagos, construida con FastAPI: un gestor de presupuesto
 personal con ingresos, gastos, plan 50/30/20, dashboard con gráficas
-(Chart.js) y resúmenes por correo. Habla con la **misma** base de datos, el
-**mismo** Wallet de Oracle, los **mismos** procedimientos almacenados y las
-**mismas** consultas y plantillas de correo (`../compartido/`) que la versión
-de escritorio ([`../escritorio`](../escritorio)): las dos muestran las mismas
-cifras y envían los mismos correos.
+(Chart.js) y resúmenes por correo.
+
+Es **el único origen** de datos y de lógica del proyecto: toda regla, cálculo y
+mensaje vive en `app/servicios/`. Las páginas web los usan directamente y la
+aplicación de escritorio ([`../escritorio`](../escritorio)) los pide por la
+**API JSON** (`/api/...`), así que las dos muestran exactamente los mismos
+datos, cifras y textos.
 
 Además es una **PWA** (aplicación web progresiva): se puede instalar como app
 en Android, iPhone/iPad, Windows, macOS y Linux desde el navegador, con su
@@ -47,9 +49,10 @@ detalle de la migración.
 - **Qué hace:** registra ingresos y gastos por categoría, muestra el mes en un
   dashboard frente al plan 50/30/20 y envía el resumen por correo cada viernes
   y cada día 29. Cada persona ve solo lo suyo.
-- **Qué lo hace interesante:** la capa web no reimplementa las reglas: la
-  autorización y la auditoría viven en procedimientos de Oracle, y el dashboard
-  y los correos salen de archivos compartidos con el escritorio.
+- **Qué lo hace interesante:** una sola capa de servicios alimenta las páginas y
+  la API del escritorio; la autorización y la auditoría viven además en
+  procedimientos de Oracle, y la app entra a la base con un usuario propio de
+  privilegios mínimos.
 - **Cómo probarlo:** entra a la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
   y crea un usuario. Para correrlo en tu equipo, ve a
   [Instalación para pruebas](#6-instalación-para-pruebas).
@@ -85,6 +88,12 @@ detalle de la migración.
 - Sesión en una cookie `httponly` que se cierra tras 6 horas sin uso (máximo 8
   horas); la página vuelve sola al ingreso con un mensaje del motivo
 
+**API para la aplicación de escritorio**
+- `/api/...` en JSON: acceso (dos pasos, llaves de acceso, recuperación),
+  dashboard, registros y CSV, Perfil, cuentas y versión publicada del escritorio
+- Misma sesión que la web (token Bearer, renovado en la cabecera `X-Sesion`) y
+  los mismos mensajes de error
+
 **App instalable (PWA)**
 - Se instala en el celular, la tablet o el computador desde el navegador
 - Abre en su propia ventana, con ícono y nombre propios
@@ -99,15 +108,17 @@ con contraseña cuando la URL contiene "pagos".
 | Capa | Tecnología |
 |---|---|
 | Servidor | FastAPI, Uvicorn |
+| Lógica | `app/servicios/` (una sola, para las páginas y la API) |
+| API del escritorio | JSON en `/api/...` (`routers/api.py`) |
 | Interfaz | Jinja2, HTML, CSS y Chart.js (incluido en `static/vendor`) |
-| Acceso a datos | python-oracledb (modo thin) |
-| Consultas del dashboard | `../compartido/consultas/*.sql`, las mismas del escritorio |
+| Acceso a datos | python-oracledb (modo thin), usuario de la app sin permisos de DDL |
+| Consultas del dashboard | `../compartido/consultas/*.sql` |
 | Base de datos | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
 | Correos | Brevo (API HTTPS) con las plantillas de `../compartido/correo/` |
 | Tareas programadas | GitHub Actions → `POST /tareas/resumenes` con token |
 | Sesiones | JWT (HS256) en cookie httponly; 6 h sin uso, máximo 8 h |
-| Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única), igual que el escritorio |
+| Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única) |
 | Verificación en dos pasos | TOTP (RFC 6238); QR en SVG; secreto cifrado con AES-256-GCM |
 | Llaves de acceso | WebAuthn: librería `webauthn` (servidor) y `static/llaves.js` (navegador) |
 | App instalable | PWA: manifiesto web y service worker |
@@ -123,11 +134,13 @@ web/
 ├── requirements-dev.txt  + pytest
 ├── .env.example          Plantilla de configuración
 ├── migrar.py             Aplica una migración de ../sql/ (aditiva)
-├── tests/                Pruebas de seguridad, finanzas, resúmenes y tareas
+├── tests/                Pruebas de seguridad, finanzas, servicios, API, resúmenes y tareas
 └── app/
     ├── main.py           Punto de entrada y manejo de errores
     ├── config.py         Carga del .env
-    ├── database.py       Conexión a Oracle con el Wallet
+    ├── database.py       Conexión a Oracle con el Wallet (usuario de la app + DB_ESQUEMA)
+    ├── servicios/        LA lógica: acceso, registros, dashboard, perfil, cuentas y
+    │                     verificación del segundo factor (web y API la usan igual)
     ├── repositorio.py    Procedimientos almacenados y consultas compartidas
     ├── compartido.py     Lee ../compartido/ (consultas SQL y plantillas de correo)
     ├── finanzas.py       Periodos, formato de moneda, plan 50/30/20 y HTML de correos
@@ -137,26 +150,28 @@ web/
     ├── llaves.py         Llaves de acceso (WebAuthn): opciones, reto firmado y verificación
     ├── qr.py             Código QR del autenticador (SVG)
     ├── dependencias.py   Identificación del usuario en cada petición
-    ├── routers/          Ingreso en dos pasos, dashboard, registros, perfil y tareas
+    ├── routers/          Páginas (acceso, dashboard, registros, perfil, cuentas),
+    │                     api.py (JSON para el escritorio) y tareas
     ├── templates/        Plantillas Jinja2
     └── static/           Estilos, tema, gráficas (dashboard.js), íconos y PWA
                           (manifest.webmanifest, sw.js, offline.html)
 ```
 
-Las tablas y procedimientos (`../sql/`), las consultas y plantillas
-compartidas (`../compartido/`), el Wallet (`../wallet/`) y el `Dockerfile`
-están en la raíz del repositorio, compartidos con la versión de escritorio.
+Las tablas y procedimientos (`../sql/`), las consultas y plantillas de correo
+(`../compartido/`), el Wallet (`../wallet/`) y el `Dockerfile` están en la raíz
+del repositorio.
 
 ---
 
 ## 3. Arquitectura
 
 <p align="center">
-  <img src="../docs/arquitectura-web.svg" alt="Diagrama de arquitectura: el navegador llega por HTTPS a PRPagos Web (FastAPI) en Google Cloud Run, que valida la sesión JWT y, mediante repositorio.py y el Wallet, se conecta por TLS a los procedimientos de Oracle Autonomous Database; el módulo de dashboard y resúmenes usa compartido/ y envía los correos por Brevo, y GitHub Actions lo dispara cada día" width="100%">
+  <img src="../docs/arquitectura-web.svg" alt="Diagrama de arquitectura: el navegador llega por HTTPS a PRPagos Web (FastAPI) en Google Cloud Run, que valida la sesión JWT y, mediante repositorio.py y el Wallet, se conecta por TLS a los procedimientos de Oracle Autonomous Database; el módulo de dashboard y resúmenes usa compartido/ y envía los correos por Brevo, GitHub Actions lo dispara cada día, y la app de escritorio usa la misma lógica por la API" width="100%">
 </p>
 
 - Una sola app FastAPI sirve páginas Jinja2 protegidas por una sesión JWT en
-  cookie.
+  cookie y, con el mismo token en la cabecera `Authorization`, la API JSON de la
+  aplicación de escritorio. Las dos llaman a `app/servicios/`.
 - El ingreso tiene **dos pasos** (contraseña y código TOTP o de respaldo); la
   sesión solo se emite al final, y cada petición la valida antes de responder.
 - `repositorio.py` concentra el acceso a datos: llama a los procedimientos y a
@@ -170,9 +185,12 @@ están en la raíz del repositorio, compartidos con la versión de escritorio.
 
 ### Seguridad
 
-- **Una sola seguridad para las dos interfaces:** contraseña, autenticador,
-  último código usado, códigos de respaldo y bloqueo viven en la base. Un
-  autenticador configurado aquí sirve en el escritorio, y al revés.
+- **Una sola seguridad para las dos interfaces:** todo se valida aquí, también
+  lo que llega del escritorio por la API; un autenticador o una llave de acceso
+  configurados en una interfaz sirven en la otra.
+- La base se usa con un usuario propio de la app (`DB_USUARIO`), que solo puede
+  leer, escribir y ejecutar los procedimientos del esquema dueño (`DB_ESQUEMA`);
+  no puede crear ni borrar tablas.
 - Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única). Las cuentas
   creadas con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
 - Verificación en dos pasos obligatoria (TOTP); un código no se puede usar dos
@@ -184,7 +202,7 @@ están en la raíz del repositorio, compartidos con la versión de escritorio.
 - Códigos de respaldo y código por correo: solo se guarda su huella SHA-256,
   sirven una vez (el de correo vence en 15 minutos) y cada uso queda auditado.
 - Cinco intentos fallidos seguidos bloquean la cuenta 5 minutos; lo decide la
-  base, igual que para el escritorio.
+  base, venga el intento de la web o del escritorio.
 - Cambiar la contraseña o el autenticador pide un código vigente.
 - Sesión en cookie `httponly`, `Secure` y `SameSite=Lax`: JavaScript no puede
   leer el token.
@@ -298,8 +316,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ### Configuración
 
 El `.env` necesita la ruta y la contraseña del Wallet, el alias de conexión
-(de `wallet/tnsnames.ora`), el usuario y la contraseña de la base, y estas
-claves propias:
+(de `wallet/tnsnames.ora`), el usuario de la aplicación y su contraseña
+(`DB_USUARIO`, `DB_PASSWORD`), el esquema dueño de las tablas (`DB_ESQUEMA`) y
+estas claves propias:
 
 ```bash
 # JWT_SECRET: firma las sesiones
@@ -310,22 +329,23 @@ python -c "import base64, secrets; print(base64.b64encode(secrets.token_bytes(32
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-`TOTP_CLAVE` debe ser **la misma** que `totp.clave` en el `config.properties`
-del escritorio; si no, ninguna de las dos versiones podrá leer los
-autenticadores configurados en la otra. Una vez haya cuentas con autenticador,
-no se debe cambiar.
+`TOTP_CLAVE` solo vive en el servidor (el escritorio no la necesita). Si se
+cambia con cuentas que ya tienen autenticador, hay que volver a cifrar sus
+secretos con la clave nueva en el mismo cambio.
 
 Para los correos: `BREVO_API_KEY` y `BREVO_REMITENTE` (un remitente verificado
-en Brevo); son los mismos del escritorio. `URL_PUBLICA` es el enlace del botón
-"Abrir el dashboard" de los correos.
+en Brevo). `URL_PUBLICA` es la dirección pública de la web: el enlace de los
+correos y el sitio de las llaves de acceso.
 
 La plantilla indica el nombre y el propósito de cada variable. El `.env`
 nunca se sube a git.
 
 ### Base de datos
 
-Además de `../sql/DBPagos.sql`, aplica las migraciones. Son aditivas y se
-pueden repetir; sin `--aplicar` solo muestran el SQL:
+Además de `../sql/DBPagos.sql`, aplica las migraciones con el usuario **dueño**
+del esquema (el usuario de la app no puede crear tablas) y luego da al usuario
+de la app permisos sobre los objetos nuevos. Son aditivas y se pueden repetir;
+sin `--aplicar` solo muestran el SQL:
 
 ```bash
 python migrar.py seguridad --aplicar        # verificación en dos pasos
