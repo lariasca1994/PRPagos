@@ -84,12 +84,17 @@ En las tablas, `#` es el orden en que aparece cada campo en la pantalla, de arri
    - **`PRPagos-Escritorio-<versión>.zip`** (portable): descomprímelo y abre `PRPagos.exe`.
 2. Copia la configuración de conexión en la carpeta `%APPDATA%\PRPagos\` (pega esa ruta en la barra
    del Explorador de archivos):
-   - `config.properties`, con `wallet.path` apuntando a la carpeta de la billetera (ruta completa o
-     relativa a esa carpeta).
-   - La carpeta de la billetera de Oracle (`wallet`).
+   - `config.properties`, con las claves **en claro**.
+   - La carpeta de la billetera de Oracle (`wallet`), al lado del archivo. Si `wallet.path` no
+     apunta a una carpeta que exista, la aplicación usa `%APPDATA%\PRPagos\wallet`.
 3. Abre **PRPagos**. La primera vez, la aplicación cifra las claves de `config.properties` con la
    protección de Windows (ver 5); desde ese momento el archivo solo muestra `dpapi:…` en esos
    valores.
+
+> **Instalar en otro equipo (por ejemplo, una tablet):** no copies el `config.properties` de un
+> equipo donde ya abriste la aplicación: sus claves (`dpapi:…`) solo se pueden leer allá y
+> aparece el aviso *"Este config.properties se protegió en otro equipo…"*. Copia el archivo
+> original, con los valores en claro, junto con la carpeta `wallet`.
 
 ### 4.2 Portada
 

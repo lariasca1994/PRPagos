@@ -81,19 +81,37 @@ public final class ConexionBD {
             props.load(in);
         } catch (IOException e) {
             throw new IOException(
-                "No se encontró config.properties (se buscó en la carpeta actual y en " + archivo.getParent()
-                + "). Copia config.properties.example con ese nombre y completa tus datos reales.", e);
+                "No se encontró la configuración. Copia config.properties y la carpeta wallet en "
+                + archivo.getParent() + " (ver el manual del escritorio, sección Instalar).", e);
         }
         // Secretos cifrados con DPAPI (Windows): se descifran en memoria y, si estaban en claro,
         // se cifran en el archivo.
         SecretosProtegidos.proteger(archivo, props);
-        // wallet.path relativo: respecto a la carpeta del archivo de configuración.
-        String wallet = props.getProperty("wallet.path");
-        if (wallet != null && !Path.of(wallet).isAbsolute()) {
-            props.setProperty("wallet.path", archivo.getParent().resolve(wallet).normalize().toString());
-        }
+        props.setProperty("wallet.path", ubicarWallet(archivo, props.getProperty("wallet.path")).toString());
         config = props;
         return config;
+    }
+
+    /**
+     * Carpeta del Wallet de Oracle: wallet.path (absoluto o relativo a la carpeta
+     * de config.properties) o, si no existe, la carpeta "wallet" junto al archivo
+     * (así basta copiar las dos cosas juntas a %APPDATA%\PRPagos en otro equipo).
+     */
+    static Path ubicarWallet(Path archivo, String walletPath) throws IOException {
+        Path carpeta = archivo.toAbsolutePath().getParent();
+        List<Path> candidatos = new ArrayList<>();
+        if (walletPath != null && !walletPath.isBlank()) {
+            Path indicado = Path.of(walletPath.trim());
+            candidatos.add(indicado.isAbsolute() ? indicado : carpeta.resolve(indicado).normalize());
+        }
+        candidatos.add(carpeta.resolve("wallet"));
+        for (Path p : candidatos) {
+            if (Files.isRegularFile(p.resolve("tnsnames.ora"))) {
+                return p;
+            }
+        }
+        throw new IOException("No se encontró la billetera de Oracle (la carpeta wallet, con tnsnames.ora). "
+                + "Cópiala junto a config.properties, en " + carpeta.resolve("wallet") + ".");
     }
 
     /** Cualquier valor de config.properties (por ejemplo totp.clave). */

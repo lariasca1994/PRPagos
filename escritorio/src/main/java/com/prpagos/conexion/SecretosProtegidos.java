@@ -63,8 +63,9 @@ final class SecretosProtegidos {
             byte[] datos = Base64.getDecoder().decode(valor.substring(PREFIJO.length()));
             return new String(Crypt32Util.cryptUnprotectData(datos), StandardCharsets.UTF_8);
         } catch (RuntimeException e) {
-            throw new IOException("No se pudieron descifrar los secretos de config.properties (¿se copió desde otro "
-                    + "equipo o usuario?). Vuelve a escribir los valores en claro y la aplicación los protegerá.", e);
+            throw new IOException("Este config.properties se protegió en otro equipo o con otro usuario de Windows: "
+                    + "sus claves (las que empiezan por \"dpapi:\") solo se pueden leer allá. Copia el archivo "
+                    + "original, con los valores en claro, y la aplicación los protegerá en este equipo.", e);
         }
     }
 
