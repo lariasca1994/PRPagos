@@ -45,7 +45,9 @@
             return "Este dispositivo ya tiene una llave de acceso de PRPagos para tu cuenta.";
         }
         if (error && (error.name === "NotAllowedError" || error.name === "AbortError")) {
-            return "Se canceló o se agotó el tiempo de la verificación.";
+            // El navegador no distingue "cancelado" de "no hay llave": al ingresar se da la pista.
+            return creando ? "Se canceló o se agotó el tiempo de la verificación."
+                : "Se canceló o se agotó el tiempo de la verificación. Si aún no tienes una llave en este dispositivo, ingresa con tu contraseña y agrégala en Perfil → Llaves de acceso.";
         }
         if (error && error.name === "NotSupportedError") {
             return "Este dispositivo no admite llaves de acceso.";

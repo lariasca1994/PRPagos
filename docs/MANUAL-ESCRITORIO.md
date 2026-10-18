@@ -79,13 +79,19 @@ En las tablas, `#` es el orden en que aparece cada campo en la pantalla, de arri
 
 1. Entra a la [última versión](https://github.com/lariasca1994/PRPagos/releases/latest) y descarga
    una de las dos opciones:
-   - **`PRPagos-<versión>.exe`** (instalador): se instala solo para tu usuario, sin permisos elevados, y crea el acceso
-     directo **PRPagos** en el escritorio y en el menú Inicio.
+   - **`PRPagos-<versión>.exe`** (instalador): ábrelo y se instala solo, sin preguntas ni permisos de
+     administrador. Crea el acceso directo **PRPagos** en el escritorio y en el menú Inicio y abre la
+     aplicación al terminar. Si Windows muestra "Windows protegió su PC", pulsa **Más información →
+     Ejecutar de todas formas** (el instalador es gratuito y no lleva firma de pago).
    - **`PRPagos-Escritorio-<versión>.zip`** (portable): descomprímelo y abre `PRPagos.exe`.
 2. Abre **PRPagos** e inicia sesión con tu cuenta (la misma de la web) o crea una.
 
 No hay nada más que copiar ni configurar, en este equipo ni en otro (por ejemplo, una tablet con
-Windows): basta instalarla.
+Windows): basta instalarla. Las versiones nuevas se instalan solas (ver 4.16).
+
+**Desinstalar:** en **Configuración → Aplicaciones → Aplicaciones instaladas → PRPagos →
+Desinstalar**, o con **Desinstalar PRPagos** en el menú Inicio. Se borran la aplicación, sus
+registros de uso y sus preferencias; tu cuenta y tus datos siguen en la web.
 
 ### 4.2 Portada
 
