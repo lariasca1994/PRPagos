@@ -95,8 +95,9 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 - Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con el mensaje del motivo
 
 **Aplicación de Windows**
-- **PRPagos.exe** con Java incluido: instalador por usuario (sin permisos elevados
-  de Windows) o versión portable, con el ícono de la app; sin configuración
+- **PRPagos.exe** con Java incluido: instalador automático por usuario (sin
+  preguntas ni permisos elevados de Windows, con desinstalador en Aplicaciones
+  instaladas) o versión portable, con el ícono de la app; sin configuración
 - **Actualización automática**: comprueba al abrir y cada hora; instala al
   reiniciar o al cerrar
 - Misma portada animada, menú y colores que la web, en tema claro y oscuro
@@ -111,7 +112,7 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 | Sesión | El mismo token de la web (Bearer); 6 h sin uso, máximo 8 h |
 | Verificación en dos pasos | TOTP en el servidor; QR del autenticador con ZXing |
 | Llaves de acceso | Windows Hello con `webauthn.dll` (JNA); la firma la verifica el servidor |
-| Distribución | jpackage → GitHub Releases; actualización con verificación SHA-256 |
+| Distribución | jpackage + Inno Setup (instalador automático con desinstalador) → GitHub Releases; actualización con verificación SHA-256 |
 
 ---
 
@@ -119,7 +120,8 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 
 ```
 escritorio/
-├── empaquetar.ps1      Compila y arma PRPagos.exe (y el instalador) con jpackage
+├── empaquetar.ps1      Compila y arma PRPagos.exe con jpackage (y el instalador)
+├── instalador.iss      Instalador automático con desinstalador (Inno Setup)
 ├── lib/                FlatLaf, ZXing, JFreeChart, JNA y Gson
 ├── resources/          Ícono de la aplicación (el mismo de la web)
 └── src/main/
@@ -201,8 +203,12 @@ cambiar entre tema claro y oscuro.
 
 1. Descarga de [Releases](https://github.com/lariasca1994/PRPagos/releases/latest)
    el instalador `PRPagos-<versión>.exe` o el portable `PRPagos-Escritorio-<versión>.zip`.
+   El instalador es automático: no hace preguntas, crea los accesos directos y abre
+   la aplicación.
 2. Abre **PRPagos** desde el acceso directo. No hace falta configurar nada; las
    versiones nuevas se instalan solas.
+3. Para desinstalar: **Configuración → Aplicaciones instaladas → PRPagos**, o
+   **Desinstalar PRPagos** en el menú Inicio.
 
 ### 5.2 Crear una cuenta e ingresar
 
@@ -261,7 +267,7 @@ Para armar el ejecutable (JDK 17+ con jpackage):
 
 ```powershell
 .\empaquetar.ps1                  # build\dist\PRPagos\PRPagos.exe (portable)
-.\empaquetar.ps1 -Instalador      # además, el instalador .exe (requiere WiX Toolset)
+.\empaquetar.ps1 -Instalador      # además, el instalador .exe (requiere Inno Setup 6)
 ```
 
 ### Despliegue

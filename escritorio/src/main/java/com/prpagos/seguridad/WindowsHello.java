@@ -37,6 +37,7 @@ public final class WindowsHello {
     private static final int YA_EXISTE = 0x8009000F;         // NTE_EXISTS
     private static final int NO_ENCONTRADA = 0x80090011;     // NTE_NOT_FOUND
     private static final int TIEMPO_AGOTADO = 0x800705B4;    // HRESULT_FROM_WIN32(ERROR_TIMEOUT)
+    private static final int OPERACION_CANCELADA = 0x800704C7; // HRESULT_FROM_WIN32(ERROR_CANCELLED)
 
     /** Lo que devuelve Windows al ingresar con una llave. */
     public record Asercion(byte[] credencialId, byte[] datosAutenticador, byte[] firma, byte[] idUsuario) {
@@ -286,10 +287,13 @@ public final class WindowsHello {
         if (hr == YA_EXISTE && creando) {
             return new ErrorLlave("Este dispositivo ya tiene una llave de acceso de PRPagos para tu cuenta.");
         }
-        if (hr == CANCELADO || hr == NO_ENCONTRADA || hr == TIEMPO_AGOTADO) {
-            return new ErrorLlave("Se canceló o se agotó el tiempo de la verificación.");
+        if (hr == CANCELADO || hr == OPERACION_CANCELADA || hr == NO_ENCONTRADA || hr == TIEMPO_AGOTADO) {
+            // Igual que la web (llaves.js): al ingresar se da la pista de agregar la llave en Perfil.
+            return new ErrorLlave(creando ? "Se canceló o se agotó el tiempo de la verificación."
+                    : "Se canceló o se agotó el tiempo de la verificación. Si aún no tienes una llave en este dispositivo, ingresa con tu contraseña y agrégala en Perfil → Llaves de acceso.");
         }
-        return new ErrorLlave("No se pudo usar la llave de acceso; inténtalo de nuevo.");
+        return new ErrorLlave(String.format("No se pudo usar la llave de acceso (Windows respondió 0x%08X); "
+                + "inténtalo de nuevo.", hr));
     }
 
     /**
@@ -310,11 +314,16 @@ public final class WindowsHello {
         usuario.pwszName = new WString(correo);
         usuario.pwszDisplayName = new WString(nombre);
 
+        // toArray deja los elementos 2..n en ceros (JNA los lee de la memoria nueva y pisa los
+        // valores iniciales): versión y tipo se ponen a mano en cada uno, o Windows rechaza la
+        // lista con ERROR_INVALID_DATA.
         Algoritmo[] algs = (Algoritmo[]) new Algoritmo().toArray(2);
-        algs[0].lAlg = ES256;
-        algs[1].lAlg = RS256;
-        for (Algoritmo alg : algs) {
-            alg.write();
+        int[] ids = {ES256, RS256};
+        for (int i = 0; i < algs.length; i++) {
+            algs[i].dwVersion = 1;
+            algs[i].pwszCredentialType = new WString("public-key");
+            algs[i].lAlg = ids[i];
+            algs[i].write();
         }
         ListaAlgoritmos lista = new ListaAlgoritmos();
         lista.cCredentialParameters = 2;
@@ -324,13 +333,15 @@ public final class WindowsHello {
         DatosCliente datos = datosCliente(datosClienteJson, json);
 
         OpcionesCrear opciones = new OpcionesCrear();
-        Memory[] ids = new Memory[excluidas.size()];
+        Memory[] idsExcluidas = new Memory[excluidas.size()];
         if (!excluidas.isEmpty()) {
             Credencial[] creds = (Credencial[]) new Credencial().toArray(excluidas.size());
             for (int i = 0; i < creds.length; i++) {
-                ids[i] = memoria(excluidas.get(i));
+                idsExcluidas[i] = memoria(excluidas.get(i));
+                creds[i].dwVersion = 1;
+                creds[i].pwszCredentialType = new WString("public-key");
                 creds[i].cbId = excluidas.get(i).length;
-                creds[i].pbId = ids[i];
+                creds[i].pbId = idsExcluidas[i];
                 creds[i].write();
             }
             opciones.CredentialList.cCredentials = creds.length;

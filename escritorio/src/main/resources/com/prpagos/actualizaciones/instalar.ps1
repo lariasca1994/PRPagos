@@ -2,13 +2,18 @@
 # (lo lanza Actualizador.java). Espera a que la aplicación se cierre, deja la
 # carpeta instalada como respaldo (.anterior), pone la nueva en su lugar y,
 # si algo falla, restaura la anterior: la versión instalada nunca se pierde.
+# Si se instaló con el instalador (instalador.iss), conserva su desinstalador y
+# deja la versión nueva en Configuración > Aplicaciones instaladas.
 param(
     [int]$Proceso,
     [string]$Instalada,
     [string]$Nueva,
     [string]$Log,
-    [string]$Abrir = "0"
+    [string]$Abrir = "0",
+    [string]$Version = ""
 )
+# El mismo AppId de instalador.iss (Inno Setup agrega "_is1").
+$ClaveDesinstalar = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B6F0B0C2-5C1E-4D4B-9E1F-7A2C3D4E5F60}_is1"
 $ErrorActionPreference = "Stop"
 # Nunca dentro de la carpeta que se va a reemplazar.
 Set-Location $env:TEMP
@@ -44,6 +49,9 @@ try {
     try {
         Copy-Item -Recurse -Path $Nueva -Destination $Instalada
         if (-not (Test-Path (Join-Path $Instalada "PRPagos.exe"))) { throw "La copia quedó incompleta." }
+        # El desinstalador (unins000.exe / .dat) vive en la carpeta: pasa a la versión nueva.
+        Get-ChildItem -Path $anterior -Filter "unins*" -File -ErrorAction SilentlyContinue |
+            Copy-Item -Destination $Instalada -Force
     } catch {
         if (Test-Path $Instalada) { Remove-Item -Recurse -Force $Instalada }
         Rename-Item -Path $anterior -NewName (Split-Path $Instalada -Leaf)
@@ -51,7 +59,13 @@ try {
     }
     Remove-Item -Recurse -Force $anterior -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force (Split-Path $Nueva) -ErrorAction SilentlyContinue
-    Registrar "Actualización instalada en $Instalada."
+    if ($Version -and (Test-Path $ClaveDesinstalar)) {
+        try {
+            Set-ItemProperty -Path $ClaveDesinstalar -Name DisplayVersion -Value $Version
+            Set-ItemProperty -Path $ClaveDesinstalar -Name "Inno Setup: App Version" -Value $Version -ErrorAction SilentlyContinue
+        } catch { Registrar "No se pudo actualizar la versión en Aplicaciones instaladas: $($_.Exception.Message)" }
+    }
+    Registrar "Actualización $Version instalada en $Instalada."
 } catch {
     Registrar "La instalación falló: $($_.Exception.Message). Sigue la versión anterior; se reintenta al próximo inicio."
 }

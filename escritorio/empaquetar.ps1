@@ -4,12 +4,12 @@
 #
 # Uso (PowerShell, parado en escritorio/):
 #   .\empaquetar.ps1                         # carpeta portable: build\dist\PRPagos\PRPagos.exe
-#   .\empaquetar.ps1 -Instalador             # además, instalador .exe con acceso directo
+#   .\empaquetar.ps1 -Instalador             # además, instalador automático con desinstalador
 #   .\empaquetar.ps1 -Version 1.2.0
 #
 # Requiere un JDK 17 o superior con jpackage (incluido en el JDK). El
-# instalador necesita además WiX Toolset (lo tienen los runners de Windows de
-# GitHub Actions).
+# instalador necesita además Inno Setup 6 (gratuito; lo instala el workflow en
+# el runner de Windows de GitHub Actions). Ver instalador.iss.
 param(
     [string]$Version = "1.0.0",
     [switch]$Instalador
@@ -61,10 +61,15 @@ if ($LASTEXITCODE -ne 0) { throw "Falló jpackage (app-image)" }
 Write-Host "Listo: $(Join-Path $build 'dist\PRPagos\PRPagos.exe')"
 
 if ($Instalador) {
-    # Instalador por usuario (sin permisos de administrador), con acceso directo en
-    # el escritorio y en el menú Inicio.
-    & jpackage --type exe @comunes --win-per-user-install --win-shortcut --win-menu --win-menu-group "PRPagos" `
-        --win-upgrade-uuid "6f1d1f0e-6a3b-4c43-9a6c-2b6a7d3f9c11"
-    if ($LASTEXITCODE -ne 0) { throw "Falló jpackage (instalador)" }
-    Write-Host "Instalador: $(Get-ChildItem (Join-Path $build 'dist') -Filter *.exe | Select-Object -First 1 -ExpandProperty FullName)"
+    # Instalador automático (sin preguntas, por usuario, sin administrador) con
+    # desinstalador en Aplicaciones instaladas y en el menú Inicio: instalador.iss.
+    $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+    if (-not $iscc) {
+        $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+    }
+    if (-not $iscc) { throw "Falta Inno Setup 6 (ISCC.exe) para armar el instalador" }
+    & $iscc /Q "/DVersion=$Version" (Join-Path $PSScriptRoot "instalador.iss")
+    if ($LASTEXITCODE -ne 0) { throw "Falló Inno Setup (instalador)" }
+    Write-Host "Instalador: $(Join-Path $build "dist\PRPagos-$Version.exe")"
 }

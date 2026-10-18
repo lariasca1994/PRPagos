@@ -162,10 +162,7 @@ public final class Actualizador {
             if (!Files.isRegularFile(carpeta.resolve(EXE))) {
                 throw new IOException("El paquete no contiene " + EXE + ": se descarta.");
             }
-            String versionPaquete;
-            try (JarFile jar = new JarFile(carpeta.resolve("app").resolve(JAR).toFile())) {
-                versionPaquete = jar.getManifest().getMainAttributes().getValue("Implementation-Version");
-            }
+            String versionPaquete = versionDe(carpeta);
             if (!paquete.version().equals(versionPaquete)) {
                 throw new IOException("El paquete dice " + versionPaquete + " pero se publicó como "
                         + paquete.version() + ": se descarta.");
@@ -181,6 +178,13 @@ public final class Actualizador {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
+        }
+    }
+
+    /** Versión que dice el .jar de una carpeta de la aplicación (Implementation-Version). */
+    static String versionDe(Path carpeta) throws IOException {
+        try (JarFile jar = new JarFile(carpeta.resolve("app").resolve(JAR).toFile())) {
+            return jar.getManifest().getMainAttributes().getValue("Implementation-Version");
         }
     }
 
@@ -276,7 +280,8 @@ public final class Actualizador {
                 "-Instalada", instalada.toString(),
                 "-Nueva", nueva.toString(),
                 "-Log", archivoLog().toString(),
-                "-Abrir", abrir ? "1" : "0")
+                "-Abrir", abrir ? "1" : "0",
+                "-Version", versionDe(nueva))
                 // Fuera de la carpeta instalada: si el script corriera ahí, Windows no dejaría renombrarla.
                 .directory(carpetaTrabajo().toFile())
                 .redirectErrorStream(true)
