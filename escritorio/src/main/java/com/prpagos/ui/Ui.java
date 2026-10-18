@@ -324,8 +324,12 @@ public final class Ui {
     }
 
     /** Utilidad para mensajes de error de la base, sin volcar trazas al usuario. */
+    /**
+     * Mensaje para un error. Los de la API ya traen el texto del servidor (el
+     * mismo de la web); si la sesión se cerró, la ventana ya volvió al ingreso.
+     */
     public static Function<Exception, String> mensajeError(String accion) {
-        return e -> "No se pudo " + accion + ": "
-                + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        return e -> e instanceof com.prpagos.cliente.Api.ErrorApi ? e.getMessage()
+                : "No se pudo " + accion + ": " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
     }
 }

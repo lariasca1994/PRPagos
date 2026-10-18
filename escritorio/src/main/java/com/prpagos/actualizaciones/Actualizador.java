@@ -13,10 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,15 +22,17 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import com.prpagos.conexion.ConexionBD;
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 
 /**
  * Actualización automática de la aplicación de escritorio, con las mismas
  * reglas que los agentes de SysPulse:
  * <ol>
- * <li>lee en la base (TBVersionesEscritorio) la última versión publicada: URL
- * del Release de GitHub y huella SHA-256. La huella viene de la base, no del
- * mismo sitio de la descarga;</li>
+ * <li>pide a la API de PRPagos la última versión publicada: URL del Release de
+ * GitHub y huella SHA-256. La huella viene del servidor, no del mismo sitio
+ * de la descarga;</li>
  * <li>si es más nueva que la instalada, descarga el paquete solo por HTTPS y
  * solo desde GitHub (también el destino final tras las redirecciones), con
  * tamaño máximo, y verifica la huella y que el .jar diga la misma versión;</li>
@@ -55,7 +53,7 @@ public final class Actualizador {
     private static final String JAR = "prpagos-escritorio.jar";
     private static final String EXE = "PRPagos.exe";
 
-    /** Versión publicada en la base. */
+    /** Versión publicada (la registra el workflow escritorio.yml). */
     public record Paquete(String version, String url, String sha256) {
     }
 
@@ -133,14 +131,10 @@ public final class Actualizador {
 
     // ───────────────────────── Comprobar, descargar y verificar ─────────────────────────
 
-    public static Paquete ultimaPublicada() throws SQLException {
-        String sql = "SELECT version, url, sha256 FROM TBVersionesEscritorio "
-                + "ORDER BY publicada DESC FETCH FIRST 1 ROWS ONLY";
-        try (Connection c = ConexionBD.obtenerConexion();
-                PreparedStatement ps = c.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            return rs.next() ? new Paquete(rs.getString(1), rs.getString(2), rs.getString(3)) : null;
-        }
+    public static Paquete ultimaPublicada() throws Api.ErrorApi {
+        JsonObject v = Api.get("/api/version-escritorio");
+        String version = Json.texto(v, "version");
+        return version.isEmpty() ? null : new Paquete(version, Json.texto(v, "url"), Json.texto(v, "sha256"));
     }
 
     /**
@@ -179,7 +173,7 @@ public final class Actualizador {
             Files.deleteIfExists(zip);
             registrar("Versión " + paquete.version() + " descargada y verificada: se instala al cerrar.");
             return carpeta;
-        } catch (IOException | SQLException | RuntimeException e) {
+        } catch (IOException | Api.ErrorApi | RuntimeException e) {
             registrar("Error: " + e.getClass().getSimpleName() + ": " + e.getMessage()
                     + " (se reintenta en la próxima comprobación).");
             borrar(carpetaTrabajo());

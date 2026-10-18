@@ -4,7 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,16 +21,16 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 import com.prpagos.datos.Pago;
-import com.prpagos.datos.RepositorioFinanzas;
-import com.prpagos.datos.RepositorioPagos;
-import com.prpagos.datos.Sesion;
-import com.prpagos.finanzas.Finanzas;
 
 /**
  * "Nuevo registro" y "Modificar registro #N": la misma tarjeta, los mismos
- * campos (tipo, monto, fecha, categoría, concepto), textos y mensajes que
- * registros_nuevo.html y registros_editar.html de la web.
+ * campos (tipo, monto, fecha, categoría, concepto) y textos que
+ * registros_nuevo.html y registros_editar.html de la web. Las categorías, la
+ * validación y los mensajes vienen del servidor (la misma lógica de la web).
  */
 class PanelPago extends JPanel {
 
@@ -157,18 +156,20 @@ class PanelPago extends JPanel {
         return ingreso.isSelected() ? "INGRESO" : "GASTO";
     }
 
-    private Sesion sesion() {
-        return ventana.sesion();
-    }
-
-    /** Carga las categorías del dueño del registro y deja seleccionada la indicada. */
-    private void cargarCategorias(long duenoId, Long seleccion) {
-        Tarea.ejecutar(this, () -> RepositorioFinanzas.categorias(duenoId), lista -> {
+    /** Las categorías del dueño del registro (las da la API) y la seleccionada. */
+    private void cargarCategorias(Long idPago, Long seleccion) {
+        String ruta = "/api/registros/formulario" + (idPago == null ? "" : "?id=" + idPago);
+        Tarea.ejecutar(this, () -> Api.get(ruta), datos -> {
+            JsonObject grupos = Json.objeto(datos, "grupos");
             todas = new ArrayList<>();
             todas.add(new OpcionCategoria(null, "Sin categoría", "TODOS"));
-            for (RepositorioFinanzas.Categoria c : lista) {
-                String grupo = c.grupo() == null ? "" : " · " + Finanzas.NOMBRE_GRUPO.get(c.grupo());
-                todas.add(new OpcionCategoria(c.id(), c.nombre() + grupo, c.tipo()));
+            for (JsonObject c : Json.lista(datos, "categorias")) {
+                String grupo = Json.textoONulo(c, "grupo");
+                String texto = Json.texto(c, "nombre") + (grupo == null ? "" : " · " + Json.texto(grupos, grupo));
+                todas.add(new OpcionCategoria(Json.entero(c, "id"), texto, Json.texto(c, "tipo")));
+            }
+            if (idPago == null && fecha.getFechaSeleccionada() == null) {
+                fecha.setFechaSeleccionada(LocalDate.parse(Json.texto(datos, "hoy")));
             }
             filtrarCategorias(seleccion);
         }, e -> aviso.error(Ui.mensajeError("cargar las categorías").apply(e)));
@@ -196,15 +197,15 @@ class PanelPago extends JPanel {
         gasto.setSelected(true);
         pintarTipo();
         monto.setText("");
-        fecha.setFechaSeleccionada(Finanzas.hoy());
+        fecha.setFechaSeleccionada(null);
         concepto.setText("");
         aviso.ocultar();
-        cargarCategorias(sesion().usuarioId(), null);
+        cargarCategorias(null, null);
     }
 
     void cargar(Pago pago) {
         actual = pago;
-        boolean admin = sesion().admin();
+        boolean admin = ventana.sesion().admin();
         titulo.setText("Modificar registro #" + pago.idPago());
         gestionando.setVisible(admin);
         nota.setText(admin ? NOTA_ADMIN : NOTA_USUARIO);
@@ -214,79 +215,30 @@ class PanelPago extends JPanel {
         fecha.setFechaSeleccionada(pago.fecha());
         concepto.setText(pago.concepto());
         aviso.ocultar();
-        if (admin) {
-            Tarea.ejecutar(this, () -> RepositorioPagos.dueno(pago.idPago()),
-                    dueno -> cargarCategorias(dueno == null ? sesion().usuarioId() : dueno, pago.categoriaId()),
-                    e -> aviso.error(Ui.mensajeError("cargar las categorías").apply(e)));
-        } else {
-            cargarCategorias(sesion().usuarioId(), pago.categoriaId());
-        }
+        cargarCategorias(pago.idPago(), pago.categoriaId());
     }
 
     private void guardar() {
-        double valor;
-        try {
-            // Coma o punto decimal, igual que la web. Debe ser mayor que 0.
-            valor = Double.parseDouble(monto.getText().trim().replace(",", "."));
-        } catch (NumberFormatException e) {
-            valor = 0;
-        }
-        if (valor <= 0) {
-            aviso.error("Monto inválido");
-            return;
-        }
-        String texto = concepto.getText().trim();
-        if (texto.isEmpty()) {
-            aviso.error("Escribe el concepto");
-            return;
-        }
-        String elTipo = tipo();
         OpcionCategoria op = (OpcionCategoria) categoria.getSelectedItem();
-        Long categoriaId = op == null ? null : op.id();
         LocalDate dia = fecha.getFechaSeleccionada();
-        long usuarioId = sesion().usuarioId();
-        double monto = valor;
+        // El monto y el concepto van como se escribieron: el servidor los valida (igual que en la web).
+        JsonObject datos = Json.de("tipo", tipo(), "monto", monto.getText(), "fecha", dia == null ? "" : dia.toString(),
+                "categoria_id", op == null ? null : op.id(), "concepto", concepto.getText());
         if (edicion && actual != null) {
             long id = actual.idPago();
-            Tarea.ejecutar(this, () -> {
-                if (!ventana.verificarCuenta()) {
-                    return null;
-                }
-                return ventana.sesion().admin()
-                        ? RepositorioPagos.actualizarComoAdmin(usuarioId, id, elTipo, monto, dia, texto, categoriaId)
-                        : RepositorioPagos.actualizar(usuarioId, id, elTipo, monto, dia, texto, categoriaId);
-            }, ok -> {
-                if (ok == null) {
-                    ventana.cuentaNoVigente();
-                } else if (ok) {
-                    ventana.volverAConsulta("Registro #" + id + " actualizado", true);
-                } else {
-                    ventana.volverAConsulta("No se pudo modificar: este registro no te pertenece.", false);
-                }
-            }, this::errorGuardar);
+            Tarea.ejecutar(this, () -> Api.put("/api/registros/" + id, datos),
+                    r -> ventana.volverAConsulta(Json.texto(r, "mensaje"), true), e -> {
+                        String m = Ui.mensajeError("guardar el registro").apply(e);
+                        if (m.startsWith("No se pudo modificar")) {
+                            ventana.volverAConsulta(m, false);
+                        } else {
+                            aviso.error(m);
+                        }
+                    });
         } else {
-            Tarea.ejecutar(this, () -> {
-                if (!ventana.verificarCuenta()) {
-                    return Boolean.FALSE;
-                }
-                RepositorioPagos.insertar(usuarioId, elTipo, monto, dia, texto, categoriaId);
-                return Boolean.TRUE;
-            }, ok -> {
-                if (ok) {
-                    ventana.volverAConsulta("Registro guardado", true);
-                } else {
-                    ventana.cuentaNoVigente();
-                }
-            }, this::errorGuardar);
-        }
-    }
-
-    /** ORA-20010 (procedimiento): la categoría no corresponde al tipo o al usuario. */
-    private void errorGuardar(Exception e) {
-        if (e instanceof SQLException s && s.getErrorCode() == 20010) {
-            aviso.error("Categoría no válida para este registro");
-        } else {
-            aviso.error(Ui.mensajeError("guardar el registro").apply(e));
+            Tarea.ejecutar(this, () -> Api.post("/api/registros", datos),
+                    r -> ventana.volverAConsulta(Json.texto(r, "mensaje"), true),
+                    e -> aviso.error(Ui.mensajeError("guardar el registro").apply(e)));
         }
     }
 }

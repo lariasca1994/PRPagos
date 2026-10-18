@@ -1,6 +1,6 @@
-// Gráficas del dashboard (Chart.js). Mismos tipos, datos y colores que el
-// escritorio (JFreeChart, ui/PanelDashboard.java). Se vuelven a dibujar al
-// cambiar entre tema claro y oscuro.
+// Gráficas del dashboard (Chart.js). Dibuja la vista que calcula el servidor
+// (servicios/dashboard.py), la misma que recibe el escritorio (JFreeChart).
+// Se vuelven a dibujar al cambiar entre tema claro y oscuro.
 (function () {
     "use strict";
     var fuente = document.getElementById("datos-graficas");
@@ -36,10 +36,10 @@
         if (meses) graficas.push(new Chart(meses, {
             type: "bar",
             data: {
-                labels: d.meses,
+                labels: d.serie.map(function (m) { return m.etiqueta; }),
                 datasets: [
-                    { label: "Ingresos", data: d.ingresos, backgroundColor: d.color_ingresos, borderRadius: 4 },
-                    { label: "Gastos", data: d.gastos, backgroundColor: d.color_gastos, borderRadius: 4 }
+                    { label: "Ingresos", data: d.serie.map(function (m) { return m.ingresos; }), backgroundColor: d.colores.ingresos, borderRadius: 4 },
+                    { label: "Gastos", data: d.serie.map(function (m) { return m.gastos; }), backgroundColor: d.colores.gastos, borderRadius: 4 }
                 ]
             },
             options: { maintainAspectRatio: false, scales: ejes, plugins: { tooltip: tooltip } }
@@ -49,8 +49,8 @@
         if (cats) graficas.push(new Chart(cats, {
             type: "doughnut",
             data: {
-                labels: d.categorias,
-                datasets: [{ label: "Gasto", data: d.totales_categoria, backgroundColor: d.colores_categoria, borderColor: css("--superficie"), borderWidth: 2 }]
+                labels: d.categorias.map(function (c) { return c.nombre; }),
+                datasets: [{ label: "Gasto", data: d.categorias.map(function (c) { return c.total; }), backgroundColor: d.categorias.map(function (c) { return c.color; }), borderColor: css("--superficie"), borderWidth: 2 }]
             },
             options: {
                 maintainAspectRatio: false, cutout: "60%",
@@ -65,10 +65,10 @@
         if (plan) graficas.push(new Chart(plan, {
             type: "bar",
             data: {
-                labels: d.grupos,
+                labels: d.plan.map(function (f) { return f.grupo; }),
                 datasets: [
-                    { label: "Presupuesto", data: d.presupuesto, backgroundColor: presupuesto, borderRadius: 4 },
-                    { label: "Real", data: d.real, backgroundColor: d.colores_grupo, borderRadius: 4 }
+                    { label: "Presupuesto", data: d.plan.map(function (f) { return f.presupuesto; }), backgroundColor: presupuesto, borderRadius: 4 },
+                    { label: "Real", data: d.plan.map(function (f) { return f.real; }), backgroundColor: d.plan.map(function (f) { return f.color_grupo; }), borderRadius: 4 }
                 ]
             },
             options: {

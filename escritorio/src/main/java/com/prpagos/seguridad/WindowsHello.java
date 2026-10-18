@@ -1,7 +1,12 @@
 package com.prpagos.seguridad;
 
 import java.awt.Window;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import com.sun.jna.Library;
 import com.sun.jna.Memory;
@@ -16,8 +21,9 @@ import com.sun.jna.ptr.PointerByReference;
 /**
  * Windows Hello desde Java: llama a webauthn.dll, la misma API de Windows que
  * usan Edge y Chrome para las llaves de acceso. Windows muestra su ventana
- * (PIN, huella o rostro) y devuelve los datos firmados; LlavesAcceso los
- * verifica. Solo Windows 10 (1903) u 11 con Windows Hello configurado.
+ * (PIN, huella o rostro) y devuelve los datos firmados; aquí solo se arman
+ * como los arma un navegador y el SERVIDOR los verifica (la misma lógica que
+ * para la web). Solo Windows 10 (1903) u 11 con Windows Hello configurado.
  *
  * Estructuras en su versión 1 (webauthn.h): Windows las acepta en todas las
  * versiones posteriores.
@@ -35,6 +41,23 @@ public final class WindowsHello {
     /** Lo que devuelve Windows al ingresar con una llave. */
     public record Asercion(byte[] credencialId, byte[] datosAutenticador, byte[] firma, byte[] idUsuario) {
     }
+
+    /** Lo que devuelve Windows al crear una llave. */
+    public record Creada(byte[] credencialId, byte[] objetoAtestacion) {
+    }
+
+    /** Mensaje para la persona (los mismos textos que la web). */
+    public static class ErrorLlave extends Exception {
+        private static final long serialVersionUID = 1L;
+
+        public ErrorLlave(String mensaje) {
+            super(mensaje);
+        }
+    }
+
+    private static final int TIEMPO_MS = 60_000;
+    private static final int ES256 = -7;
+    private static final int RS256 = -257;
 
     private WindowsHello() {
     }
@@ -162,7 +185,7 @@ public final class WindowsHello {
         "dwAttestationConveyancePreference", "dwFlags"})
     public static class OpcionesCrear extends Structure {
         public int dwVersion = 1;
-        public int dwTimeoutMilliseconds = LlavesAcceso.TIEMPO_MS;
+        public int dwTimeoutMilliseconds = TIEMPO_MS;
         public ListaCredenciales CredentialList = new ListaCredenciales();
         public Extensiones Extensions = new Extensiones();
         public int dwAuthenticatorAttachment = PLATAFORMA;
@@ -176,7 +199,7 @@ public final class WindowsHello {
         "dwAuthenticatorAttachment", "dwUserVerificationRequirement", "dwFlags"})
     public static class OpcionesObtener extends Structure {
         public int dwVersion = 1;
-        public int dwTimeoutMilliseconds = LlavesAcceso.TIEMPO_MS;
+        public int dwTimeoutMilliseconds = TIEMPO_MS;
         public ListaCredenciales CredentialList = new ListaCredenciales();
         public Extensiones Extensions = new Extensiones();
         public int dwAuthenticatorAttachment = PLATAFORMA;
@@ -251,34 +274,34 @@ public final class WindowsHello {
         return d;
     }
 
-    private static Api exigirApi() throws LlavesAcceso.ErrorLlave {
+    private static Api exigirApi() throws ErrorLlave {
         Api a = api();
         if (a == null || !disponible()) {
-            throw new LlavesAcceso.ErrorLlave("Este equipo no tiene Windows Hello configurado.");
+            throw new ErrorLlave("Este equipo no tiene Windows Hello configurado.");
         }
         return a;
     }
 
-    private static LlavesAcceso.ErrorLlave error(int hr, boolean creando) {
+    private static ErrorLlave error(int hr, boolean creando) {
         if (hr == YA_EXISTE && creando) {
-            return new LlavesAcceso.ErrorLlave("Este dispositivo ya tiene una llave de acceso de PRPagos para tu cuenta.");
+            return new ErrorLlave("Este dispositivo ya tiene una llave de acceso de PRPagos para tu cuenta.");
         }
         if (hr == CANCELADO || hr == NO_ENCONTRADA || hr == TIEMPO_AGOTADO) {
-            return new LlavesAcceso.ErrorLlave("Se canceló o se agotó el tiempo de la verificación.");
+            return new ErrorLlave("Se canceló o se agotó el tiempo de la verificación.");
         }
-        return new LlavesAcceso.ErrorLlave("No se pudo usar la llave de acceso; inténtalo de nuevo.");
+        return new ErrorLlave("No se pudo usar la llave de acceso; inténtalo de nuevo.");
     }
 
     /**
      * Crea una llave en este equipo (Windows pide el PIN, la huella o el rostro).
-     * Devuelve authenticatorData, que LlavesAcceso.verificarRegistro revisa.
+     * El servidor verifica el resultado al registrarla.
      */
-    public static byte[] crear(Window w, byte[] idUsuario, String correo, String nombre, byte[] datosClienteJson,
-                               List<byte[]> excluidas) throws LlavesAcceso.ErrorLlave {
+    public static Creada crear(Window w, String idSitio, String nombreSitio, byte[] idUsuario, String correo,
+                               String nombre, byte[] datosClienteJson, List<byte[]> excluidas) throws ErrorLlave {
         Api a = exigirApi();
         Sitio sitio = new Sitio();
-        sitio.pwszId = new WString(LlavesAcceso.idSitio());
-        sitio.pwszName = new WString(LlavesAcceso.NOMBRE_SITIO);
+        sitio.pwszId = new WString(idSitio);
+        sitio.pwszName = new WString(nombreSitio);
 
         Memory id = memoria(idUsuario);
         Usuario usuario = new Usuario();
@@ -288,8 +311,8 @@ public final class WindowsHello {
         usuario.pwszDisplayName = new WString(nombre);
 
         Algoritmo[] algs = (Algoritmo[]) new Algoritmo().toArray(2);
-        algs[0].lAlg = (int) LlavesAcceso.ES256;
-        algs[1].lAlg = (int) LlavesAcceso.RS256;
+        algs[0].lAlg = ES256;
+        algs[1].lAlg = RS256;
         for (Algoritmo alg : algs) {
             alg.write();
         }
@@ -321,20 +344,21 @@ public final class WindowsHello {
         }
         try {
             Atestacion at = new Atestacion(resultado.getValue());
-            return leer(at.pbAuthenticatorData, at.cbAuthenticatorData);
+            return new Creada(leer(at.pbCredentialId, at.cbCredentialId),
+                    leer(at.pbAttestationObject, at.cbAttestationObject));
         } finally {
             a.WebAuthNFreeCredentialAttestation(resultado.getValue());
         }
     }
 
     /** Ingresa con una llave de este equipo: Windows muestra las de PRPagos que tenga. */
-    public static Asercion obtener(Window w, byte[] datosClienteJson) throws LlavesAcceso.ErrorLlave {
+    public static Asercion obtener(Window w, String idSitio, byte[] datosClienteJson) throws ErrorLlave {
         Api a = exigirApi();
         Memory json = memoria(datosClienteJson);
         DatosCliente datos = datosCliente(datosClienteJson, json);
         OpcionesObtener opciones = new OpcionesObtener();
         PointerByReference resultado = new PointerByReference();
-        int hr = a.WebAuthNAuthenticatorGetAssertion(ventana(w), new WString(LlavesAcceso.idSitio()), datos, opciones,
+        int hr = a.WebAuthNAuthenticatorGetAssertion(ventana(w), new WString(idSitio), datos, opciones,
                 resultado);
         if (hr != 0 || resultado.getValue() == null) {
             throw error(hr, false);
@@ -353,5 +377,56 @@ public final class WindowsHello {
     public static int versionApi() {
         Api a = api();
         return a == null ? 0 : a.WebAuthNGetApiVersionNumber();
+    }
+
+    // ───────────────────────── Formato WebAuthn (como un navegador) ─────────────────────────
+
+    public static String b64(byte[] datos) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(datos);
+    }
+
+    public static byte[] deB64(String texto) {
+        return Base64.getUrlDecoder().decode(texto);
+    }
+
+    /** clientDataJSON con el reto y el origen que entrega el servidor. */
+    public static byte[] datosCliente(String tipo, String retoB64, String origen) {
+        String json = "{\"type\":\"" + tipo + "\",\"challenge\":\"" + retoB64 + "\",\"origin\":\"" + origen
+                + "\",\"crossOrigin\":false}";
+        return json.getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** La credencial de un ingreso, en el mismo JSON que envía el navegador. */
+    public static JsonObject credencialIngreso(Asercion a, byte[] datosCliente) {
+        JsonObject respuesta = new JsonObject();
+        respuesta.addProperty("clientDataJSON", b64(datosCliente));
+        respuesta.addProperty("authenticatorData", b64(a.datosAutenticador()));
+        respuesta.addProperty("signature", b64(a.firma()));
+        if (a.idUsuario().length > 0) {
+            respuesta.addProperty("userHandle", b64(a.idUsuario()));
+        }
+        return credencial(a.credencialId(), respuesta);
+    }
+
+    /** La credencial de una llave nueva, en el mismo JSON que envía el navegador. */
+    public static JsonObject credencialRegistro(Creada c, byte[] datosCliente) {
+        JsonObject respuesta = new JsonObject();
+        respuesta.addProperty("clientDataJSON", b64(datosCliente));
+        respuesta.addProperty("attestationObject", b64(c.objetoAtestacion()));
+        JsonArray transportes = new JsonArray();
+        transportes.add("internal");
+        respuesta.add("transports", transportes);
+        return credencial(c.credencialId(), respuesta);
+    }
+
+    private static JsonObject credencial(byte[] id, JsonObject respuesta) {
+        JsonObject c = new JsonObject();
+        c.addProperty("id", b64(id));
+        c.addProperty("rawId", b64(id));
+        c.addProperty("type", "public-key");
+        c.add("response", respuesta);
+        c.addProperty("authenticatorAttachment", "platform");
+        c.add("clientExtensionResults", new JsonObject());
+        return c;
     }
 }

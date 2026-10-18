@@ -28,9 +28,8 @@ $fuentes = Get-ChildItem -Recurse -Path src -Filter *.java | ForEach-Object { $_
 & javac --release 17 -encoding UTF-8 -d $clases -cp "lib/*" $fuentes
 if ($LASTEXITCODE -ne 0) { throw "Falló la compilación" }
 
-# 2. Recursos dentro del .jar: consultas y plantillas compartidas con la web, ícono
-#    y script del actualizador (src/main/resources).
-Copy-Item -Recurse (Join-Path $PSScriptRoot "..\compartido") (Join-Path $clases "compartido")
+# 2. Recursos dentro del .jar: ícono y script del actualizador (src/main/resources).
+#    No lleva datos, consultas ni claves: todo lo pide a la API de PRPagos.
 New-Item -ItemType Directory -Force (Join-Path $clases "recursos") | Out-Null
 Copy-Item "resources\icono.png" (Join-Path $clases "recursos\icono.png")
 Copy-Item -Recurse "src\main\resources\*" $clases -Force

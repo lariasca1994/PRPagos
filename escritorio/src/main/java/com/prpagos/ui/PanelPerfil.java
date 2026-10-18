@@ -9,7 +9,6 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -22,25 +21,17 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import com.prpagos.datos.Credenciales;
-import com.prpagos.datos.RepositorioFinanzas;
-import com.prpagos.datos.RepositorioLlaves;
-import com.prpagos.datos.RepositorioUsuarios;
-import com.prpagos.datos.Sesion;
-import com.prpagos.finanzas.Finanzas;
-import com.prpagos.seguridad.CifradoTotp;
-import com.prpagos.seguridad.LlavesAcceso;
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 import com.prpagos.seguridad.WindowsHello;
-import com.prpagos.seguridad.Recuperacion;
-import com.prpagos.seguridad.Seguridad;
-import com.prpagos.seguridad.Totp;
-import com.prpagos.seguridad.Verificacion;
 
 /**
- * "Perfil": misma pantalla y mismas reglas que perfil.html y routers/perfil.py
- * de la web. Tus datos y los resúmenes por correo, el plan 50/30/20, tus
- * categorías, la verificación en dos pasos, los códigos de respaldo y la
- * contraseña. Las acciones de seguridad piden un código de la app o de respaldo.
+ * "Perfil": misma pantalla que perfil.html de la web. Tus datos y los
+ * resúmenes por correo, el plan 50/30/20, tus categorías, la verificación en
+ * dos pasos, los códigos de respaldo, las llaves de acceso y la contraseña.
+ * Cada acción va a la API: el servidor valida y responde con el mismo mensaje
+ * que en la web.
  */
 class PanelPerfil extends JPanel {
 
@@ -85,7 +76,8 @@ class PanelPerfil extends JPanel {
     private final JTextField codigoNuevo = Ui.campoCodigo();
     private final Ui.Aviso avisoNuevo = new Ui.Aviso();
     private final JPanel codigos = new JPanel(new GridLayout(0, 2, 24, 6));
-    private String secretoNuevo;
+    /** Token del cambio de autenticador (el secreto nuevo viaja cifrado en él). */
+    private String tokenNuevo;
     private boolean totpActivo;
     private int respaldo;
 
@@ -97,10 +89,6 @@ class PanelPerfil extends JPanel {
         add(vistaNuevoAutenticador(), "nuevo");
         add(vistaCodigos(), "codigos");
         Tema.alCambiar(this::pintarEstados);
-    }
-
-    private Sesion sesion() {
-        return ventana.sesion();
     }
 
     // ───────────────────────── Vistas ─────────────────────────
@@ -285,7 +273,7 @@ class PanelPerfil extends JPanel {
                 ayuda("Hasta que confirmes, el autenticador anterior sigue siendo el válido. Al confirmar recibirás "
                         + "códigos de respaldo nuevos."),
                 Ui.espacio(8), Ui.enlace("Cancelar", e -> {
-                    secretoNuevo = null;
+                    tokenNuevo = null;
                     vistas.show(this, "principal");
                 }));
         return tarjetaCentrada(tarjeta);
@@ -318,31 +306,24 @@ class PanelPerfil extends JPanel {
 
     // ───────────────────────── Carga ─────────────────────────
 
-    private record Estado(RepositorioFinanzas.Perfil perfil, boolean totp, Map<String, Double> pcts,
-                          List<RepositorioFinanzas.Categoria> categorias, List<RepositorioLlaves.Llave> llaves) {
-    }
-
     void recargar() {
         aviso.ocultar();
-        secretoNuevo = null;
+        tokenNuevo = null;
         vistas.show(this, "principal");
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(id);
-            return new Estado(RepositorioFinanzas.perfil(id), cred != null && cred.totpActivo(),
-                    RepositorioFinanzas.plan(id), RepositorioFinanzas.categorias(id), RepositorioLlaves.deUsuario(id));
-        }, e -> {
-            nombre.setText(e.perfil().nombre());
-            correo.setText(e.perfil().usuario());
-            notificaciones.setSelected(e.perfil().notificaciones());
-            necesidades.setText(Finanzas.textoPct(e.pcts().get("NECESIDADES")));
-            deseos.setText(Finanzas.textoPct(e.pcts().get("DESEOS")));
-            ahorro.setText(Finanzas.textoPct(e.pcts().get("AHORRO")));
-            totpActivo = e.totp();
-            respaldo = e.perfil().respaldoRestantes();
+        Tarea.ejecutar(this, () -> Api.get("/api/perfil"), d -> {
+            JsonObject perfil = Json.objeto(d, "perfil");
+            nombre.setText(Json.texto(perfil, "nombre"));
+            correo.setText(Json.texto(perfil, "usuario"));
+            notificaciones.setSelected(Json.logico(perfil, "notificaciones"));
+            JsonObject pcts = Json.objeto(d, "textos_pct");
+            necesidades.setText(Json.texto(pcts, "NECESIDADES"));
+            deseos.setText(Json.texto(pcts, "DESEOS"));
+            ahorro.setText(Json.texto(pcts, "AHORRO"));
+            totpActivo = Json.logico(d, "totp_activo");
+            respaldo = (int) Json.entero(perfil, "respaldo_restantes");
             pintarEstados();
-            llenarCategorias(e.categorias());
-            llenarLlaves(e.llaves());
+            llenarCategorias(Json.lista(d, "categorias"), Json.objeto(d, "grupos"));
+            llenarLlaves(Json.lista(d, "llaves"));
         }, e -> aviso.error(Ui.mensajeError("leer el perfil").apply(e)));
     }
 
@@ -356,7 +337,7 @@ class PanelPerfil extends JPanel {
         restantes.setForeground(respaldo > 2 ? p.exitoTexto() : p.acento());
     }
 
-    private void llenarCategorias(List<RepositorioFinanzas.Categoria> lista) {
+    private void llenarCategorias(List<JsonObject> lista, JsonObject grupos) {
         listaCategorias.removeAll();
         Tema.Paleta p = Tema.c();
         for (String e : new String[] {"Categoría", "Tipo", "Grupo", ""}) {
@@ -366,12 +347,14 @@ class PanelPerfil extends JPanel {
             l.setBorder(BorderFactory.createEmptyBorder(6, 2, 6, 2));
             listaCategorias.add(l);
         }
-        for (RepositorioFinanzas.Categoria c : lista) {
-            listaCategorias.add(fila(c.nombre()));
-            listaCategorias.add(fila("INGRESO".equals(c.tipo()) ? "Ingreso" : "Gasto"));
-            listaCategorias.add(fila(c.grupo() == null ? "—" : Finanzas.NOMBRE_GRUPO.get(c.grupo())));
-            if (c.propia()) {
-                listaCategorias.add(celdaEnlace(Ui.enlace("Eliminar", ev -> eliminarCategoria(c.id()))));
+        for (JsonObject c : lista) {
+            String grupo = Json.textoONulo(c, "grupo");
+            listaCategorias.add(fila(Json.texto(c, "nombre")));
+            listaCategorias.add(fila("INGRESO".equals(Json.texto(c, "tipo")) ? "Ingreso" : "Gasto"));
+            listaCategorias.add(fila(grupo == null ? "—" : Json.texto(grupos, grupo)));
+            if (Json.logico(c, "propia")) {
+                long id = Json.entero(c, "id");
+                listaCategorias.add(celdaEnlace(Ui.enlace("Eliminar", ev -> eliminarCategoria(id))));
             } else {
                 JLabel sugerida = fila("Sugerida");
                 sugerida.setForeground(p.textoSuave());
@@ -382,7 +365,7 @@ class PanelPerfil extends JPanel {
         listaCategorias.repaint();
     }
 
-    private void llenarLlaves(List<RepositorioLlaves.Llave> lista) {
+    private void llenarLlaves(List<JsonObject> lista) {
         listaLlaves.removeAll();
         Tema.Paleta p = Tema.c();
         for (String e : new String[] {"Dispositivo", "Agregada", "Último uso", ""}) {
@@ -400,11 +383,13 @@ class PanelPerfil extends JPanel {
                 listaLlaves.add(new JLabel());
             }
         }
-        for (RepositorioLlaves.Llave llave : lista) {
-            listaLlaves.add(fila(llave.nombre()));
-            listaLlaves.add(fila(llave.creada()));
-            listaLlaves.add(fila(llave.ultimoUso() == null ? "—" : llave.ultimoUso()));
-            listaLlaves.add(celdaEnlace(Ui.enlace("Eliminar", ev -> eliminarLlave(llave.id()))));
+        for (JsonObject llave : lista) {
+            String uso = Json.textoONulo(llave, "ultimo_uso");
+            long id = Json.entero(llave, "id");
+            listaLlaves.add(fila(Json.texto(llave, "nombre")));
+            listaLlaves.add(fila(Json.texto(llave, "creada")));
+            listaLlaves.add(fila(uso == null ? "—" : uso));
+            listaLlaves.add(celdaEnlace(Ui.enlace("Eliminar", ev -> eliminarLlave(id))));
         }
         avisoLlaves.ocultar();
         boolean hello = WindowsHello.disponible();
@@ -430,99 +415,39 @@ class PanelPerfil extends JPanel {
         return l;
     }
 
-    // ───────────────────────── Acciones (mismas reglas y textos que la web) ─────────────────────────
+    // ───────────────── Acciones: la API valida y responde con el mensaje (el de la web) ─────────────────
 
-    private void resultado(String error, String exito) {
-        if (error != null) {
-            aviso.error(error);
-        } else {
+    /** Llama a la API; si sale bien recarga y muestra su mensaje, si no, el error del servidor. */
+    private void accion(String que, java.util.concurrent.Callable<JsonObject> llamada, Runnable alTerminar) {
+        Tarea.ejecutar(this, llamada, r -> {
+            if (alTerminar != null) {
+                alTerminar.run();
+            }
             recargar();
-            aviso.exito(exito);
-        }
+            aviso.exito(Json.texto(r, "mensaje"));
+        }, e -> aviso.error(Ui.mensajeError(que).apply(e)));
     }
 
     private void guardarDatos() {
-        String texto = nombre.getText().trim();
-        boolean recibir = notificaciones.isSelected();
-        if (texto.isEmpty()) {
-            aviso.error("Escribe tu nombre completo");
-            return;
-        }
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            RepositorioFinanzas.guardarDatosPerfil(id, texto.substring(0, Math.min(100, texto.length())), recibir);
-            return null;
-        }, r -> resultado(null, "Datos guardados"), e -> aviso.error(Ui.mensajeError("guardar los datos").apply(e)));
+        JsonObject datos = Json.de("nombre", nombre.getText(), "notificaciones", notificaciones.isSelected());
+        accion("guardar los datos", () -> Api.post("/api/perfil/datos", datos), null);
     }
 
     private void guardarPlan() {
-        double[] v = new double[3];
-        JTextField[] campos = {necesidades, deseos, ahorro};
-        try {
-            for (int i = 0; i < 3; i++) {
-                v[i] = new java.math.BigDecimal(campos[i].getText().trim().replace(",", "."))
-                        .setScale(2, java.math.RoundingMode.HALF_EVEN).doubleValue();
-            }
-        } catch (NumberFormatException e) {
-            aviso.error("Los porcentajes deben ser números");
-            return;
-        }
-        boolean fueraDeRango = v[0] < 0 || v[0] > 100 || v[1] < 0 || v[1] > 100 || v[2] < 0 || v[2] > 100;
-        if (fueraDeRango || Math.round((v[0] + v[1] + v[2]) * 100) != 10000) {
-            aviso.error("Los tres porcentajes deben sumar 100");
-            return;
-        }
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            RepositorioFinanzas.guardarPlan(id, v[0], v[1], v[2]);
-            return null;
-        }, r -> resultado(null, "Plan actualizado"), e -> aviso.error(Ui.mensajeError("guardar el plan").apply(e)));
+        JsonObject datos = Json.de("necesidades", necesidades.getText(), "deseos", deseos.getText(),
+                "ahorro", ahorro.getText());
+        accion("guardar el plan", () -> Api.post("/api/perfil/plan", datos), null);
     }
 
     private void crearCategoria() {
-        String texto = nombreCategoria.getText().trim();
-        if (texto.length() > 60) {
-            texto = texto.substring(0, 60);
-        }
-        if (texto.isEmpty()) {
-            aviso.error("Escribe el nombre de la categoría");
-            return;
-        }
         String tipo = tipoCategoria.getSelectedIndex() == 0 ? "GASTO" : "INGRESO";
-        String grupo = "GASTO".equals(tipo) ? GRUPOS[grupoCategoria.getSelectedIndex()] : null;
-        long id = sesion().usuarioId();
-        String nombreFinal = texto;
-        Tarea.ejecutar(this, () -> RepositorioFinanzas.crearCategoria(id, nombreFinal, tipo, grupo), creada -> {
-            if (creada) {
-                nombreCategoria.setText("");
-            }
-            resultado(creada ? null : "Ya tienes una categoría con ese nombre", "Categoría creada");
-        }, e -> aviso.error(Ui.mensajeError("crear la categoría").apply(e)));
+        JsonObject datos = Json.de("nombre", nombreCategoria.getText(), "tipo", tipo,
+                "grupo", "GASTO".equals(tipo) ? GRUPOS[grupoCategoria.getSelectedIndex()] : "");
+        accion("crear la categoría", () -> Api.post("/api/perfil/categorias", datos), () -> nombreCategoria.setText(""));
     }
 
     private void eliminarCategoria(long categoriaId) {
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> RepositorioFinanzas.eliminarCategoria(id, categoriaId),
-                motivo -> resultado(motivo, "Categoría eliminada"),
-                e -> aviso.error(Ui.mensajeError("eliminar la categoría").apply(e)));
-    }
-
-    private String verificarCuentaYCodigo(String codigo) throws Exception {
-        Credenciales cred = RepositorioUsuarios.porId(sesion().usuarioId());
-        if (cred == null || cred.bloqueada()) {
-            return "Cuenta bloqueada temporalmente; espera 5 minutos";
-        }
-        return Verificacion.segundoFactor(cred, codigo, "VERIFICA_TOTP") ? null : "Código incorrecto o ya usado";
-    }
-
-    private List<String> nuevosCodigos(long usuarioId) throws Exception {
-        List<String> lista = Recuperacion.generarCodigosRespaldo();
-        List<String> hashes = new ArrayList<>();
-        for (String c : lista) {
-            hashes.add(Recuperacion.hashCorto(c.replace("-", "")));
-        }
-        RepositorioFinanzas.reemplazarCodigosRespaldo(usuarioId, hashes);
-        return lista;
+        accion("eliminar la categoría", () -> Api.delete("/api/perfil/categorias/" + categoriaId), null);
     }
 
     private void mostrarCodigosNuevos(List<String> lista) {
@@ -532,155 +457,93 @@ class PanelPerfil extends JPanel {
 
     private void regenerarCodigos() {
         String codigo = codigoRespaldo.getText();
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            String error = verificarCuentaYCodigo(codigo);
-            return error != null ? (Object) error : nuevosCodigos(id);
-        }, r -> {
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/respaldo", Json.de("codigo", codigo)), r -> {
             codigoRespaldo.setText("");
-            if (r instanceof String error) {
-                aviso.error(error);
-            } else {
-                @SuppressWarnings("unchecked")
-                List<String> lista = (List<String>) r;
-                mostrarCodigosNuevos(lista);
-            }
-        }, e -> aviso.error(Ui.mensajeError("generar los códigos").apply(e)));
+            mostrarCodigosNuevos(Json.textos(r, "codigos"));
+        }, e -> {
+            codigoRespaldo.setText("");
+            aviso.error(Ui.mensajeError("generar los códigos").apply(e));
+        });
     }
 
     private void iniciarCambio() {
         String codigo = codigoCambio.getText();
-        Tarea.ejecutar(this, () -> verificarCuentaYCodigo(codigo), error -> {
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/autenticador", Json.de("codigo", codigo)), r -> {
             codigoCambio.setText("");
-            if (error != null) {
-                aviso.error(error);
-                return;
-            }
-            secretoNuevo = Totp.generarSecreto();
-            qr.mostrar(Totp.uri(secretoNuevo, sesion().correo()));
-            claveManual.setText("Clave:  " + Totp.legible(secretoNuevo));
+            tokenNuevo = Json.texto(r, "token");
+            qr.mostrar(Json.texto(r, "uri"));
+            claveManual.setText("Clave:  " + Json.texto(r, "clave"));
             codigoNuevo.setText("");
             avisoNuevo.ocultar();
             vistas.show(this, "nuevo");
             codigoNuevo.requestFocusInWindow();
-        }, e -> aviso.error(Ui.mensajeError("verificar el código").apply(e)));
+        }, e -> {
+            codigoCambio.setText("");
+            aviso.error(Ui.mensajeError("verificar el código").apply(e));
+        });
     }
 
     private void confirmarNuevo() {
-        if (secretoNuevo == null) {
+        if (tokenNuevo == null) {
             vistas.show(this, "principal");
             return;
         }
-        String codigo = codigoNuevo.getText();
-        String secreto = secretoNuevo;
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            Long paso = Totp.verificar(secreto, codigo, 0);
-            if (paso == null) {
-                RepositorioUsuarios.registrarFallo(id, "FALLO_TOTP");
-                return null;
-            }
-            RepositorioUsuarios.guardarTotp(id, CifradoTotp.cifrar(secreto), paso);
-            return nuevosCodigos(id);
-        }, lista -> {
-            if (lista == null) {
-                codigoNuevo.setText("");
-                avisoNuevo.error("El código no coincide con el nuevo autenticador");
-                return;
-            }
-            secretoNuevo = null;
-            mostrarCodigosNuevos(lista);
-        }, e -> avisoNuevo.error(Ui.mensajeError("guardar el autenticador").apply(e)));
+        JsonObject datos = Json.de("token", tokenNuevo, "codigo", codigoNuevo.getText());
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/autenticador/confirmar", datos), r -> {
+            tokenNuevo = null;
+            mostrarCodigosNuevos(Json.textos(r, "codigos"));
+        }, e -> {
+            codigoNuevo.setText("");
+            avisoNuevo.error(Ui.mensajeError("guardar el autenticador").apply(e));
+        });
     }
 
     private void cambiarContrasena() {
-        String claveActual = new String(actual.getPassword());
-        String claveNueva = new String(nueva.getPassword());
-        String claveConfirmacion = new String(confirmacion.getPassword());
-        String codigo = codigoClave.getText();
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(sesion().usuarioId());
-            if (cred == null || cred.bloqueada()) {
-                return "Cuenta bloqueada temporalmente; espera 5 minutos";
-            }
-            if (!Seguridad.verificarPassword(claveActual, cred.password())) {
-                RepositorioUsuarios.registrarFallo(cred.usuarioId(), "FALLO_CLAVE");
-                return "La contraseña actual no es correcta";
-            }
-            String problema = Seguridad.problemaContrasena(claveNueva);
-            if (problema != null) {
-                return problema;
-            }
-            if (!claveNueva.equals(claveConfirmacion)) {
-                return "Las contraseñas nuevas no coinciden";
-            }
-            if (!Verificacion.segundoFactor(cred, codigo, "VERIFICA_TOTP")) {
-                return "Código incorrecto o ya usado";
-            }
-            RepositorioUsuarios.cambiarPassword(cred.usuarioId(), Seguridad.hashPassword(claveNueva), "CAMBIO_CLAVE");
-            return null;
-        }, error -> {
-            codigoClave.setText("");
-            if (error == null) {
-                actual.setText("");
-                nueva.setText("");
-                confirmacion.setText("");
-            }
-            resultado(error, "Contraseña actualizada");
-        }, e -> aviso.error(Ui.mensajeError("cambiar la contraseña").apply(e)));
+        JsonObject datos = Json.de("actual", new String(actual.getPassword()), "nueva", new String(nueva.getPassword()),
+                "confirmacion", new String(confirmacion.getPassword()), "codigo", codigoClave.getText());
+        codigoClave.setText("");
+        accion("cambiar la contraseña", () -> Api.post("/api/perfil/contrasena", datos), () -> {
+            actual.setText("");
+            nueva.setText("");
+            confirmacion.setText("");
+        });
     }
 
-    // ───────────────────────── Llaves de acceso (mismas reglas que /perfil/llaves de la web) ─────────────────────────
+    // ───────────────────────── Llaves de acceso (Windows Hello) ─────────────────────────
 
+    /** El servidor da el reto, Windows Hello crea la llave y el servidor la verifica y la guarda. */
     private void agregarLlave() {
-        String nombreDispositivo = LlavesAcceso.nombreValido(nombreLlave.getText());
-        String codigo = codigoLlave.getText();
         avisoLlaves.ocultar();
-        if (nombreDispositivo == null) {
-            avisoLlaves.error("Escribe un nombre para este dispositivo");
-            return;
-        }
-        Sesion s = sesion();
+        JsonObject pedido = Json.de("nombre", nombreLlave.getText(), "codigo", codigoLlave.getText());
         java.awt.Window ventanaActual = javax.swing.SwingUtilities.getWindowAncestor(this);
         Tarea.ejecutar(this, () -> {
-            String error = verificarCuentaYCodigo(codigo);
-            if (error != null) {
-                return error;
+            JsonObject o = Api.post("/api/perfil/llaves/opciones", pedido);
+            JsonObject op = Json.objeto(o, "opciones");
+            JsonObject sitio = Json.objeto(op, "rp");
+            JsonObject usuario = Json.objeto(op, "user");
+            List<byte[]> excluidas = new ArrayList<>();
+            for (JsonObject c : Json.lista(op, "excludeCredentials")) {
+                excluidas.add(WindowsHello.deB64(Json.texto(c, "id")));
             }
-            List<byte[]> existentes = new ArrayList<>();
-            for (RepositorioLlaves.Llave llave : RepositorioLlaves.deUsuario(s.usuarioId())) {
-                existentes.add(LlavesAcceso.deB64(llave.credencialId()));
-            }
-            byte[] datosCliente = LlavesAcceso.datosCliente("webauthn.create", LlavesAcceso.reto());
-            try {
-                byte[] datos = WindowsHello.crear(ventanaActual, LlavesAcceso.idUsuario(s.usuarioId()), s.correo(),
-                        s.nombre(), datosCliente, existentes);
-                LlavesAcceso.Registrada nueva = LlavesAcceso.verificarRegistro(datos);
-                if (!RepositorioLlaves.guardar(s.usuarioId(), nueva.credencialId(), nueva.clavePublica(),
-                        nueva.contador(), nombreDispositivo)) {
-                    return "Esa llave de acceso ya está registrada";
-                }
-            } catch (LlavesAcceso.ErrorLlave e) {
-                return e.getMessage();
-            }
-            return null;
-        }, error -> {
+            byte[] cliente = WindowsHello.datosCliente("webauthn.create", Json.texto(op, "challenge"),
+                    Json.texto(o, "origen"));
+            WindowsHello.Creada creada = WindowsHello.crear(ventanaActual, Json.texto(sitio, "id"),
+                    Json.texto(sitio, "name"), WindowsHello.deB64(Json.texto(usuario, "id")), Json.texto(usuario, "name"),
+                    Json.texto(usuario, "displayName"), cliente, excluidas);
+            return Api.post("/api/perfil/llaves", Json.de("reto", Json.texto(o, "reto"),
+                    "credencial", WindowsHello.credencialRegistro(creada, cliente)));
+        }, r -> {
             codigoLlave.setText("");
-            if (error != null) {
-                avisoLlaves.error(error);
-            } else {
-                nombreLlave.setText("");
-                resultado(null, "Llave de acceso guardada");
-            }
-        }, e -> avisoLlaves.error(Ui.mensajeError("guardar la llave de acceso").apply(e)));
+            nombreLlave.setText("");
+            recargar();
+            aviso.exito(Json.texto(r, "mensaje"));
+        }, e -> {
+            codigoLlave.setText("");
+            avisoLlaves.error(Ui.mensajeError("guardar la llave de acceso").apply(e));
+        });
     }
 
     private void eliminarLlave(long llaveId) {
-        long id = sesion().usuarioId();
-        Tarea.ejecutar(this, () -> {
-            RepositorioLlaves.eliminar(id, llaveId);
-            return null;
-        }, r -> resultado(null, "Llave de acceso eliminada"),
-                e -> aviso.error(Ui.mensajeError("eliminar la llave de acceso").apply(e)));
+        accion("eliminar la llave de acceso", () -> Api.delete("/api/perfil/llaves/" + llaveId), null);
     }
 }

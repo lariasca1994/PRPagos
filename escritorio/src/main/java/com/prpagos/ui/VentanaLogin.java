@@ -18,22 +18,11 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-import com.prpagos.datos.Credenciales;
-import com.prpagos.datos.RepositorioUsuarios;
+import com.google.gson.JsonObject;
+import com.prpagos.cliente.Api;
+import com.prpagos.cliente.Json;
 import com.prpagos.datos.Sesion;
-import com.prpagos.seguridad.CifradoTotp;
-import com.prpagos.seguridad.Seguridad;
-import com.prpagos.seguridad.Recuperacion;
-import com.prpagos.seguridad.Totp;
-import com.prpagos.seguridad.Verificacion;
-import com.prpagos.datos.RepositorioFinanzas;
-import com.prpagos.datos.RepositorioLlaves;
-import com.prpagos.seguridad.LlavesAcceso;
 import com.prpagos.seguridad.WindowsHello;
-import com.prpagos.finanzas.Correo;
-import com.prpagos.finanzas.Finanzas;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Portada de acceso: ingresar (contraseña y luego código), configurar el
@@ -41,14 +30,12 @@ import java.util.List;
  * textos y reglas que la web (web/app/routers/auth.py y acceso_base.html):
  * formulario a la izquierda y panel de marca a la derecha.
  *
- * La verificación en dos pasos es obligatoria y compartida con la web: el
- * autenticador que se configure aquí sirve allá, y al revés.
+ * Toda la lógica está en el servidor, la misma de la web: cada paso llama a la
+ * API y muestra su respuesta. La verificación en dos pasos es obligatoria y
+ * compartida con la web: el autenticador que se configure aquí sirve allá.
  */
 public class VentanaLogin extends JFrame {
 
-    private static final String MENSAJE_BLOQUEO =
-            "Demasiados intentos fallidos. Espera 5 minutos e inténtalo de nuevo.";
-    private static final String HASH_RELLENO = Seguridad.hashPassword("relleno-para-igualar-tiempos");
 
     private final CardLayout tarjetas = new CardLayout();
     private final JPanel formularios = new JPanel(tarjetas);
@@ -87,10 +74,10 @@ public class VentanaLogin extends JFrame {
     // Códigos de respaldo al activar el autenticador
     private final JPanel rejillaRespaldo = new JPanel(new java.awt.GridLayout(0, 2, 24, 6));
 
-    /** Contraseña ya verificada; falta el código o configurar el autenticador. */
-    private Credenciales pendiente;
-    private String secretoPendiente;
-    private boolean pendienteAdmin;
+    /** Token del paso a medio camino (lo entrega la API y vence en 10 minutos). */
+    private String tokenAcceso;
+    /** Sesión abierta, lista para pasar a la ventana principal. */
+    private Sesion sesionLista;
 
     /** Portada con el mensaje de cierre de sesión (los mismos textos que la web). */
     public VentanaLogin(String mensaje, boolean exito) {
@@ -368,8 +355,7 @@ public class VentanaLogin extends JFrame {
 
     /** Vuelve al paso 1 olvidando el ingreso a medio camino (como "Usar otra cuenta"). */
     private void reiniciar(String mensajeExito) {
-        pendiente = null;
-        secretoPendiente = null;
+        tokenAcceso = null;
         contrasena.setText("");
         codigo.setText("");
         codigoConfig.setText("");
@@ -382,264 +368,142 @@ public class VentanaLogin extends JFrame {
 
     // ───────────────────────── Paso 1: contraseña ─────────────────────────
 
-    private enum Siguiente { ERROR, BLOQUEADA, CODIGO, CONFIGURAR }
-
     private void ingresar() {
         String email = correo.getText().trim();
         String clave = new String(contrasena.getPassword());
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porCorreo(email);
-            if (cred == null) {
-                Seguridad.verificarPassword(clave, HASH_RELLENO);
-                return Siguiente.ERROR;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/ingresar", Json.de("usuario", email, "contrasena", clave)),
+                this::siguientePaso, e -> avisoIngreso.error(Ui.mensajeError("ingresar").apply(e)));
+    }
+
+    /** Respuesta con "etapa": pedir el código del autenticador o configurarlo. */
+    private void siguientePaso(JsonObject paso) {
+        tokenAcceso = Json.texto(paso, "token");
+        if ("codigo".equals(Json.texto(paso, "etapa"))) {
+            subtituloCodigo.setText("Abre tu app autenticadora y escribe el código de 6 dígitos de PRPagos ("
+                    + Json.texto(paso, "correo") + ").");
+            codigo.setText("");
+            mostrar("codigo");
+            codigo.requestFocusInWindow();
+        } else {
+            qr.mostrar(Json.texto(paso, "uri"));
+            claveManual.setText("Clave:  " + Json.texto(paso, "clave"));
+            codigoConfig.setText("");
+            mostrar("configurar");
+            String mensaje = Json.texto(paso, "mensaje");
+            if (!mensaje.isEmpty()) {
+                avisoConfig.exito(mensaje);
             }
-            if (cred.bloqueada()) {
-                return Siguiente.BLOQUEADA;
-            }
-            if (!Seguridad.verificarPassword(clave, cred.password())) {
-                RepositorioUsuarios.registrarFallo(cred.usuarioId(), "FALLO_CLAVE");
-                return Siguiente.ERROR;
-            }
-            if (Seguridad.necesitaRehash(cred.password())) {
-                RepositorioUsuarios.cambiarPassword(cred.usuarioId(), Seguridad.hashPassword(clave), "MIGRAR_HASH");
-            }
-            pendiente = cred;
-            if (cred.totpActivo() && cred.totpSecreto() != null) {
-                return Siguiente.CODIGO;
-            }
-            secretoPendiente = Totp.generarSecreto();
-            return Siguiente.CONFIGURAR;
-        }, siguiente -> {
-            switch (siguiente) {
-                case ERROR -> avisoIngreso.error("Usuario o contraseña incorrectos");
-                case BLOQUEADA -> avisoIngreso.error(MENSAJE_BLOQUEO);
-                case CODIGO -> {
-                    subtituloCodigo.setText("Abre tu app autenticadora y escribe el código de 6 dígitos de "
-                            + "PRPagos (" + pendiente.correo() + ").");
-                    mostrar("codigo");
-                    codigo.requestFocusInWindow();
-                }
-                case CONFIGURAR -> {
-                    qr.mostrar(Totp.uri(secretoPendiente, pendiente.correo()));
-                    claveManual.setText("Clave:  " + Totp.legible(secretoPendiente));
-                    mostrar("configurar");
-                    codigoConfig.requestFocusInWindow();
-                }
-                default -> { }
-            }
-        }, e -> avisoIngreso.error(Ui.mensajeError("conectar con la base de datos").apply(e)));
+            codigoConfig.requestFocusInWindow();
+        }
+    }
+
+    /** Si el ingreso expiró o la cuenta quedó bloqueada, se vuelve al paso 1 con el mensaje. */
+    private boolean volverAlInicio(Exception e) {
+        String m = e.getMessage() == null ? "" : e.getMessage();
+        if (m.startsWith("Tu ingreso expiró") || m.startsWith("Demasiados intentos")) {
+            reiniciar(null);
+            avisoIngreso.error(m);
+            return true;
+        }
+        return false;
     }
 
     // ───────────────────── Paso 2a: código del autenticador ─────────────────────
 
     private void verificarCodigo() {
-        if (pendiente == null) {
-            reiniciar(null);
-            return;
-        }
         String texto = codigo.getText();
-        long id = pendiente.usuarioId();
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(id);
-            if (cred == null) {
-                return "Usuario o contraseña incorrectos";
-            }
-            if (cred.bloqueada()) {
-                return MENSAJE_BLOQUEO;
-            }
-            // Código de la app o de respaldo (igual que la web).
-            if (!Verificacion.segundoFactor(cred, texto, "INGRESO")) {
-                return "Código incorrecto o ya usado";
-            }
-            pendiente = cred;
-            pendienteAdmin = esAdmin(id);
-            return null;
-        }, error -> {
-            if (error != null) {
-                codigo.setText("");
-                avisoCodigo.error(error);
-            } else {
-                abrirPrincipal();
-            }
-        }, e -> avisoCodigo.error(Ui.mensajeError("verificar el código").apply(e)));
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/codigo", Json.de("token", token, "codigo", texto)),
+                this::sesionAbierta, e -> {
+                    codigo.setText("");
+                    if (!volverAlInicio(e)) {
+                        avisoCodigo.error(Ui.mensajeError("verificar el código").apply(e));
+                    }
+                });
     }
 
     // ─────────────── Ingresar con una llave de acceso (Windows Hello) ───────────────
 
-    /** Reemplaza los dos pasos; mismas reglas y mensajes que /login/llave de la web. */
+    /** Reemplaza los dos pasos: Windows Hello firma el reto y el servidor lo verifica. */
     private void ingresarConLlave() {
         avisoLlave.ocultar();
         avisoIngreso.ocultar();
         Tarea.ejecutar(this, () -> {
-            byte[] datosCliente = LlavesAcceso.datosCliente("webauthn.get", LlavesAcceso.reto());
-            WindowsHello.Asercion asercion;
-            try {
-                asercion = WindowsHello.obtener(this, datosCliente);
-            } catch (LlavesAcceso.ErrorLlave e) {
-                return e.getMessage();
-            }
-            RepositorioLlaves.Guardada llave = RepositorioLlaves.porCredencial(LlavesAcceso.b64(asercion.credencialId()));
-            if (llave == null) {
-                return "Esta llave de acceso no está registrada en PRPagos.";
-            }
-            Credenciales cred = RepositorioUsuarios.porId(llave.usuarioId());
-            if (cred == null) {
-                return "Usuario o contraseña incorrectos";
-            }
-            if (cred.bloqueada()) {
-                return MENSAJE_BLOQUEO;
-            }
-            long contador;
-            try {
-                if (asercion.idUsuario().length > 0
-                        && !java.util.Arrays.equals(asercion.idUsuario(), LlavesAcceso.idUsuario(cred.usuarioId()))) {
-                    throw new LlavesAcceso.ErrorLlave("La llave de acceso no es válida.");
-                }
-                contador = LlavesAcceso.verificarIngreso(asercion.datosAutenticador(), datosCliente, asercion.firma(),
-                        llave.clavePublica(), llave.contador());
-            } catch (LlavesAcceso.ErrorLlave e) {
-                RepositorioUsuarios.registrarFallo(cred.usuarioId(), "FALLO_LLAVE");
-                return e.getMessage();
-            }
-            RepositorioLlaves.usar(llave.id(), cred.usuarioId(), contador);
-            pendiente = cred;
-            pendienteAdmin = esAdmin(cred.usuarioId());
-            return null;
-        }, error -> {
-            if (error != null) {
-                avisoLlave.error(error);
-            } else {
-                abrirPrincipal();
-            }
-        }, e -> avisoLlave.error(Ui.mensajeError("ingresar con la llave de acceso").apply(e)));
+            JsonObject o = Api.post("/api/acceso/llave/opciones", null);
+            JsonObject opciones = Json.objeto(o, "opciones");
+            byte[] cliente = WindowsHello.datosCliente("webauthn.get", Json.texto(opciones, "challenge"),
+                    Json.texto(o, "origen"));
+            WindowsHello.Asercion a = WindowsHello.obtener(this, Json.texto(o, "sitio"), cliente);
+            return Api.post("/api/acceso/llave", Json.de("reto", Json.texto(o, "reto"),
+                    "credencial", WindowsHello.credencialIngreso(a, cliente)));
+        }, this::sesionAbierta, e -> avisoLlave.error(Ui.mensajeError("ingresar con la llave de acceso").apply(e)));
     }
 
     // ─────────────────── Paso 2b: configurar el autenticador ───────────────────
 
     private void activarAutenticador() {
-        if (pendiente == null || secretoPendiente == null) {
-            reiniciar(null);
-            return;
-        }
         String texto = codigoConfig.getText();
-        long id = pendiente.usuarioId();
-        String secreto = secretoPendiente;
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(id);
-            if (cred == null) {
-                return "Usuario o contraseña incorrectos";
-            }
-            if (cred.bloqueada()) {
-                return MENSAJE_BLOQUEO;
-            }
-            Long paso = Totp.verificar(secreto, texto, 0);
-            if (paso == null) {
-                RepositorioUsuarios.registrarFallo(id, "FALLO_TOTP");
-                return "El código no coincide. Revisa que la hora del teléfono sea la correcta.";
-            }
-            RepositorioUsuarios.guardarTotp(id, CifradoTotp.cifrar(secreto), paso);
-            pendienteAdmin = esAdmin(id);
-            // Con el autenticador se entregan los 10 códigos de respaldo (se muestran una sola vez).
-            List<String> codigos = Recuperacion.generarCodigosRespaldo();
-            List<String> hashes = new ArrayList<>();
-            for (String c : codigos) {
-                hashes.add(Recuperacion.hashCorto(c.replace("-", "")));
-            }
-            RepositorioFinanzas.reemplazarCodigosRespaldo(id, hashes);
-            codigosNuevos = codigos;
-            return null;
-        }, error -> {
-            if (error != null) {
-                codigoConfig.setText("");
-                avisoConfig.error(error);
-            } else {
-                PanelPerfil.mostrarCodigos(rejillaRespaldo, codigosNuevos);
-                mostrar("respaldo");
-            }
-        }, e -> avisoConfig.error(Ui.mensajeError("guardar el autenticador").apply(e)));
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/configurar", Json.de("token", token, "codigo", texto)),
+                respuesta -> {
+                    sesionLista = guardarSesion(respuesta);
+                    // Con el autenticador llegan los 10 códigos de respaldo (se muestran una sola vez).
+                    PanelPerfil.mostrarCodigos(rejillaRespaldo, Json.textos(respuesta, "codigos"));
+                    mostrar("respaldo");
+                }, e -> {
+                    codigoConfig.setText("");
+                    if (!volverAlInicio(e)) {
+                        avisoConfig.error(Ui.mensajeError("guardar el autenticador").apply(e));
+                    }
+                });
     }
-
-    private List<String> codigosNuevos = List.of();
 
     // ─────────────────── Perdí mi teléfono (código por correo) ───────────────────
 
-    /** Solo después de la contraseña: envía un código de 6 dígitos al correo de la cuenta. */
+    /** Solo después de la contraseña: el servidor envía un código de 6 dígitos al correo. */
     private void perdiTelefono() {
-        if (pendiente == null) {
-            reiniciar(null);
-            return;
-        }
-        long id = pendiente.usuarioId();
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(id);
-            if (cred == null || cred.bloqueada()) {
-                return MENSAJE_BLOQUEO;
-            }
-            String codigoNuevo = Recuperacion.generarCodigoCorreo();
-            RepositorioFinanzas.guardarCodigoCorreo(id, Recuperacion.hashCorto(codigoNuevo),
-                    Recuperacion.MINUTOS_CODIGO_CORREO);
-            try {
-                Correo.enviar(cred.correo(), cred.nombre(), "Código para recuperar tu acceso a PRPagos",
-                        Finanzas.htmlCodigo(cred.nombre(), codigoNuevo, Recuperacion.MINUTOS_CODIGO_CORREO));
-            } catch (Correo.ErrorCorreo e) {
-                return "No se pudo enviar el correo. Usa un código de respaldo o inténtalo más tarde.";
-            }
-            return null;
-        }, error -> {
-            if (error != null) {
-                avisoCodigo.error(error);
-                return;
-            }
-            subtituloCorreo.setText("Te enviamos un código de 6 dígitos a " + pendiente.correo() + ". Vence en "
-                    + Recuperacion.MINUTOS_CODIGO_CORREO + " minutos.");
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/perdi-telefono", Json.de("token", token)), respuesta -> {
+            tokenAcceso = Json.texto(respuesta, "token");
+            subtituloCorreo.setText(Json.texto(respuesta, "mensaje"));
             codigoCorreo.setText("");
             mostrar("correo");
             codigoCorreo.requestFocusInWindow();
-        }, e -> avisoCodigo.error(Ui.mensajeError("enviar el correo").apply(e)));
+        }, e -> {
+            if (!volverAlInicio(e)) {
+                avisoCodigo.error(Ui.mensajeError("enviar el correo").apply(e));
+            }
+        });
     }
 
     private void verificarCodigoCorreo() {
-        if (pendiente == null) {
-            reiniciar(null);
-            return;
-        }
-        long id = pendiente.usuarioId();
-        String limpio = codigoCorreo.getText().replaceAll("[^0-9]", "");
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = RepositorioUsuarios.porId(id);
-            if (cred == null || cred.bloqueada()) {
-                return MENSAJE_BLOQUEO;
-            }
-            if (limpio.length() != 6 || !RepositorioFinanzas.usarCodigoCorreo(id, Recuperacion.hashCorto(limpio))) {
-                RepositorioUsuarios.registrarFallo(id, "FALLO_CORREO");
-                return "Código incorrecto o vencido";
-            }
-            secretoPendiente = Totp.generarSecreto();
-            return null;
-        }, error -> {
-            if (error != null) {
-                codigoCorreo.setText("");
-                avisoCorreo.error(error);
-                return;
-            }
-            qr.mostrar(Totp.uri(secretoPendiente, pendiente.correo()));
-            claveManual.setText("Clave:  " + Totp.legible(secretoPendiente));
-            codigoConfig.setText("");
-            mostrar("configurar");
-            avisoConfig.exito("Código verificado: configura tu autenticador nuevo.");
-            codigoConfig.requestFocusInWindow();
-        }, e -> avisoCorreo.error(Ui.mensajeError("verificar el código").apply(e)));
+        String texto = codigoCorreo.getText();
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/correo", Json.de("token", token, "codigo", texto)),
+                this::siguientePaso, e -> {
+                    codigoCorreo.setText("");
+                    if (!volverAlInicio(e)) {
+                        avisoCorreo.error(Ui.mensajeError("verificar el código").apply(e));
+                    }
+                });
     }
 
-    private static boolean esAdmin(long usuarioId) throws java.sql.SQLException {
-        com.prpagos.datos.Cuenta cuenta = RepositorioUsuarios.estado(usuarioId);
-        return cuenta != null && cuenta.esAdmin();
+    // ───────────────────────── Sesión ─────────────────────────
+
+    private static Sesion guardarSesion(JsonObject respuesta) {
+        Api.usarSesion(Json.texto(respuesta, "sesion"));
+        return Sesion.de(Json.objeto(respuesta, "usuario"));
+    }
+
+    private void sesionAbierta(JsonObject respuesta) {
+        sesionLista = guardarSesion(respuesta);
+        abrirPrincipal();
     }
 
     private void abrirPrincipal() {
-        Sesion sesion = Sesion.de(pendiente, pendienteAdmin);
-        pendiente = null;
-        secretoPendiente = null;
+        Sesion sesion = sesionLista;
+        tokenAcceso = null;
+        sesionLista = null;
         new VentanaPrincipal(sesion).setVisible(true);
         dispose();
     }
@@ -648,86 +512,36 @@ public class VentanaLogin extends JFrame {
 
     private void registrar() {
         String email = regCorreo.getText().trim();
-        String nombre = regNombre.getText().trim();
+        String nombre = regNombre.getText();
         String clave = new String(regClave.getPassword());
         String confirmacion = new String(regConfirmacion.getPassword());
-        if (!Seguridad.correoValido(email)) {
-            avisoRegistro.error("Escribe un correo válido (por ejemplo, nombre@dominio.com)");
-            return;
-        }
-        if (nombre.isEmpty()) {
-            avisoRegistro.error("Escribe tu nombre completo");
-            return;
-        }
-        String problema = Seguridad.problemaContrasena(clave);
-        if (problema != null) {
-            avisoRegistro.error(problema);
-            return;
-        }
-        if (!clave.equals(confirmacion)) {
-            avisoRegistro.error("Las contraseñas no coinciden");
-            return;
-        }
-        Tarea.ejecutar(this, () -> RepositorioUsuarios.crear(email, nombre, Seguridad.hashPassword(clave)),
-                creado -> {
-                    if (!creado) {
-                        avisoRegistro.error("Ese correo ya tiene una cuenta");
-                        return;
-                    }
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/registro", Json.de("usuario", email, "nombre", nombre,
+                "contrasena", clave, "confirmacion", confirmacion)), respuesta -> {
                     for (JTextField t : new JTextField[] {regCorreo, regNombre, regClave, regConfirmacion}) {
                         t.setText("");
                     }
                     correo.setText(email);
-                    reiniciar("Cuenta creada. Al ingresar configurarás tu verificación en dos pasos.");
-                },
-                e -> avisoRegistro.error(Ui.mensajeError("crear la cuenta").apply(e)));
+                    reiniciar(Json.texto(respuesta, "mensaje"));
+                }, e -> avisoRegistro.error(Ui.mensajeError("crear la cuenta").apply(e)));
     }
 
     // ───────────────────────── Recuperación ─────────────────────────
 
     private void recuperar() {
         String email = recCorreo.getText().trim();
-        String nombre = recNombre.getText().trim();
+        String nombre = recNombre.getText();
         String textoCodigo = recCodigo.getText();
         String clave = new String(recClave.getPassword());
         String confirmacion = new String(recConfirmacion.getPassword());
-        String errorGenerico = "Los datos no coinciden con una cuenta";
-        Tarea.ejecutar(this, () -> {
-            Credenciales cred = Seguridad.correoValido(email) ? RepositorioUsuarios.porCorreo(email) : null;
-            if (cred == null) {
-                return errorGenerico;
-            }
-            if (cred.bloqueada()) {
-                return MENSAJE_BLOQUEO;
-            }
-            if (cred.nombre() == null || !cred.nombre().trim().equalsIgnoreCase(nombre)) {
-                RepositorioUsuarios.registrarFallo(cred.usuarioId(), "FALLO_RECUPERAR");
-                return errorGenerico;
-            }
-            // Con autenticador configurado, sin un código suyo (o de respaldo) no se puede tomar la cuenta.
-            if (cred.totpActivo() && !Verificacion.segundoFactor(cred, textoCodigo, "RECUPERAR_TOTP")) {
-                return errorGenerico;
-            }
-            String problema = Seguridad.problemaContrasena(clave);
-            if (problema != null) {
-                return problema;
-            }
-            if (!clave.equals(confirmacion)) {
-                return "Las contraseñas no coinciden";
-            }
-            RepositorioUsuarios.cambiarPassword(cred.usuarioId(), Seguridad.hashPassword(clave), "RECUPERAR_CLAVE");
-            return null;
-        }, error -> {
-            if (error != null) {
-                avisoRecuperar.error(error);
-                return;
-            }
-            for (JTextField t : new JTextField[] {recNombre, recCodigo, recClave, recConfirmacion}) {
-                t.setText("");
-            }
-            correo.setText(email);
-            reiniciar("Contraseña actualizada, ya puedes ingresar");
-        }, e -> avisoRecuperar.error(Ui.mensajeError("actualizar la contraseña").apply(e)));
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/recuperar", Json.de("correo", email,
+                "nombre_registrado", nombre, "codigo", textoCodigo, "nueva", clave, "confirmacion", confirmacion)),
+                respuesta -> {
+                    for (JTextField t : new JTextField[] {recNombre, recCodigo, recClave, recConfirmacion}) {
+                        t.setText("");
+                    }
+                    correo.setText(email);
+                    reiniciar(Json.texto(respuesta, "mensaje"));
+                }, e -> avisoRecuperar.error(Ui.mensajeError("actualizar la contraseña").apply(e)));
     }
 
     public static void main(String[] args) {
@@ -736,5 +550,4 @@ public class VentanaLogin extends JFrame {
         // Actualización automática (solo en la aplicación instalada con PRPagos.exe).
         com.prpagos.actualizaciones.Comprobador.iniciar();
     }
-
 }
