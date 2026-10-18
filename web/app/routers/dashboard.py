@@ -21,7 +21,7 @@ templates = Jinja2Templates(directory="app/templates")
 def dashboard(request: Request, usuario: UsuarioActual = Depends(exigir_login), mes: str | None = None):
     vista = servicio.vista(usuario.usuario_id, servicio.mes_elegido(mes))
     return templates.TemplateResponse("dashboard.html", {
-        "request": request, "usuario": usuario, "v": vista, "graficas_json": json.dumps(vista),
+        "request": request, "usuario": usuario, "v": vista, "graficas_json": json.dumps(vista).replace("<", "\\u003c"),
         "error": request.query_params.get("error"), "ok": request.query_params.get("ok"),
     })
 

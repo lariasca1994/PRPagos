@@ -19,7 +19,7 @@ from .dependencias import (
     respuesta_redireccion_login,
     respuesta_redireccion_sin_permiso,
 )
-from .routers import api, auth, dashboard, perfil, registros, tareas, usuarios
+from .routers import api, auth, dashboard, perfil, presupuesto, registros, tareas, usuarios
 from .servicios import ErrorServicio
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s: %(message)s")
@@ -33,6 +33,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
+app.include_router(presupuesto.router)
 app.include_router(registros.router)
 app.include_router(perfil.router)
 app.include_router(usuarios.router)

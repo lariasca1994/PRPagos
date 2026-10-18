@@ -27,7 +27,7 @@ import com.prpagos.datos.Sesion;
 /**
  * Ventana principal: misma estructura que las páginas de la web (base.html).
  * Barra superior con la marca, el botón de tema y el menú en el mismo orden
- * (Dashboard · Consultar registros · Nuevo registro · Perfil · Usuarios
+ * (Dashboard · Presupuesto · Consultar registros · Nuevo registro · Perfil · Usuarios
  * (admin) · Salir), el contenido al centro con un ancho máximo y el pie.
  *
  * La sesión la controla el servidor, igual que en la web: 6 horas sin uso
@@ -40,6 +40,7 @@ import com.prpagos.datos.Sesion;
 public class VentanaPrincipal extends JFrame {
 
     static final String DASHBOARD = "dashboard";
+    static final String PRESUPUESTO = "presupuesto";
     static final String CONSULTA = "consulta";
     static final String NUEVO = "nuevo";
     static final String EDITAR = "editar";
@@ -56,6 +57,7 @@ public class VentanaPrincipal extends JFrame {
     private final PanelPago nuevo;
     private final PanelPago editar;
     private final PanelDashboard dashboard;
+    private final PanelPresupuesto presupuesto;
     private final PanelPerfil perfil;
     private final PanelUsuarios usuarios;
     /** Revisa cada 30 s si el token ya venció; entonces el servidor da el motivo del cierre. */
@@ -80,11 +82,12 @@ public class VentanaPrincipal extends JFrame {
         nuevo = PanelPago.nuevo(this);
         editar = PanelPago.edicion(this);
         dashboard = new PanelDashboard(this);
+        presupuesto = new PanelPresupuesto(this);
         perfil = new PanelPerfil(this);
         usuarios = new PanelUsuarios(this);
 
         contenido.setOpaque(false);
-        for (Object[] s : new Object[][] {{dashboard, DASHBOARD}, {consulta, CONSULTA}, {nuevo, NUEVO},
+        for (Object[] s : new Object[][] {{dashboard, DASHBOARD}, {presupuesto, PRESUPUESTO}, {consulta, CONSULTA}, {nuevo, NUEVO},
             {editar, EDITAR}, {perfil, PERFIL}, {usuarios, USUARIOS}}) {
             JScrollPane scroll = desplazable((JPanel) s[0]);
             desplazables.put((String) s[1], scroll);
@@ -129,6 +132,7 @@ public class VentanaPrincipal extends JFrame {
         JPanel nav = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 0));
         nav.setOpaque(false);
         menu.put(DASHBOARD, opcion("Dashboard", () -> ir(DASHBOARD)));
+        menu.put(PRESUPUESTO, opcion("Presupuesto", () -> ir(PRESUPUESTO)));
         menu.put(CONSULTA, opcion("Consultar registros", () -> ir(CONSULTA)));
         menu.put(NUEVO, opcion("Nuevo registro", () -> ir(NUEVO)));
         menu.put(PERFIL, opcion("Perfil", () -> ir(PERFIL)));
@@ -218,6 +222,7 @@ public class VentanaPrincipal extends JFrame {
             case CONSULTA -> consulta.recargar();
             case NUEVO -> nuevo.limpiar();
             case DASHBOARD -> dashboard.recargar();
+            case PRESUPUESTO -> presupuesto.recargar();
             case PERFIL -> perfil.recargar();
             case USUARIOS -> usuarios.recargar();
             default -> { }
@@ -233,6 +238,21 @@ public class VentanaPrincipal extends JFrame {
         if (scroll != null) {
             javax.swing.SwingUtilities.invokeLater(() -> scroll.getVerticalScrollBar().setValue(0));
         }
+    }
+
+    /** Los registros con esos filtros (una categoría y un mes), como los enlaces /registros?... de la web. */
+    void verRegistros(com.google.gson.JsonObject filtro) {
+        consulta.prepararFiltros(filtro);
+        mostrar(CONSULTA);
+    }
+
+    /** El presupuesto de un año y mes concretos (enlace del dashboard). */
+    void verPresupuesto(int anio, int mes) {
+        actual = PRESUPUESTO;
+        tarjetas.show(contenido, PRESUPUESTO);
+        marcarMenu();
+        arriba(PRESUPUESTO);
+        presupuesto.abrir(anio, mes);
     }
 
     void editar(Pago pago) {

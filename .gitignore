@@ -53,3 +53,6 @@ venv/
 # Instrucciones locales para Claude Code: nunca se suben a GitHub
 CLAUDE.md
 CLAUDE.local.md
+
+# Hojas de cálculo personales (presupuestos de referencia): nunca al repositorio
+docs/*.xlsx

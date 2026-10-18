@@ -72,7 +72,12 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 - Plan 50/30/20 con porcentajes editables en Perfil
 - **Dashboard** por mes con los mismos gráficos y cifras de la web: barras de 6
   meses, anillo de categorías y barras del plan con su estado
-- Consulta con filtros (tipo, concepto, montos y fechas), totales y CSV
+- **Presupuesto** por categoría y mes con los mismos datos y gráficos de la web (como una hoja de presupuesto anual), comparado con
+  los registros: tarjetas, gastos presupuestados vs. reales del año, distribución frente
+  al plan, mayores gastos, estado por categoría y resumen de los 12 meses
+- Interactivo: un mes de las gráficas abre ese mes, una categoría abre sus registros y
+  cada registro nuevo avisa cómo va el presupuesto de su categoría
+- Consulta con filtros (tipo, concepto, montos, fechas y categoría), totales y CSV
 
 **Resúmenes por correo**
 - Botones **Enviarme el resumen semanal / del mes**: el servidor arma y envía el
@@ -124,7 +129,7 @@ escritorio/
     │   ├── seguridad/       WindowsHello (llaves de acceso con webauthn.dll)
     │   ├── actualizaciones/ Actualizador y comprobación periódica de versiones
     │   └── ui/              Portada, ventana principal y paneles (Dashboard,
-    │                        Consulta, Registro, Perfil), Tema y componentes
+    │                        Presupuesto, Consulta, Registro, Perfil), Tema y componentes
     └── resources/           Script que instala las actualizaciones
 ```
 
@@ -188,8 +193,8 @@ claves: todo eso vive solo en el servidor (`../web/app/servicios/`).
 El paso a paso con capturas de cada pantalla, incluida la instalación, está en
 el **[Manual de escritorio](../docs/MANUAL-ESCRITORIO.md)**. En resumen:
 
-La ventana tiene la misma barra que la web: **Dashboard**, **Consultar
-registros**, **Nuevo registro**, **Perfil** y **Salir**, y el botón ◐ para
+La ventana tiene la misma barra que la web: **Dashboard**, **Presupuesto**,
+**Consultar registros**, **Nuevo registro**, **Perfil** y **Salir**, y el botón ◐ para
 cambiar entre tema claro y oscuro.
 
 ### 5.1 Instalar
@@ -211,6 +216,7 @@ cambiar entre tema claro y oscuro.
 ### 5.3 Dashboard, registros y Perfil
 
 - **Dashboard:** elige el mes; cifras, gráficas, plan 50/30/20 y botones de resumen por correo.
+- **Presupuesto:** monto por categoría y mes frente a lo registrado, con gráficas y resumen del año.
 - **Nuevo registro:** tipo, monto, fecha, categoría y concepto.
 - **Consultar registros:** filtros, totales, **Modificar** y **Exportar a CSV**.
 - **Perfil:** nombre y resúmenes, plan, categorías, autenticador, códigos de respaldo, llaves de acceso y contraseña.

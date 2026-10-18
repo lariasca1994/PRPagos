@@ -69,7 +69,12 @@ detalle de la migración.
 - Plan 50/30/20 con porcentajes editables en Perfil
 - **Dashboard** por mes: ingresos, gastos, balance y ahorro; ingresos vs.
   gastos de 6 meses, gastos por categoría y avance del plan con su estado
-- Consulta con filtros (tipo, concepto, montos y fechas), totales y CSV
+- **Presupuesto** por categoría y mes (como una hoja de presupuesto anual), comparado con
+  los registros: tarjetas, gastos presupuestados vs. reales del año, distribución frente
+  al plan, mayores gastos, estado por categoría y resumen de los 12 meses
+- Interactivo: un mes de las gráficas abre ese mes, una categoría abre sus registros y
+  cada registro nuevo avisa cómo va el presupuesto de su categoría
+- Consulta con filtros (tipo, concepto, montos, fechas y categoría), totales y CSV
 
 **Resúmenes por correo (Brevo)**
 - Semanal (viernes) y mensual (día 29; en febrero, el último día), a las 08:00
@@ -90,7 +95,7 @@ detalle de la migración.
 
 **API para la aplicación de escritorio**
 - `/api/...` en JSON: acceso (dos pasos, llaves de acceso, recuperación),
-  dashboard, registros y CSV, Perfil, cuentas y versión publicada del escritorio
+  dashboard, presupuesto, registros y CSV, Perfil, cuentas y versión publicada del escritorio
 - Misma sesión que la web (token Bearer, renovado en la cabecera `X-Sesion`) y
   los mismos mensajes de error
 
@@ -139,7 +144,7 @@ web/
     ├── main.py           Punto de entrada y manejo de errores
     ├── config.py         Carga del .env
     ├── database.py       Conexión a Oracle con el Wallet (usuario de la app + DB_ESQUEMA)
-    ├── servicios/        LA lógica: acceso, registros, dashboard, perfil, cuentas y
+    ├── servicios/        LA lógica: acceso, registros, dashboard, presupuesto, perfil, cuentas y
     │                     verificación del segundo factor (web y API la usan igual)
     ├── repositorio.py    Procedimientos almacenados y consultas compartidas
     ├── compartido.py     Lee ../compartido/ (consultas SQL y plantillas de correo)
@@ -150,10 +155,10 @@ web/
     ├── llaves.py         Llaves de acceso (WebAuthn): opciones, reto firmado y verificación
     ├── qr.py             Código QR del autenticador (SVG)
     ├── dependencias.py   Identificación del usuario en cada petición
-    ├── routers/          Páginas (acceso, dashboard, registros, perfil, cuentas),
+    ├── routers/          Páginas (acceso, dashboard, presupuesto, registros, perfil, cuentas),
     │                     api.py (JSON para el escritorio) y tareas
     ├── templates/        Plantillas Jinja2
-    └── static/           Estilos, tema, gráficas (dashboard.js), íconos y PWA
+    └── static/           Estilos, tema, gráficas (dashboard.js, presupuesto.js), íconos y PWA
                           (manifest.webmanifest, sw.js, offline.html)
 ```
 
@@ -250,7 +255,16 @@ El paso a paso con capturas de cada pantalla está en el
 
 Elige el mes y revisa ingresos, gastos, balance y ahorro; la gráfica de 6
 meses, los gastos por categoría y el plan 50/30/20 con su estado. Abajo, pide
-el resumen semanal o del mes por correo.
+el resumen semanal o del mes por correo. Toca un mes de las barras para abrirlo o
+una categoría del anillo para ver sus registros.
+
+### 5.2.1 Presupuesto
+
+Escribe cuánto piensas recibir o gastar en cada categoría y guárdalo para el mes,
+de ese mes a diciembre o para todo el año (o copia el mes anterior). La pantalla
+lo compara con tus registros: real, porcentaje usado y estado por categoría,
+gastos presupuestados vs. reales de los 12 meses, distribución frente al plan
+50/30/20, mayores gastos del mes y el resumen del año.
 
 ### 5.3 Registrar, consultar y exportar
 

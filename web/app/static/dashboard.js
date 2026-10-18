@@ -1,5 +1,6 @@
 // Gráficas del dashboard (Chart.js). Dibuja la vista que calcula el servidor
 // (servicios/dashboard.py), la misma que recibe el escritorio (JFreeChart).
+// Un clic en un mes abre ese mes y uno en una categoría, sus registros.
 // Se vuelven a dibujar al cambiar entre tema claro y oscuro.
 (function () {
     "use strict";
@@ -16,6 +17,13 @@
         var partes = Math.abs(v).toFixed(2).split(".");
         partes[0] = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         return (v < 0 ? "-" : "") + "$ " + partes[0] + "," + partes[1];
+    }
+
+    function mano(e, elementos) { e.native.target.style.cursor = elementos.length ? "pointer" : "default"; }
+
+    function enlaceRegistros(f) {
+        return "/registros?tipo=" + encodeURIComponent(f.tipo) + "&categoria=" + encodeURIComponent(f.categoria) +
+            "&fecha_desde=" + f.fecha_desde + "&fecha_hasta=" + f.fecha_hasta;
     }
 
     function dibujar() {
@@ -42,7 +50,13 @@
                     { label: "Gastos", data: d.serie.map(function (m) { return m.gastos; }), backgroundColor: d.colores.gastos, borderRadius: 4 }
                 ]
             },
-            options: { maintainAspectRatio: false, scales: ejes, plugins: { tooltip: tooltip } }
+            options: {
+                maintainAspectRatio: false, scales: ejes, plugins: { tooltip: tooltip },
+                onHover: mano,
+                onClick: function (e, elementos) {
+                    if (elementos.length) window.location.href = "/dashboard?mes=" + d.serie[elementos[0].index].mes;
+                }
+            }
         }));
 
         var cats = document.getElementById("grafica-categorias");
@@ -57,6 +71,10 @@
                 plugins: {
                     legend: { position: "right" },
                     tooltip: { callbacks: { label: function (c) { return c.label + ": " + moneda(c.parsed); } } }
+                },
+                onHover: mano,
+                onClick: function (e, elementos) {
+                    if (elementos.length) window.location.href = enlaceRegistros(d.categorias[elementos[0].index].filtro);
                 }
             }
         }));

@@ -34,6 +34,7 @@ def test_validacion_de_registros(campos, mensaje):
 def test_registro_valido_con_coma_decimal(monkeypatch):
     guardados = []
     monkeypatch.setattr(repositorio, "insertar_registro", lambda *a: guardados.append(a))
+    monkeypatch.setattr(repositorio, "presupuesto_anual", lambda *a: {})
     assert registros.crear(23, "GASTO", "1234,5", "2026-09-01", "6", " Mercado ") == "Registro guardado"
     assert guardados == [("GASTO", 1234.5, date(2026, 9, 1), "Mercado", 6, 23)]
 
@@ -41,7 +42,10 @@ def test_registro_valido_con_coma_decimal(monkeypatch):
 def test_filtros_vacios_o_invalidos_se_ignoran():
     f = registros.parsear_filtros("OTRO", "  ", "abc", "10,5", "no-fecha", "2026-09-30")
     assert f == {"tipo": None, "concepto": None, "monto_min": None, "monto_max": 10.5,
-                 "fecha_desde": None, "fecha_hasta": date(2026, 9, 30)}
+                 "fecha_desde": None, "fecha_hasta": date(2026, 9, 30), "categoria": None}
+    assert registros.parsear_filtros(categoria="0")["categoria"] == 0
+    assert registros.parsear_filtros(categoria="6")["categoria"] == 6
+    assert registros.parsear_filtros(categoria="x")["categoria"] is None
 
 
 def test_solo_admin_elimina_registros():
@@ -71,6 +75,8 @@ def datos_mes(monkeypatch):
     monkeypatch.setattr(repositorio, "plan", lambda *a: {"NECESIDADES": 50.0, "DESEOS": 30.0, "AHORRO": 20.0})
     monkeypatch.setattr(repositorio, "gastos_por_grupo",
                         lambda *a: {"NECESIDADES": 2_400_000.0, "DESEOS": 600_000.0, "AHORRO": 870_000.0})
+    monkeypatch.setattr(repositorio, "categorias", lambda *a: [
+        {"id": 4, "nombre": "Vivienda", "tipo": "GASTO", "grupo": "NECESIDADES", "propia": False, "usos": 1}])
     monkeypatch.setattr(finanzas, "hoy", lambda: date(2026, 10, 17))
 
 
@@ -85,6 +91,10 @@ def test_vista_del_dashboard_ya_formateada(datos_mes):
     assert necesidades["texto_presupuesto"] == "$ 2.425.000,00" and necesidades["usado"] == "99 %"
     assert necesidades["estado"] == "Dentro del plan" and necesidades["clase_estado"] == "bien"
     assert v["meses"][0] == {"valor": "2026-10", "texto": "Octubre 2026"}
+    # Clic en la dona: los registros de esa categoría en ese mes ("Ocio" no es del usuario -> 0).
+    assert v["categorias"][0]["filtro"] == {"tipo": "GASTO", "categoria": "4", "fecha_desde": "2026-09-01",
+                                            "fecha_hasta": "2026-09-30"}
+    assert v["serie"][-1]["mes"] == "2026-09"
 
 
 def test_mes_fuera_de_rango_vuelve_al_actual(datos_mes):

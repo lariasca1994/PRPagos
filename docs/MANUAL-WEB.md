@@ -42,7 +42,7 @@ compartidos con la versión de escritorio.
 - **Registra solo datos de ejemplo**: es un proyecto de portafolio, no un servicio financiero.
 - Los porcentajes del plan se pueden cambiar, pero siempre son tres grupos que suman 100.
 - Si pierdes el teléfono necesitas un **código de respaldo** o acceso a tu **correo** para volver a
-  entrar (ver 4.12).
+  entrar (ver 4.13).
 
 ## 2. Glosario
 
@@ -94,7 +94,7 @@ elección.
 | 1 | Correo | Tu correo |
 | 2 | Contraseña | Tu contraseña |
 | 3 | Continuar | Pasa al código de verificación |
-| 4 | Ingresar con llave de acceso | Entra directo con Windows Hello, la huella, el rostro o el PIN del dispositivo, sin contraseña ni código (ver 4.14) |
+| 4 | Ingresar con llave de acceso | Entra directo con Windows Hello, la huella, el rostro o el PIN del dispositivo, sin contraseña ni código (ver 4.15) |
 
 ### 4.2 Crear una cuenta
 
@@ -117,7 +117,7 @@ elección.
 | 1 | Código QR | Escanéalo con tu app autenticadora |
 | 2 | Clave | La misma información, para escribirla a mano si no puedes escanear |
 | 3 | Código de 6 dígitos | El que muestra la app para **PRPagos** |
-| 4 | Activar e ingresar | Guarda el autenticador y muestra tus **códigos de respaldo** (ver 4.11) |
+| 4 | Activar e ingresar | Guarda el autenticador y muestra tus **códigos de respaldo** (ver 4.12) |
 
 Si ya lo configuraste en la versión de escritorio, este paso no aparece.
 
@@ -129,7 +129,7 @@ Si ya lo configuraste en la versión de escritorio, este paso no aparece.
 |:-:|---|---|
 | 1 | Código de 6 dígitos | El código actual de tu app (cambia cada 30 segundos) o un código de respaldo |
 | 2 | Ingresar | Abre el **Dashboard** |
-| 3 | Perdí mi teléfono | Te envía un código al correo (ver 4.12) |
+| 3 | Perdí mi teléfono | Te envía un código al correo (ver 4.13) |
 
 La sesión se cierra tras **6 horas sin uso** o a las **8 horas** del ingreso, con un mensaje que
 explica el motivo.
@@ -143,9 +143,9 @@ explica el motivo.
 | 1 | Selector de mes | El mes que quieres revisar (por defecto, el actual) |
 | 2 | Ingresos · Gastos · Balance | Totales del mes; el balance sale en verde si es positivo y en rojo si es negativo |
 | 3 | Ahorro del mes | Qué porcentaje de los ingresos no se gastó, y cuántos movimientos hubo |
-| 4 | Ingresos vs. gastos | Barras de los últimos 6 meses, para ver la tendencia |
-| 5 | Gastos por categoría | Anillo con el peso de cada categoría en el mes |
-| 6 | Plan 50/30/20 | Presupuesto de cada grupo (calculado sobre los ingresos del mes) frente a lo real |
+| 4 | Ingresos vs. gastos | Barras de los últimos 6 meses, para ver la tendencia; **toca un mes** para abrirlo |
+| 5 | Gastos por categoría | Anillo con el peso de cada categoría en el mes; **toca una** para ver sus registros |
+| 6 | Plan 50/30/20 | Presupuesto de cada grupo (calculado sobre los ingresos del mes) frente a lo real. **Ver el presupuesto detallado por categoría** abre la pantalla Presupuesto en ese mes |
 | 7 | Tabla del plan | Presupuesto, real, % usado y estado: **Dentro del plan**, **Excedido**, **Meta cumplida** o **Por debajo de la meta** (ahorro) |
 | 8 | Resúmenes por correo | **Enviarme el resumen semanal** o **del mes** para recibirlo al momento |
 
@@ -153,7 +153,39 @@ El mismo dashboard en tema oscuro:
 
 ![Dashboard en tema oscuro](img/manual-web/06-dashboard-oscuro.png)
 
-### 4.6 Registrar un ingreso o un gasto
+### 4.6 Presupuesto
+
+Planea cuánto vas a recibir y gastar **en cada categoría, mes a mes**, y compáralo con lo que
+registras. Es el mismo esquema de una hoja de presupuesto anual (ingresos, gastos fijos y
+variables, ahorro y lo que **queda**), pero conectado a tus registros: no tienes que pasar nada a
+mano.
+
+![Presupuesto del mes: tarjetas, gráfica del año y mayores gastos](img/manual-web/15-presupuesto.png)
+
+| # | Parte | Qué muestra o qué haces |
+|:-:|---|---|
+| 1 | Mes y año | El periodo que planeas (año anterior, actual o siguiente) |
+| 2 | Ingresos · Gastos | Lo **registrado** en el mes y, debajo, lo **presupuestado** |
+| 3 | Quedan | Ingresos menos gastos (el ahorro cuenta como gasto: ya tiene destino), real y presupuestado |
+| 4 | Presupuesto de gastos usado | Qué porcentaje del presupuesto de gastos ya se usó y si vas **Dentro del presupuesto** o **Excedido** |
+| 5 | Gastos presupuestados vs. reales | Barras de los 12 meses; **toca un mes** para abrirlo |
+| 6 | Distribución del presupuesto | Cómo se reparten los ingresos presupuestados entre Necesidades, Deseos, Ahorro y deudas y lo **sin asignar** |
+| 7 | Mayores gastos | Los 5 gastos más grandes del mes y su peso; **toca uno** para abrirlo, o **Ver todos los registros del mes** |
+| 8 | Tabla del mes | Una fila por categoría, agrupadas como el plan 50/30/20. Escribe el monto en **Presupuesto** (con o sin puntos de miles; vacío = sin presupuesto). **Real**, **Usado** (con barra) y **Estado** salen de tus registros. **Toca el nombre** de una categoría para ver sus movimientos del mes |
+| 9 | Meta del plan | En cada grupo: qué parte de los ingresos presupuestados le diste frente a la meta de tu plan 50/30/20 |
+| 10 | Aplicar a · Guardar presupuesto | Guarda **solo este mes**, **de este mes a diciembre** o **todo el año** |
+| 11 | Copiar el presupuesto del mes anterior | Deja el mes igual al anterior, para ajustar solo lo que cambia |
+| 12 | Resumen del año | Presupuestado y real de cada mes (ingresos, gastos y quedan) con el total; **toca un mes** para abrirlo |
+
+![Presupuesto completo: tabla por categoría y resumen del año](img/manual-web/16-presupuesto-tabla.png)
+
+Estados: en ingresos, **Cumplido** o **Por debajo de lo previsto**; en gastos, **Dentro del
+presupuesto**, **Excedido** o **Sin presupuesto**; en ahorro, **Meta cumplida** o **Por debajo de la
+meta**. Al guardar un registro con categoría, el aviso te dice cómo va su presupuesto, por
+ejemplo: *Registro guardado · Mercado en septiembre 2026: $ 657.000,00 de $ 900.000,00 (73 %) ·
+Dentro del presupuesto*.
+
+### 4.7 Registrar un ingreso o un gasto
 
 ![Formulario de nuevo registro](img/manual-web/07-nuevo.png)
 
@@ -166,7 +198,7 @@ El mismo dashboard en tema oscuro:
 | 5 | Concepto | Descripción breve | Obligatorio, hasta 100 caracteres |
 | 6 | Guardar | Botón | Registra el movimiento a tu nombre |
 
-### 4.7 Consultar y exportar
+### 4.8 Consultar y exportar
 
 ![Consulta de registros con filtros](img/manual-web/08-consulta.png)
 
@@ -176,22 +208,23 @@ El mismo dashboard en tema oscuro:
 | 2 | Concepto contiene | Parte del concepto que buscas |
 | 3 | Monto mínimo / máximo | Rango de valores |
 | 4 | Desde / Hasta | Rango de fechas |
-| 5 | Buscar | Aplica los filtros (**Limpiar** los quita). Un campo vacío no filtra |
-| 6 | Totales | Ingresos, gastos y balance de lo que cumple los filtros |
-| 7 | Modificar | Abre el registro para corregirlo |
-| 8 | Exportar a CSV | Descarga la consulta (ID, tipo, monto, fecha, categoría y concepto) |
+| 5 | Categoría | Una categoría, **Sin categoría** o todas |
+| 6 | Buscar | Aplica los filtros (**Limpiar** los quita). Un campo vacío no filtra |
+| 7 | Totales | Ingresos, gastos y balance de lo que cumple los filtros |
+| 8 | Modificar | Abre el registro para corregirlo |
+| 9 | Exportar a CSV | Descarga la consulta (ID, tipo, monto, fecha, categoría y concepto) |
 
 Solo ves **tus** registros.
 
-### 4.8 Modificar un registro
+### 4.9 Modificar un registro
 
 ![Formulario de modificación](img/manual-web/09-editar.png)
 
-Los mismos campos de 4.6 con los valores actuales. **Guardar cambios** aplica la corrección y queda
+Los mismos campos de 4.7 con los valores actuales. **Guardar cambios** aplica la corrección y queda
 en la auditoría. Si te equivocaste de registro, corrígelo: las cuentas de usuario no eliminan
 registros.
 
-### 4.9 Perfil
+### 4.10 Perfil
 
 ![Pantalla Perfil](img/manual-web/10-perfil.png)
 
@@ -202,10 +235,10 @@ registros.
 | 3 | Categorías | Ver las sugeridas y **agregar** las tuyas (nombre, tipo y grupo del plan); las tuyas se pueden eliminar si no tienen registros |
 | 4 | Verificación en dos pasos | **Cambiar autenticador** (teléfono nuevo o perdido) con un código de la app o de respaldo |
 | 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
-| 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.14) |
+| 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.15) |
 | 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
 
-### 4.10 Resúmenes por correo
+### 4.11 Resúmenes por correo
 
 - **Semanal:** cada viernes, con los ingresos, gastos y balance de los 7 días que terminan ese
   viernes (de sábado a viernes).
@@ -215,7 +248,7 @@ registros.
 - Los botones del dashboard te los envían al momento; el contenido es idéntico al que envía la
   versión de escritorio.
 
-### 4.11 Códigos de respaldo
+### 4.12 Códigos de respaldo
 
 ![Códigos de respaldo](img/manual-web/11-codigos-respaldo.png)
 
@@ -224,7 +257,7 @@ sirve **una sola vez** y no se vuelven a mostrar: guárdalos impresos o en tu ge
 Sirven para ingresar (en lugar del código de 6 dígitos), recuperar la contraseña o cambiar de
 autenticador.
 
-### 4.12 Perdí mi teléfono
+### 4.13 Perdí mi teléfono
 
 ![Código enviado al correo](img/manual-web/12-perdi-telefono.png)
 
@@ -235,7 +268,7 @@ autenticador.
 4. Escríbelo en **Código del correo** y pulsa **Verificar y configurar autenticador**: configuras
    la app en el teléfono nuevo y recibes códigos de respaldo nuevos.
 
-### 4.13 Recuperar la contraseña
+### 4.14 Recuperar la contraseña
 
 ![Formulario de recuperación de contraseña](img/manual-web/13-recuperar.png)
 
@@ -248,7 +281,7 @@ autenticador.
 | 5 | Repite la nueva contraseña | La misma |
 | 6 | Actualizar contraseña | Aplica el cambio |
 
-### 4.14 Llaves de acceso (Windows Hello, huella o PIN)
+### 4.15 Llaves de acceso (Windows Hello, huella o PIN)
 
 ![Sección Llaves de acceso en Perfil](img/manual-web/14-llaves.png)
 
@@ -272,7 +305,7 @@ rostro o PIN. Abre el **Dashboard** directamente.
 - Si pierdes un dispositivo, elimina su llave en **Perfil**. La contraseña + código y los códigos
   de respaldo siguen funcionando.
 
-### 4.15 Preguntas frecuentes
+### 4.16 Preguntas frecuentes
 
 **¿Tengo que configurar el autenticador dos veces, en la web y en el escritorio?** No. Es uno solo
 por cuenta: el que configures en una versión sirve en la otra. Lo mismo con los códigos de respaldo.

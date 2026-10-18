@@ -25,11 +25,13 @@
 <div class="rejilla-graficas">
     <section class="tarjeta grafica grafica-ancha">
         <h2>Ingresos vs. gastos · últimos 6 meses</h2>
+        <p class="texto-ayuda">Toca un mes para verlo.</p>
         <div class="lienzo"><canvas id="grafica-meses" aria-label="Ingresos y gastos de los últimos 6 meses" role="img"></canvas></div>
     </section>
     <section class="tarjeta grafica">
         <h2>{{ v.titulo_categorias }}</h2>
         {% if v.categorias %}
+        <p class="texto-ayuda">Toca una categoría para ver sus registros.</p>
         <div class="lienzo"><canvas id="grafica-categorias" aria-label="Gastos por categoría" role="img"></canvas></div>
         {% else %}
         <p class="texto-ayuda vacio-grafica">No hay gastos en este mes.</p>
@@ -44,6 +46,7 @@
 <section class="tarjeta">
     <h2>{{ v.titulo_plan }}</h2>
     <p class="texto-ayuda">Presupuesto calculado sobre los ingresos del mes. Los porcentajes se cambian en Perfil.</p>
+    <p><a class="enlace-ver" href="/presupuesto?anio={{ v.enlace_presupuesto.anio }}&mes={{ v.enlace_presupuesto.mes }}">Ver el presupuesto detallado por categoría</a></p>
     <table class="tabla tabla-plan">
         <thead><tr><th>Grupo</th><th>Presupuesto</th><th>Real</th><th>Usado</th><th>Estado</th></tr></thead>
         <tbody>
