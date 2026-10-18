@@ -53,6 +53,10 @@ class PanelConsulta extends JPanel {
     private final JTextField montoMax = Ui.campo(null);
     private final SelectorFecha desde = SelectorFecha.opcional();
     private final SelectorFecha hasta = SelectorFecha.opcional();
+    /** Categoría ("" = todas, "0" = sin categoría): las opciones llegan con cada consulta. */
+    private final javax.swing.JComboBox<Opcion> categoriaFiltro = new javax.swing.JComboBox<>();
+    private String categoriaElegida = "";
+    private boolean llenandoCategorias;
     private final JLabel total = new JLabel();
     private final JLabel notaAdmin = new JLabel("Viendo los registros de todos los usuarios");
     private final Ui.Aviso aviso = new Ui.Aviso();
@@ -64,6 +68,14 @@ class PanelConsulta extends JPanel {
     };
     private final JTable tabla = new JTable(modelo);
     private List<Pago> pagos = new ArrayList<>();
+
+    /** Opción de la lista de categorías (valor que va a la API / texto visible). */
+    private record Opcion(String valor, String texto) {
+        @Override
+        public String toString() {
+            return texto;
+        }
+    }
 
     PanelConsulta(VentanaPrincipal ventana) {
         this.ventana = ventana;
@@ -113,12 +125,19 @@ class PanelConsulta extends JPanel {
         fila2.setOpaque(false);
         fila2.add(campoConEtiqueta("Desde", desde));
         fila2.add(campoConEtiqueta("Hasta", hasta));
+        categoriaFiltro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        categoriaFiltro.setAlignmentX(LEFT_ALIGNMENT);
+        categoriaFiltro.addActionListener(e -> {
+            if (!llenandoCategorias && categoriaFiltro.getSelectedItem() instanceof Opcion o) {
+                categoriaElegida = o.valor();
+            }
+        });
+        fila2.add(campoConEtiqueta("Categoría", categoriaFiltro));
         JPanel botones = Ui.fila(10);
         botones.setBorder(BorderFactory.createEmptyBorder(31, 0, 0, 0));
         botones.add(Ui.primario("Buscar", e -> buscar()));
         botones.add(Ui.secundario("Limpiar", e -> limpiar()));
         fila2.add(botones);
-        fila2.add(new JLabel());
         for (JPanel f : new JPanel[] {fila1, fila2}) {
             f.setAlignmentX(LEFT_ALIGNMENT);
             tarjeta.add(f);
@@ -230,8 +249,26 @@ class PanelConsulta extends JPanel {
         montoMax.setText("");
         desde.setFechaSeleccionada(null);
         hasta.setFechaSeleccionada(null);
+        categoriaElegida = "";
         aviso.ocultar();
         buscar();
+    }
+
+    /**
+     * Deja puestos los filtros que llegan de otra pantalla (una categoría del
+     * presupuesto o del dashboard), como los enlaces /registros?... de la web.
+     */
+    void prepararFiltros(JsonObject f) {
+        String tipo = Json.texto(f, "tipo");
+        tipoFiltro.setSelectedIndex("GASTO".equals(tipo) ? 1 : "INGRESO".equals(tipo) ? 2 : 0);
+        concepto.setText("");
+        montoMin.setText("");
+        montoMax.setText("");
+        String d = Json.texto(f, "fecha_desde");
+        String h = Json.texto(f, "fecha_hasta");
+        desde.setFechaSeleccionada(d.isEmpty() ? null : LocalDate.parse(d));
+        hasta.setFechaSeleccionada(h.isEmpty() ? null : LocalDate.parse(h));
+        categoriaElegida = Json.texto(f, "categoria");
     }
 
     /** Los filtros tal como los escribió la persona; el servidor los interpreta (igual que en la web). */
@@ -249,6 +286,7 @@ class PanelConsulta extends JPanel {
         LocalDate fHasta = hasta.getFechaSeleccionada();
         f.put("fecha_desde", fDesde == null ? "" : fDesde.toString());
         f.put("fecha_hasta", fHasta == null ? "" : fHasta.toString());
+        f.put("categoria", categoriaElegida);
         return f;
     }
 
@@ -267,6 +305,7 @@ class PanelConsulta extends JPanel {
         }
         pagos = resultado;
         notaAdmin.setVisible(admin);
+        llenarCategorias(Json.lista(respuesta, "categorias"));
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(admin
                 ? new Object[] {"ID", "Usuario", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", "", ""}
@@ -297,6 +336,24 @@ class PanelConsulta extends JPanel {
                 + hex(pal.acento()) + "'>" + String.format(Locale.ROOT, "%.2f", gastos)
                 + "</b> &middot; Balance: <b>" + String.format(Locale.ROOT, "%.2f", balance) + "</b></html>");
         revalidate();
+    }
+
+    private void llenarCategorias(List<JsonObject> categorias) {
+        llenandoCategorias = true;
+        javax.swing.DefaultComboBoxModel<Opcion> m = new javax.swing.DefaultComboBoxModel<>();
+        m.addElement(new Opcion("", "Todas"));
+        m.addElement(new Opcion("0", "Sin categoría"));
+        for (JsonObject c : categorias) {
+            m.addElement(new Opcion(Json.texto(c, "id"), Json.texto(c, "nombre") + " · "
+                    + ("INGRESO".equals(Json.texto(c, "tipo")) ? "Ingreso" : "Gasto")));
+        }
+        categoriaFiltro.setModel(m);
+        for (int i = 0; i < m.getSize(); i++) {
+            if (m.getElementAt(i).valor().equals(categoriaElegida)) {
+                categoriaFiltro.setSelectedIndex(i);
+            }
+        }
+        llenandoCategorias = false;
     }
 
     private void eliminar(Pago pago) {

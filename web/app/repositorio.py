@@ -182,7 +182,7 @@ def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
             "DELETE FROM TBAuditoria WHERE usuario_id = :id AND id_pago IS NULL", id=usuario_id
         )
         # Lo que cuelga de la cuenta (no tiene registros, así que tampoco usa sus categorías).
-        for tabla in ("TBCodigosRespaldo", "TBPresupuestos", "TBEnviosResumen", "TBCategorias", "TBLlavesAcceso"):
+        for tabla in ("TBCodigosRespaldo", "TBPresupuestoMensual", "TBPresupuestos", "TBEnviosResumen", "TBCategorias", "TBLlavesAcceso"):
             cur.execute(f"DELETE FROM {tabla} WHERE usuario_id = :id", id=usuario_id)
         cur.execute("DELETE FROM TBPLogin WHERE id = :id", id=usuario_id)
         afectadas = cur.rowcount
@@ -215,7 +215,8 @@ def _registro(fila, con_dueno: bool = False) -> dict:
 
 def buscar_registros(usuario_id: int | None, filtros: dict) -> list[dict]:
     """usuario_id None = todos los usuarios (admin), con el dueño de cada uno."""
-    params = {k: filtros.get(k) for k in ("tipo", "fecha_desde", "fecha_hasta", "concepto", "monto_min", "monto_max")}
+    params = {k: filtros.get(k) for k in ("tipo", "fecha_desde", "fecha_hasta", "concepto", "monto_min", "monto_max",
+                                      "categoria")}
     with obtener_conexion() as conn:
         cur = conn.cursor()
         if usuario_id is None:
@@ -346,6 +347,10 @@ def eliminar_categoria(usuario_id: int, categoria_id: int) -> str | None:
         cur.execute("SELECT COUNT(*) FROM TBPagos WHERE categoria_id = :id", id=categoria_id)
         if cur.fetchone()[0]:
             return "Esa categoría tiene registros: cámbialos de categoría antes de eliminarla"
+        # Su presupuesto se va con ella (solo el de su dueño: es una categoría propia).
+        cur.execute("DELETE FROM TBPresupuestoMensual WHERE categoria_id = :id AND usuario_id = :usuario_id "
+                    "AND EXISTS (SELECT 1 FROM TBCategorias c WHERE c.id = :id AND c.usuario_id = :usuario_id)",
+                    id=categoria_id, usuario_id=usuario_id)
         cur.execute("DELETE FROM TBCategorias WHERE id = :id AND usuario_id = :usuario_id",
                     id=categoria_id, usuario_id=usuario_id)
         afectadas = cur.rowcount
@@ -537,6 +542,51 @@ def desmarcar_envio(usuario_id: int, tipo: str, periodo: str) -> None:
         cur = conn.cursor()
         cur.execute("DELETE FROM TBEnviosResumen WHERE usuario_id = :u AND tipo = :t AND periodo = :p",
                     u=usuario_id, t=tipo, p=periodo)
+        conn.commit()
+
+
+# ───────────────────────── Presupuesto mensual ─────────────────────────
+
+
+def presupuesto_anual(usuario_id: int, desde: date, hasta: date) -> dict[tuple[int, date], float]:
+    """{(categoria_id, mes): monto} presupuestado en [desde, hasta)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("presupuesto_anual"), usuario_id=usuario_id, desde=desde, hasta=hasta)
+        return {(int(c), _solo_fecha(m)): float(t) for c, m, t in cur}
+
+
+def real_por_categoria_mes(usuario_id: int, desde: date,
+                           hasta: date) -> dict[tuple[int | None, date, str], float]:
+    """{(categoria_id o None, mes, tipo): total} registrado en [desde, hasta)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(consulta("real_categoria_mes"), usuario_id=usuario_id, desde=desde, hasta=hasta)
+        return {(None if c is None else int(c), _solo_fecha(m), t): float(v) for c, m, t, v in cur}
+
+
+def guardar_presupuesto(usuario_id: int, montos: list[tuple[int, date, float]], detalle: str) -> None:
+    """Fija cada (categoría, mes, monto) en una sola transacción; monto 0 borra la fila."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        borrar = [{"u": usuario_id, "c": c, "m": m} for c, m, v in montos if v <= 0]
+        fijar = [{"u": usuario_id, "c": c, "m": m, "v": v} for c, m, v in montos if v > 0]
+        if borrar:
+            cur.executemany("DELETE FROM TBPresupuestoMensual WHERE usuario_id = :u AND categoria_id = :c "
+                            "AND mes = :m", borrar)
+        if fijar:
+            cur.executemany(
+                "MERGE INTO TBPresupuestoMensual p USING (SELECT :u u, :c c, :m m FROM dual) s "
+                "ON (p.usuario_id = s.u AND p.categoria_id = s.c AND p.mes = s.m) "
+                "WHEN MATCHED THEN UPDATE SET monto = :v "
+                "WHEN NOT MATCHED THEN INSERT (usuario_id, categoria_id, mes, monto) VALUES (:u, :c, :m, :v)",
+                fijar,
+            )
+        cur.execute(
+            "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+            "VALUES (tbauditoria_sequence.NEXTVAL, :u, NULL, 'PRESUPUESTO', :d)",
+            u=usuario_id, d=detalle[:200],
+        )
         conn.commit()
 
 

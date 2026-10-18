@@ -35,6 +35,7 @@
                 {# Mismo menú, en el mismo orden, que la barra de la versión de escritorio. #}
                 {% set ruta = request.url.path %}
                 <a href="/dashboard" {% if ruta.startswith("/dashboard") %}class="activo" aria-current="page"{% endif %}>Dashboard</a>
+                <a href="/presupuesto" {% if ruta.startswith("/presupuesto") %}class="activo" aria-current="page"{% endif %}>Presupuesto</a>
                 <a href="/registros" {% if ruta == "/registros" or (ruta.startswith("/registros/") and not ruta.endswith("/nuevo")) %}class="activo" aria-current="page"{% endif %}>Consultar registros</a>
                 <a href="/registros/nuevo" {% if ruta == "/registros/nuevo" %}class="activo" aria-current="page"{% endif %}>Nuevo registro</a>
                 <a href="/perfil" {% if ruta.startswith("/perfil") %}class="activo" aria-current="page"{% endif %}>Perfil</a>

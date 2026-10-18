@@ -29,22 +29,27 @@ def _redirigir(ruta: str, mensaje: str, exito: bool = False) -> RedirectResponse
 @router.get("/registros")
 def listar_registros(request: Request, usuario: UsuarioActual = Depends(exigir_login), tipo: str | None = None,
                      concepto: str | None = None, monto_min: str | None = None, monto_max: str | None = None,
-                     fecha_desde: str | None = None, fecha_hasta: str | None = None):
-    filtros = servicio.parsear_filtros(tipo, concepto, monto_min, monto_max, fecha_desde, fecha_hasta)
+                     fecha_desde: str | None = None, fecha_hasta: str | None = None,
+                     categoria: str | None = None):
+    filtros = servicio.parsear_filtros(tipo, concepto, monto_min, monto_max, fecha_desde, fecha_hasta,
+                                       categoria)
     resultado = servicio.consultar(usuario.usuario_id, usuario.es_admin, filtros)
     return templates.TemplateResponse("registros_lista.html", {
         "request": request, "usuario": usuario, "tipos": servicio.TIPOS, **resultado,
         "filtros": {"tipo": filtros["tipo"] or "", "concepto": concepto or "", "monto_min": monto_min or "",
                     "monto_max": monto_max or "", "fecha_desde": fecha_desde or "",
-                    "fecha_hasta": fecha_hasta or ""},
+                    "fecha_hasta": fecha_hasta or "",
+                    "categoria": "" if filtros["categoria"] is None else str(filtros["categoria"])},
     })
 
 
 @router.get("/registros/exportar.csv")
 def exportar_csv(usuario: UsuarioActual = Depends(exigir_login), tipo: str | None = None,
                  concepto: str | None = None, monto_min: str | None = None, monto_max: str | None = None,
-                 fecha_desde: str | None = None, fecha_hasta: str | None = None):
-    filtros = servicio.parsear_filtros(tipo, concepto, monto_min, monto_max, fecha_desde, fecha_hasta)
+                 fecha_desde: str | None = None, fecha_hasta: str | None = None,
+                 categoria: str | None = None):
+    filtros = servicio.parsear_filtros(tipo, concepto, monto_min, monto_max, fecha_desde, fecha_hasta,
+                                       categoria)
     return Response(servicio.csv_texto(usuario.usuario_id, usuario.es_admin, filtros), media_type="text/csv",
                     headers={"Content-Disposition": "attachment; filename=registros.csv"})
 

@@ -9,7 +9,7 @@ from datetime import date
 import oracledb
 
 from .. import finanzas, repositorio
-from . import ErrorServicio
+from . import ErrorServicio, presupuesto
 
 TIPOS = {"GASTO": "Gasto", "INGRESO": "Ingreso"}
 GRUPOS = {"NECESIDADES": "Necesidades", "DESEOS": "Deseos", "AHORRO": "Ahorro y deudas"}
@@ -17,8 +17,9 @@ CATEGORIA_INVALIDA = "Categoría no válida para este registro"
 
 
 def parsear_filtros(tipo=None, concepto=None, monto_min=None, monto_max=None, fecha_desde=None,
-                    fecha_hasta=None) -> dict:
-    """Campo vacío = sin filtro; un monto o una fecha inválidos se ignoran."""
+                    fecha_hasta=None, categoria=None) -> dict:
+    """Campo vacío = sin filtro; un monto o una fecha inválidos se ignoran.
+    categoria: id de la categoría, o "0" para los registros sin categoría."""
     def _monto(valor):
         valor = (valor or "").strip().replace(",", ".")
         try:
@@ -40,6 +41,7 @@ def parsear_filtros(tipo=None, concepto=None, monto_min=None, monto_max=None, fe
         "monto_max": _monto(monto_max),
         "fecha_desde": _fecha(fecha_desde),
         "fecha_hasta": _fecha(fecha_hasta),
+        "categoria": int(str(categoria).strip()) if str(categoria or "").strip().isdigit() else None,
     }
 
 
@@ -48,7 +50,8 @@ def consultar(usuario_id: int, es_admin: bool, filtros: dict) -> dict:
     registros = repositorio.buscar_registros(None if es_admin else usuario_id, filtros)
     ingresos = sum(r["monto"] for r in registros if r["tipo"] == "INGRESO")
     gastos = sum(r["monto"] for r in registros if r["tipo"] == "GASTO")
-    return {"registros": registros, "ingresos": ingresos, "gastos": gastos, "balance": ingresos - gastos}
+    return {"registros": registros, "ingresos": ingresos, "gastos": gastos, "balance": ingresos - gastos,
+            "categorias": repositorio.categorias(usuario_id)}
 
 
 def csv_texto(usuario_id: int, es_admin: bool, filtros: dict) -> str:
@@ -112,13 +115,19 @@ def _validar(tipo: str, monto: str, fecha: str, concepto: str) -> tuple[float, d
     return valor, dia, concepto[:100]
 
 
+def _con_presupuesto(mensaje: str, usuario_id: int, categoria_id: int | None, dia: date) -> str:
+    """Agrega cómo va el presupuesto de esa categoría en el mes del registro."""
+    estado = presupuesto.estado_categoria(usuario_id, categoria_id, dia)
+    return f"{mensaje} · {estado}" if estado else mensaje
+
+
 def crear(usuario_id: int, tipo: str, monto: str, fecha: str, categoria_id, concepto: str) -> str:
     valor, dia, concepto = _validar(tipo, monto, fecha, concepto)
     try:
         repositorio.insertar_registro(tipo, valor, dia, concepto, _categoria(categoria_id), usuario_id)
     except oracledb.DatabaseError:
         raise ErrorServicio(CATEGORIA_INVALIDA) from None
-    return "Registro guardado"
+    return _con_presupuesto("Registro guardado", usuario_id, _categoria(categoria_id), dia)
 
 
 def actualizar(usuario_id: int, es_admin: bool, id_pago: int, tipo: str, monto: str, fecha: str,
@@ -135,7 +144,10 @@ def actualizar(usuario_id: int, es_admin: bool, id_pago: int, tipo: str, monto: 
         raise ErrorServicio(CATEGORIA_INVALIDA) from None
     if filas == 0:
         raise ErrorServicio("No se pudo modificar: este registro no te pertenece.")
-    return f"Registro #{id_pago} actualizado"
+    # El admin puede editar registros ajenos: el presupuesto que se muestra es solo el propio.
+    if es_admin:
+        return f"Registro #{id_pago} actualizado"
+    return _con_presupuesto(f"Registro #{id_pago} actualizado", usuario_id, categoria, dia)
 
 
 def eliminar(usuario_id: int, es_admin: bool, id_pago: int) -> str:

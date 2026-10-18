@@ -38,6 +38,15 @@
         <label>Hasta
             <input type="date" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
         </label>
+        <label>Categoría
+            <select name="categoria">
+                <option value="">Todas</option>
+                <option value="0" {% if filtros.categoria == "0" %}selected{% endif %}>Sin categoría</option>
+                {% for c in categorias %}
+                <option value="{{ c.id }}" {% if filtros.categoria == c.id|string %}selected{% endif %}>{{ c.nombre }} · {{ "Ingreso" if c.tipo == "INGRESO" else "Gasto" }}</option>
+                {% endfor %}
+            </select>
+        </label>
         <button type="submit" class="boton">Buscar</button>
         <a class="boton boton-secundario" href="/registros">Limpiar</a>
     </div>
@@ -89,7 +98,7 @@
 
 <p>
     <a class="boton boton-secundario"
-       href="/registros/exportar.csv?tipo={{ filtros.tipo | urlencode }}&concepto={{ filtros.concepto | urlencode }}&monto_min={{ filtros.monto_min | urlencode }}&monto_max={{ filtros.monto_max | urlencode }}&fecha_desde={{ filtros.fecha_desde | urlencode }}&fecha_hasta={{ filtros.fecha_hasta | urlencode }}">
+       href="/registros/exportar.csv?tipo={{ filtros.tipo | urlencode }}&concepto={{ filtros.concepto | urlencode }}&monto_min={{ filtros.monto_min | urlencode }}&monto_max={{ filtros.monto_max | urlencode }}&fecha_desde={{ filtros.fecha_desde | urlencode }}&fecha_hasta={{ filtros.fecha_hasta | urlencode }}&categoria={{ filtros.categoria | urlencode }}">
         Exportar a CSV
     </a>
 </p>

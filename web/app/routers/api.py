@@ -28,7 +28,7 @@ from ..seguridad import (
     leer_token_reconfiguracion,
 )
 from ..servicios import ErrorServicio
-from ..servicios import acceso, dashboard, perfil, registros, usuarios
+from ..servicios import acceso, dashboard, perfil, presupuesto, registros, usuarios
 
 router = APIRouter(prefix="/api")
 
@@ -174,6 +174,36 @@ def enviar_resumen(datos: dict = Body(...), usuario: UsuarioActual = Depends(exi
                                                 _texto(datos, "tipo"))}
 
 
+# ───────────────────────── Presupuesto ─────────────────────────
+
+
+def _periodo(datos: dict) -> tuple[int, int]:
+    anio = presupuesto.anio_elegido(_texto(datos, "anio"))
+    return anio, presupuesto.mes_elegido(_texto(datos, "mes"), anio)
+
+
+@router.get("/presupuesto")
+def ver_presupuesto(anio: str | None = None, mes: str | None = None,
+                    usuario: UsuarioActual = Depends(exigir_login)):
+    elegido, numero = _periodo({"anio": anio, "mes": mes})
+    return presupuesto.vista(usuario.usuario_id, elegido, numero)
+
+
+@router.put("/presupuesto")
+def guardar_presupuesto(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
+    anio, mes = _periodo(datos)
+    montos = datos.get("montos") if isinstance(datos.get("montos"), dict) else {}
+    return {"mensaje": presupuesto.guardar(usuario.usuario_id, anio, mes,
+                                           {str(k): "" if v is None else str(v) for k, v in montos.items()},
+                                           _texto(datos, "alcance"))}
+
+
+@router.post("/presupuesto/copiar")
+def copiar_presupuesto(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
+    anio, mes = _periodo(datos)
+    return {"mensaje": presupuesto.copiar_mes_anterior(usuario.usuario_id, anio, mes)}
+
+
 # ───────────────────────── Registros ─────────────────────────
 
 
@@ -184,7 +214,7 @@ def _json_registro(r: dict) -> dict:
 @router.get("/registros")
 def consultar_registros(request: Request, usuario: UsuarioActual = Depends(exigir_login)):
     filtros = registros.parsear_filtros(**{k: request.query_params.get(k) for k in (
-        "tipo", "concepto", "monto_min", "monto_max", "fecha_desde", "fecha_hasta")})
+        "tipo", "concepto", "monto_min", "monto_max", "fecha_desde", "fecha_hasta", "categoria")})
     resultado = registros.consultar(usuario.usuario_id, usuario.es_admin, filtros)
     return {**resultado, "registros": [_json_registro(r) for r in resultado["registros"]],
             "tipos": registros.TIPOS, "admin": usuario.es_admin}

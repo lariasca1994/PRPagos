@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block titulo %}Presupuesto - PRPagos{% endblock %}
+{% macro enlace_registros(f) -%}
+/registros?tipo={{ f.tipo | urlencode }}&categoria={{ f.categoria | urlencode }}&fecha_desde={{ f.fecha_desde }}&fecha_hasta={{ f.fecha_hasta }}
+{%- endmacro %}
+{% block contenido %}
+<div class="cabecera-seccion">
+    <h1>Presupuesto</h1>
+    <form method="get" action="/presupuesto" class="selector-mes selector-periodo">
+        <label for="mes" class="oculto-visual">Mes</label>
+        <select id="mes" name="mes" onchange="this.form.submit()">
+            {% for m in v.meses %}
+            <option value="{{ m.valor }}" {% if m.valor == v.mes %}selected{% endif %}>{{ m.texto }}</option>
+            {% endfor %}
+        </select>
+        <label for="anio" class="oculto-visual">Año</label>
+        <select id="anio" name="anio" onchange="this.form.submit()">
+            {% for a in v.anios %}
+            <option value="{{ a }}" {% if a == v.anio %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% elif ok %}<p class="aviso exito" role="status">{{ ok }}</p>{% endif %}
+
+<div class="tarjetas-resumen">
+    <div class="tarjeta tarjeta-cifra"><span>Ingresos</span><strong class="cifra-ingreso">{{ v.tarjetas.ingresos }}</strong><small>{{ v.tarjetas.ingresos_plan }}</small></div>
+    <div class="tarjeta tarjeta-cifra"><span>Gastos</span><strong class="cifra-gasto">{{ v.tarjetas.gastos }}</strong><small>{{ v.tarjetas.gastos_plan }}</small></div>
+    <div class="tarjeta tarjeta-cifra"><span>Quedan</span><strong class="{{ 'cifra-bien' if v.tarjetas.quedan_positivo else 'cifra-mal' }}">{{ v.tarjetas.quedan }}</strong><small>{{ v.tarjetas.quedan_plan }}</small></div>
+    <div class="tarjeta tarjeta-cifra"><span>Presupuesto de gastos usado</span><strong>{{ v.tarjetas.usado }}</strong><small class="estado-plan estado-{{ v.tarjetas.usado_clase }}">{{ v.tarjetas.usado_estado }}</small></div>
+</div>
+
+<div class="rejilla-graficas">
+    <section class="tarjeta grafica grafica-ancha">
+        <h2>{{ v.titulo_serie }}</h2>
+        <p class="texto-ayuda">Toca un mes para ver su detalle.</p>
+        <div class="lienzo"><canvas id="grafica-anual" aria-label="Gastos presupuestados y reales de cada mes" role="img"></canvas></div>
+    </section>
+    <section class="tarjeta grafica">
+        <h2>{{ v.titulo_distribucion }}</h2>
+        {% if v.distribucion %}
+        <div class="lienzo"><canvas id="grafica-distribucion" aria-label="Distribución del presupuesto por grupo" role="img"></canvas></div>
+        {% else %}
+        <p class="texto-ayuda vacio-grafica">Aún no hay presupuesto de gastos para este mes.</p>
+        {% endif %}
+    </section>
+    <section class="tarjeta grafica">
+        <h2>{{ v.titulo_mayores }}</h2>
+        {% if v.mayores_gastos %}
+        <ol class="lista-mayores">
+            {% for g in v.mayores_gastos %}
+            <li>
+                <a href="/registros/{{ g.id_pago }}/editar">
+                    <span class="mayor-concepto">{{ g.concepto }}</span>
+                    <span class="mayor-detalle">{{ g.categoria }} · {{ g.fecha }}</span>
+                </a>
+                <span class="mayor-monto">{{ g.monto }}<small>{{ g.parte }} del gasto</small></span>
+            </li>
+            {% endfor %}
+        </ol>
+        <a class="enlace-ver" href="{{ enlace_registros(v.filtro_mes) }}">Ver todos los registros del mes</a>
+        {% else %}
+        <p class="texto-ayuda vacio-grafica">No hay gastos en este mes.</p>
+        {% endif %}
+    </section>
+</div>
+
+<section class="tarjeta">
+    <h2>{{ v.titulo_tabla }}</h2>
+    <p class="texto-ayuda">Escribe cuánto piensas recibir o gastar en cada categoría y compáralo con tus registros. Toca una categoría para ver sus movimientos. Deja la casilla vacía para quitar el presupuesto.</p>
+    <form method="post" action="/presupuesto" class="formulario-presupuesto">
+        <input type="hidden" name="anio" value="{{ v.anio }}">
+        <input type="hidden" name="mes" value="{{ v.mes }}">
+        <div class="tabla-contenedor">
+        <table class="tabla tabla-presupuesto">
+            <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Real</th><th>Usado</th><th>Estado</th></tr></thead>
+            {% for s in v.secciones %}
+            <tbody>
+                <tr class="fila-seccion">
+                    <th colspan="5"><span class="punto" style="background:{{ s.color }}"></span>{{ s.titulo }}{% if s.meta %}<small>{{ s.meta }}</small>{% endif %}</th>
+                </tr>
+                {% for f in s.filas %}
+                <tr>
+                    <td><a href="{{ enlace_registros(f.filtro) }}">{{ f.nombre }}</a></td>
+                    <td>
+                        {% if f.editable %}
+                        <label for="monto_{{ f.categoria_id }}" class="oculto-visual">Presupuesto de {{ f.nombre }}</label>
+                        <input type="text" id="monto_{{ f.categoria_id }}" name="monto_{{ f.categoria_id }}" value="{{ f.valor_campo }}" inputmode="decimal" placeholder="0" class="campo-monto">
+                        {% else %}<span class="texto-suave">—</span>{% endif %}
+                    </td>
+                    <td>{{ f.texto_real }}</td>
+                    <td><span class="barra-uso" aria-hidden="true"><span class="uso-{{ f.clase_estado }}" style="width:{{ f.barra }}%"></span></span>{{ f.usado }}</td>
+                    <td class="estado-plan estado-{{ f.clase_estado }}">{{ f.estado }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="fila-total">
+                    <td>{{ s.total.nombre }}</td>
+                    <td>{{ s.total.texto_presupuesto }}</td>
+                    <td>{{ s.total.texto_real }}</td>
+                    <td><span class="barra-uso" aria-hidden="true"><span class="uso-{{ s.total.clase_estado }}" style="width:{{ s.total.barra }}%"></span></span>{{ s.total.usado }}</td>
+                    <td class="estado-plan estado-{{ s.total.clase_estado }}">{{ s.total.estado }}</td>
+                </tr>
+            </tbody>
+            {% endfor %}
+        </table>
+        </div>
+        <div class="acciones-presupuesto">
+            <label for="alcance">Aplicar a</label>
+            <select id="alcance" name="alcance">
+                {% for a in v.alcances %}<option value="{{ a.valor }}">{{ a.texto }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="boton">Guardar presupuesto</button>
+        </div>
+    </form>
+    <form method="post" action="/presupuesto/copiar" class="en-linea">
+        <input type="hidden" name="anio" value="{{ v.anio }}">
+        <input type="hidden" name="mes" value="{{ v.mes }}">
+        <button type="submit" class="boton boton-secundario">Copiar el presupuesto del mes anterior</button>
+    </form>
+</section>
+
+<section class="tarjeta seccion-anual">
+    <h2>{{ v.titulo_anual }}</h2>
+    <p class="texto-ayuda">Presupuestado frente a lo registrado cada mes. Toca un mes para abrirlo.</p>
+    <div class="tabla-contenedor">
+    <table class="tabla tabla-anual">
+        <thead>
+            <tr><th rowspan="2">Mes</th><th colspan="3">Presupuestado</th><th colspan="3">Real</th></tr>
+            <tr><th>Ingresos</th><th>Gastos</th><th>Quedan</th><th>Ingresos</th><th>Gastos</th><th>Quedan</th></tr>
+        </thead>
+        <tbody>
+            {% for f in v.anual %}
+            <tr {% if f.actual %}class="fila-actual"{% endif %}>
+                <td><a href="/presupuesto?anio={{ v.anio }}&mes={{ loop.index }}">{{ f.mes }}</a></td>
+                <td>{{ f.ingresos_plan }}</td><td>{{ f.gastos_plan }}</td><td>{{ f.quedan_plan }}</td>
+                <td>{{ f.ingresos_real }}</td><td>{{ f.gastos_real }}</td>
+                <td class="{{ 'cifra-bien' if f.quedan_real_positivo else 'cifra-mal' }}">{{ f.quedan_real }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="fila-total">
+                <td>{{ v.total_anual.mes }}</td>
+                <td>{{ v.total_anual.ingresos_plan }}</td><td>{{ v.total_anual.gastos_plan }}</td><td>{{ v.total_anual.quedan_plan }}</td>
+                <td>{{ v.total_anual.ingresos_real }}</td><td>{{ v.total_anual.gastos_real }}</td>
+                <td class="{{ 'cifra-bien' if v.total_anual.quedan_real_positivo else 'cifra-mal' }}">{{ v.total_anual.quedan_real }}</td>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
+</section>
+
+<script id="datos-graficas" type="application/json">{{ graficas_json | safe }}</script>
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/presupuesto.js"></script>
+{% endblock %}

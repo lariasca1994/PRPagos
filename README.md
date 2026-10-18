@@ -76,7 +76,12 @@ migración de escritorio a web.
 - **Plan 50/30/20** con porcentajes editables por cuenta
 - **Dashboard** del mes: ingresos, gastos, balance y ahorro; ingresos vs. gastos
   de los últimos 6 meses, gastos por categoría y avance del plan con su estado
-- Consulta con filtros (tipo, concepto, montos y fechas), totales y exportación a CSV
+- **Presupuesto** por categoría y mes (como una hoja de presupuesto anual), comparado con
+  los registros: tarjetas, gastos presupuestados vs. reales del año, distribución frente
+  al plan, mayores gastos, estado por categoría y resumen de los 12 meses
+- Interactivo: un mes de las gráficas abre ese mes, una categoría abre sus registros y
+  cada registro nuevo avisa cómo va el presupuesto de su categoría
+- Consulta con filtros (tipo, concepto, montos, fechas y categoría), totales y exportación a CSV
 
 **Resúmenes por correo**
 - Semanal cada viernes y mensual cada día 29 (en febrero, el último día), a las
@@ -216,11 +221,13 @@ Resumen del flujo, igual en ambas:
    app autenticadora. La primera vez se configura escaneando un QR y se reciben
    10 códigos de respaldo.
 3. **Dashboard:** el mes con ingresos, gastos, balance, ahorro y el avance del plan 50/30/20.
-4. **Nuevo registro:** tipo (ingreso o gasto), monto, fecha, categoría y concepto.
-5. **Consultar registros:** filtra, revisa totales, **modifica** o **exporta** a CSV.
-6. **Perfil:** nombre, resúmenes por correo, porcentajes del plan, categorías,
+4. **Presupuesto:** planea cada categoría por mes (solo un mes, hasta diciembre o todo el año)
+   y compáralo con lo registrado; toca una categoría para ver sus movimientos.
+5. **Nuevo registro:** tipo (ingreso o gasto), monto, fecha, categoría y concepto.
+6. **Consultar registros:** filtra, revisa totales, **modifica** o **exporta** a CSV.
+7. **Perfil:** nombre, resúmenes por correo, porcentajes del plan, categorías,
    autenticador, códigos de respaldo y contraseña.
-7. **Perdí mi teléfono:** entra con un código de respaldo o pide un código al correo.
+8. **Perdí mi teléfono:** entra con un código de respaldo o pide un código al correo.
 8. **Llave de acceso:** agrega tu dispositivo en Perfil y luego entra con **Ingresar con llave
    de acceso** (Windows Hello, huella, rostro o PIN), sin contraseña ni código.
 

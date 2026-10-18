@@ -4,7 +4,7 @@ categoría y plan 50/30/20, más el envío del resumen por correo. Devuelve la
 vista ya calculada y con los textos formateados: la página web (Chart.js) y el
 escritorio (JFreeChart) dibujan exactamente estos valores.
 """
-from datetime import date
+from datetime import date, timedelta
 
 from .. import correo, finanzas, repositorio, resumenes
 from . import ErrorServicio
@@ -29,6 +29,9 @@ def vista(usuario_id: int, mes: date) -> dict:
     serie = finanzas.completar_meses(
         mes, repositorio.serie_meses(usuario_id, finanzas.meses_atras(mes, 5), siguiente))
     categorias = repositorio.gastos_por_categoria(usuario_id, mes, siguiente)
+    # Para que un clic en la dona abra los registros de esa categoría.
+    ids = {c["nombre"]: c["id"] for c in repositorio.categorias(usuario_id) if c["tipo"] == "GASTO"}
+    fin = siguiente - timedelta(days=1)
     pcts = repositorio.plan(usuario_id)
     plan = finanzas.calcular_plan(ingresos, pcts, repositorio.gastos_por_grupo(usuario_id, mes, siguiente))
     balance = ingresos - gastos
@@ -50,11 +53,14 @@ def vista(usuario_id: int, mes: date) -> dict:
         "titulo_plan": f"Plan {texto_plan}",
         "titulo_categorias": f"Gastos por categoría · {finanzas.nombre_mes(mes)}",
         "titulo_plan_mes": f"Plan {texto_plan} · {finanzas.nombre_mes(mes)}",
-        "serie": [{"etiqueta": finanzas.etiqueta_mes_corta(m), "ingresos": round(i, 2), "gastos": round(g, 2)}
-                  for m, i, g in serie],
+        "serie": [{"mes": m.strftime("%Y-%m"), "etiqueta": finanzas.etiqueta_mes_corta(m),
+                   "ingresos": round(i, 2), "gastos": round(g, 2)} for m, i, g in serie],
         "categorias": [{"nombre": c, "total": round(t, 2),
-                        "color": finanzas.PALETA_CATEGORIAS[n % len(finanzas.PALETA_CATEGORIAS)]}
+                        "color": finanzas.PALETA_CATEGORIAS[n % len(finanzas.PALETA_CATEGORIAS)],
+                        "filtro": {"tipo": "GASTO", "categoria": str(ids.get(c, 0)),
+                                   "fecha_desde": mes.isoformat(), "fecha_hasta": fin.isoformat()}}
                        for n, (c, _, t) in enumerate(categorias)],
+        "enlace_presupuesto": {"anio": mes.year, "mes": mes.month},
         "plan": [{
             "grupo": finanzas.NOMBRE_GRUPO[f.grupo],
             "texto_grupo": f"{finanzas.NOMBRE_GRUPO[f.grupo]} ({finanzas.texto_pct(f.pct)}%)",

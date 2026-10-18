@@ -80,8 +80,11 @@ class PanelDashboard extends JPanel {
     /** La última vista recibida: se conserva para redibujar al cambiar de tema. */
     private JsonObject ultima;
     private boolean cargandoMeses;
+    private final VentanaPrincipal ventana;
+    private final JTextArea ayudaCategorias = ayuda("Toca una categoría para ver sus registros.");
 
     PanelDashboard(VentanaPrincipal ventana) {
+        this.ventana = ventana;
         setOpaque(false);
         setLayout(new javax.swing.BoxLayout(this, javax.swing.BoxLayout.Y_AXIS));
 
@@ -115,12 +118,16 @@ class PanelDashboard extends JPanel {
         add(tarjetas);
         add(Ui.espacio(14));
 
-        add(tarjetaGrafica(Ui.titulo("Ingresos vs. gastos · últimos 6 meses", 16f), graficaMeses));
+        JPanel meses = tarjetaGrafica(Ui.titulo("Ingresos vs. gastos · últimos 6 meses", 16f), graficaMeses);
+        meses.add(ayuda("Toca un mes para verlo."), 2);
+        add(meses);
         add(Ui.espacio(14));
         JPanel fila = new JPanel(new GridLayout(1, 2, 14, 0));
         fila.setOpaque(false);
         fila.setAlignmentX(LEFT_ALIGNMENT);
-        fila.add(tarjetaGrafica(tituloCategorias, graficaCategorias));
+        JPanel categorias = tarjetaGrafica(tituloCategorias, graficaCategorias);
+        categorias.add(ayudaCategorias, 2);
+        fila.add(categorias);
         fila.add(tarjetaGrafica(tituloPlanGrafica, graficaPlan));
         add(fila);
         add(Ui.espacio(14));
@@ -131,6 +138,13 @@ class PanelDashboard extends JPanel {
         JTextArea ayudaPlan = Ui.suave("Presupuesto calculado sobre los ingresos del mes. Los porcentajes se cambian en Perfil.");
         ayudaPlan.setFont(ayudaPlan.getFont().deriveFont(12.5f));
         plan.add(ayudaPlan);
+        plan.add(Ui.espacio(6));
+        plan.add(Ui.enlace("Ver el presupuesto detallado por categoría", e -> {
+            if (ultima != null) {
+                JsonObject p = Json.objeto(ultima, "enlace_presupuesto");
+                ventana.verPresupuesto((int) Json.entero(p, "anio"), (int) Json.entero(p, "mes"));
+            }
+        }));
         plan.add(Ui.espacio(8));
         tablaPlan.setOpaque(false);
         tablaPlan.setAlignmentX(LEFT_ALIGNMENT);
@@ -161,13 +175,13 @@ class PanelDashboard extends JPanel {
 
     // ───────────────────────── Piezas ─────────────────────────
 
-    private static JLabel cifra() {
+    static JLabel cifra() {
         JLabel l = new JLabel(" ");
         l.setFont(l.getFont().deriveFont(Font.BOLD, 20f));
         return l;
     }
 
-    private static JPanel tarjetaCifra(String titulo, JLabel valor, JLabel pie) {
+    static JPanel tarjetaCifra(String titulo, JLabel valor, JLabel pie) {
         JPanel t = Ui.tarjeta();
         t.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
         JLabel l = new JLabel(titulo);
@@ -185,7 +199,7 @@ class PanelDashboard extends JPanel {
         return t;
     }
 
-    private static JPanel contenedorGrafica(int alto) {
+    static JPanel contenedorGrafica(int alto) {
         JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
@@ -194,7 +208,7 @@ class PanelDashboard extends JPanel {
         return p;
     }
 
-    private static JPanel tarjetaGrafica(JLabel titulo, JPanel grafica) {
+    static JPanel tarjetaGrafica(JLabel titulo, JPanel grafica) {
         JPanel t = Ui.tarjeta();
         t.add(titulo);
         t.add(Ui.espacio(8));
@@ -210,6 +224,16 @@ class PanelDashboard extends JPanel {
         String mes = elegido == null ? "" : elegido.valor();
         Tarea.ejecutar(this, () -> Api.get("/api/dashboard", Map.of("mes", mes)), this::dibujar,
                 e -> aviso.error(Ui.mensajeError("cargar el dashboard").apply(e)));
+    }
+
+    /** Clic en un mes de las barras: ese mes en el selector (como ?mes= en la web). */
+    private void elegirMes(String valor) {
+        for (int i = 0; i < selectorMes.getItemCount(); i++) {
+            if (selectorMes.getItemAt(i).valor().equals(valor)) {
+                selectorMes.setSelectedIndex(i);
+                return;
+            }
+        }
     }
 
     private void dibujar(JsonObject v) {
@@ -246,8 +270,10 @@ class PanelDashboard extends JPanel {
         tituloPlanGrafica.setText(Json.texto(v, "titulo_plan_mes"));
         tituloPlanTabla.setText(Json.texto(v, "titulo_plan"));
 
-        mostrar(graficaMeses, graficaMeses(v));
+        List<JsonObject> serie = Json.lista(v, "serie");
+        alHacerClic(mostrar(graficaMeses, graficaMeses(v)), i -> elegirMes(Json.texto(serie.get(i), "mes")));
         List<JsonObject> categorias = Json.lista(v, "categorias");
+        ayudaCategorias.setVisible(!categorias.isEmpty());
         if (categorias.isEmpty()) {
             graficaCategorias.removeAll();
             JLabel vacio = new JLabel("No hay gastos en este mes.", JLabel.CENTER);
@@ -256,13 +282,14 @@ class PanelDashboard extends JPanel {
             graficaCategorias.revalidate();
             graficaCategorias.repaint();
         } else {
-            mostrar(graficaCategorias, graficaCategorias(categorias));
+            alHacerClic(mostrar(graficaCategorias, graficaCategorias(categorias)),
+                    i -> ventana.verRegistros(Json.objeto(categorias.get(i), "filtro")));
         }
         mostrar(graficaPlan, graficaPlan(Json.lista(v, "plan")));
         llenarTablaPlan(Json.lista(v, "plan"));
     }
 
-    private static void mostrar(JPanel contenedor, JFreeChart grafica) {
+    static ChartPanel mostrar(JPanel contenedor, JFreeChart grafica) {
         contenedor.removeAll();
         ChartPanel panel = new ChartPanel(grafica, false, false, false, false, true);
         panel.setOpaque(false);
@@ -275,16 +302,43 @@ class PanelDashboard extends JPanel {
         contenedor.add(panel);
         contenedor.revalidate();
         contenedor.repaint();
+        return panel;
+    }
+
+    /** Ayuda pequeña bajo el título de una gráfica (.texto-ayuda). */
+    static JTextArea ayuda(String texto) {
+        JTextArea a = Ui.suave(texto);
+        a.setFont(a.getFont().deriveFont(12.5f));
+        return a;
+    }
+
+    /** Al hacer clic en un elemento de la gráfica (barra o porción), su posición en los datos. */
+    static void alHacerClic(ChartPanel panel, java.util.function.IntConsumer accion) {
+        panel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        panel.addChartMouseListener(new org.jfree.chart.ChartMouseListener() {
+            @Override
+            public void chartMouseClicked(org.jfree.chart.ChartMouseEvent e) {
+                if (e.getEntity() instanceof org.jfree.chart.entity.CategoryItemEntity c) {
+                    accion.accept(c.getDataset().getColumnIndex(c.getColumnKey()));
+                } else if (e.getEntity() instanceof org.jfree.chart.entity.PieSectionEntity p) {
+                    accion.accept(p.getSectionIndex());
+                }
+            }
+
+            @Override
+            public void chartMouseMoved(org.jfree.chart.ChartMouseEvent e) {
+            }
+        });
     }
 
     // ───────────────────────── Gráficas ─────────────────────────
 
-    private static Color color(String hex) {
+    static Color color(String hex) {
         return Color.decode(hex);
     }
 
     /** "$ 1.500.000" en los ejes, como dashboard.js de la web (solo presentación). */
-    private static final NumberFormat FORMATO_EJE = new NumberFormat() {
+    static final NumberFormat FORMATO_EJE = new NumberFormat() {
         private final DecimalFormat miles = new DecimalFormat("#,##0", DecimalFormatSymbols.getInstance(new Locale("es", "CO")));
 
         @Override
@@ -304,7 +358,7 @@ class PanelDashboard extends JPanel {
         }
     };
 
-    private static void estilo(JFreeChart g) {
+    static void estilo(JFreeChart g) {
         Tema.Paleta p = Tema.c();
         Font fuente = new JLabel().getFont().deriveFont(11.5f);
         g.setBackgroundPaint(p.superficie());
@@ -436,16 +490,17 @@ class PanelDashboard extends JPanel {
     }
 
     /** Mismo tono que .estado-bien / .estado-mal / .estado-alerta de la web, en claro y oscuro. */
-    private static Color colorEstado(String clase) {
+    static Color colorEstado(String clase) {
         boolean oscuro = Tema.esOscuro();
         return switch (clase) {
             case "bien" -> oscuro ? color("#75e0a7") : color("#067647");
             case "mal" -> oscuro ? color("#fda29b") : color("#a8221a");
+            case "neutro" -> Tema.c().textoSuave();
             default -> oscuro ? color("#f7b27a") : color("#b54708");
         };
     }
 
-    private static JLabel celda(String texto, Color color, int estilo) {
+    static JLabel celda(String texto, Color color, int estilo) {
         JLabel l = new JLabel(texto);
         l.setForeground(color);
         l.setFont(l.getFont().deriveFont(estilo, 13f));
@@ -454,7 +509,7 @@ class PanelDashboard extends JPanel {
     }
 
     /** El punto de color del grupo (.punto en la web). */
-    private record Punto(Color color) implements javax.swing.Icon {
+    record Punto(Color color) implements javax.swing.Icon {
         @Override
         public void paintIcon(Component c, java.awt.Graphics g, int x, int y) {
             java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();

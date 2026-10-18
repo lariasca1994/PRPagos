@@ -10,4 +10,5 @@ WHERE (:tipo IS NULL OR p.tipo = :tipo)
   AND (:concepto IS NULL OR UPPER(p.concepto) LIKE '%' || UPPER(:concepto) || '%')
   AND (:monto_min IS NULL OR p.monto >= :monto_min)
   AND (:monto_max IS NULL OR p.monto <= :monto_max)
+  AND (:categoria IS NULL OR NVL(p.categoria_id, 0) = :categoria)
 ORDER BY p.fecha DESC, p.id_pago DESC
