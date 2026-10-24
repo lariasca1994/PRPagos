@@ -106,7 +106,7 @@ def manejar_error_oracle(request: Request, exc: oracledb.Error):
     if _es_api(request):
         return JSONResponse({"error": mensaje}, status_code=503)
     return templates.TemplateResponse(
-        "error.html",
+        request, "error.html",
         {
             "request": request,
             "usuario": obtener_usuario_opcional(request),
@@ -122,7 +122,7 @@ def manejar_error_generico(request: Request, exc: Exception):
     if _es_api(request):
         return JSONResponse({"error": "Ocurrió un error inesperado. Intenta de nuevo."}, status_code=500)
     return templates.TemplateResponse(
-        "error.html",
+        request, "error.html",
         {
             "request": request,
             "usuario": obtener_usuario_opcional(request),
@@ -166,5 +166,5 @@ def raiz(request: Request):
     if motivo:
         return respuesta_redireccion_login(motivo)
     return templates.TemplateResponse(
-        "login.html", {"request": request, "error": None, "ok": None}
+        request, "login.html", {"request": request, "error": None, "ok": None}
     )

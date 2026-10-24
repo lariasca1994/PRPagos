@@ -56,7 +56,7 @@ def exportar_csv(usuario: UsuarioActual = Depends(exigir_login), tipo: str | Non
 
 def _formulario(request: Request, usuario: UsuarioActual, plantilla: str, id_pago: int | None = None):
     datos = servicio.formulario(usuario.usuario_id, usuario.es_admin, id_pago)
-    return templates.TemplateResponse(plantilla, {"request": request, "usuario": usuario, **datos,
+    return templates.TemplateResponse(request, plantilla, {"request": request, "usuario": usuario, **datos,
                                                   "error": request.query_params.get("error")})
 
 
