@@ -72,14 +72,36 @@
         </form>
     </section>
 
-    <section class="tarjeta">
+    <section class="tarjeta" id="dos-pasos">
         <h2>Verificación en dos pasos</h2>
-        <p class="estado-totp {{ 'activo' if totp_activo else 'inactivo' }}">{{ 'Activa' if totp_activo else 'Sin configurar' }}</p>
-        <p class="texto-ayuda">Cada ingreso pide, además de la contraseña, el código de 6 dígitos de tu app autenticadora. Es el mismo en la web y en el escritorio.</p>
+        <p class="texto-ayuda">Obligatoria en cada ingreso, igual en la web y en el escritorio. Tener los dos métodos te permite entrar aunque no tengas el teléfono a mano.</p>
+        <p>App autenticadora: <span class="estado-totp {{ 'activo' if dos_pasos.app else 'inactivo' }}">{{ 'Activa' if dos_pasos.app else 'Sin configurar' }}</span>{% if dos_pasos.app and dos_pasos.preferido == 'app' %} · se pide por defecto{% endif %}</p>
+        <p>Código por correo: <span class="estado-totp {{ 'activo' if dos_pasos.correo else 'inactivo' }}">{{ 'Activo' if dos_pasos.correo else 'Sin configurar' }}</span>{% if dos_pasos.correo and dos_pasos.preferido == 'correo' %} · se pide por defecto{% endif %}</p>
+        {% if dos_pasos.app and dos_pasos.correo %}
+        <form method="post" action="/perfil/dos-pasos/preferido">
+            <input type="hidden" name="metodo" value="{{ 'correo' if dos_pasos.preferido == 'app' else 'app' }}">
+            <button type="submit" class="boton boton-secundario">{{ 'Pedir el correo por defecto' if dos_pasos.preferido == 'app' else 'Pedir la app por defecto' }}</button>
+        </form>
+        {% endif %}
+        {% if not dos_pasos.correo %}
+        <form method="post" action="/perfil/dos-pasos/correo">
+            <button type="submit" class="boton boton-secundario">Agregar código por correo</button>
+        </form>
+        <form method="post" action="/perfil/dos-pasos/correo/confirmar">
+            <label for="codigo-correo-nuevo">Código que te enviamos para activar el correo</label>
+            <input type="text" id="codigo-correo-nuevo" name="codigo" class="campo-codigo" inputmode="numeric" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required>
+            <button type="submit" class="boton boton-secundario">Activar código por correo</button>
+        </form>
+        {% else %}
+        <form method="post" action="/perfil/dos-pasos/codigo">
+            <button type="submit" class="boton boton-secundario">Enviarme un código por correo</button>
+        </form>
+        <p class="texto-ayuda">Sirve para confirmar los cambios de seguridad de esta página.</p>
+        {% endif %}
         <form method="post" action="/perfil/autenticador">
-            <label for="codigo-cambio">Para cambiar o restablecer tu autenticador (teléfono nuevo o perdido), escribe un código de la app o uno de respaldo</label>
+            <label for="codigo-cambio">{% if dos_pasos.app %}Para cambiar o restablecer tu autenticador (teléfono nuevo o perdido){% else %}Para agregar la app autenticadora{% endif %}, escribe un código vigente (de la app, del correo o de respaldo)</label>
             <input type="text" id="codigo-cambio" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required>
-            <button type="submit" class="boton boton-secundario">Cambiar autenticador</button>
+            <button type="submit" class="boton boton-secundario">{{ 'Cambiar autenticador' if dos_pasos.app else 'Agregar app autenticadora' }}</button>
         </form>
     </section>
 

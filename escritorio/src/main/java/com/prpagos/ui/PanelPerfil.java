@@ -56,6 +56,17 @@ class PanelPerfil extends JPanel {
     private final JComboBox<String> grupoCategoria = new JComboBox<>(new String[] {"Necesidades", "Deseos", "Ahorro y deudas"});
     // Verificación y respaldo
     private final JLabel estado = pastilla();
+    private final JLabel estadoCorreo = pastilla();
+    private final JLabel etiquetaApp = new JLabel();
+    private final JLabel etiquetaCorreo = new JLabel();
+    private final JTextField codigoCorreoNuevo = Ui.campoCodigo();
+    private final JButton botonPreferido = ancho(Ui.secundario("Pedir el correo por defecto", e -> cambiarPreferido()));
+    private final JButton botonAgregarCorreo = ancho(Ui.secundario("Agregar código por correo", e -> agregarCorreo()));
+    private final JButton botonActivarCorreo = ancho(Ui.secundario("Activar código por correo", e -> activarCorreo()));
+    private final JButton botonEnviarCodigo = ancho(Ui.secundario("Enviarme un código por correo", e -> enviarCodigo()));
+    private final JButton botonCambio = ancho(Ui.secundario("Cambiar autenticador", e -> iniciarCambio()));
+    private final JTextArea ayudaCambio = ayuda("");
+    private final JComponent bloqueAgregarCorreo = Ui.columna();
     private final JLabel restantes = pastilla();
     private final JTextField codigoCambio = Ui.campoCodigo();
     private final JTextField codigoRespaldo = Ui.campoCodigo();
@@ -79,6 +90,8 @@ class PanelPerfil extends JPanel {
     /** Token del cambio de autenticador (el secreto nuevo viaja cifrado en él). */
     private String tokenNuevo;
     private boolean totpActivo;
+    private boolean correoActivo;
+    private String preferido = "app";
     private int respaldo;
 
     PanelPerfil(VentanaPrincipal ventana) {
@@ -119,6 +132,13 @@ class PanelPerfil extends JPanel {
             }
             destino.add(c);
         }
+    }
+
+    private static JPanel filaEstado(JLabel texto, JLabel pastilla) {
+        JPanel fila = Ui.fila(8);
+        fila.add(texto);
+        fila.add(pastilla);
+        return fila;
     }
 
     private static JPanel arriba(JPanel tarjeta) {
@@ -179,13 +199,16 @@ class PanelPerfil extends JPanel {
         p.add(Ui.espacio(16));
 
         JPanel totp = Ui.tarjeta();
-        agregar(totp, Ui.titulo("Verificación en dos pasos", 17f), Ui.espacio(10), estado, Ui.espacio(10),
-                ayuda("Cada ingreso pide, además de la contraseña, el código de 6 dígitos de tu app autenticadora. "
-                        + "Es el mismo en la web y en el escritorio."),
-                Ui.espacio(10), ayuda("Para cambiar o restablecer tu autenticador (teléfono nuevo o perdido), escribe un "
-                        + "código de la app o uno de respaldo"),
-                Ui.espacio(6), codigoCambio, Ui.espacio(16),
-                ancho(Ui.secundario("Cambiar autenticador", e -> iniciarCambio())));
+        agregar((JPanel) bloqueAgregarCorreo, Ui.espacio(10), botonAgregarCorreo,
+                Ui.etiqueta("Código que te enviamos para activar el correo"), codigoCorreoNuevo, Ui.espacio(8),
+                botonActivarCorreo);
+        agregar(totp, Ui.titulo("Verificación en dos pasos", 17f), Ui.espacio(6),
+                ayuda("Obligatoria en cada ingreso, igual en la web y en el escritorio. Tener los dos métodos te "
+                        + "permite entrar aunque no tengas el teléfono a mano."),
+                Ui.espacio(10), filaEstado(etiquetaApp, estado), Ui.espacio(6), filaEstado(etiquetaCorreo, estadoCorreo),
+                Ui.espacio(10), botonPreferido, bloqueAgregarCorreo, botonEnviarCodigo,
+                Ui.espacio(10), ayudaCambio,
+                Ui.espacio(6), codigoCambio, Ui.espacio(16), botonCambio);
 
         JPanel respaldoTarjeta = Ui.tarjeta();
         agregar(respaldoTarjeta, Ui.titulo("Códigos de respaldo", 17f), Ui.espacio(10), restantes, Ui.espacio(10),
@@ -319,7 +342,10 @@ class PanelPerfil extends JPanel {
             necesidades.setText(Json.texto(pcts, "NECESIDADES"));
             deseos.setText(Json.texto(pcts, "DESEOS"));
             ahorro.setText(Json.texto(pcts, "AHORRO"));
-            totpActivo = Json.logico(d, "totp_activo");
+            JsonObject dosPasos = Json.objeto(d, "dos_pasos");
+            totpActivo = Json.logico(dosPasos, "app");
+            correoActivo = Json.logico(dosPasos, "correo");
+            preferido = Json.texto(dosPasos, "preferido");
             respaldo = (int) Json.entero(perfil, "respaldo_restantes");
             pintarEstados();
             llenarCategorias(Json.lista(d, "categorias"), Json.objeto(d, "grupos"));
@@ -332,6 +358,21 @@ class PanelPerfil extends JPanel {
         estado.setText(totpActivo ? "Activa" : "Sin configurar");
         estado.setBackground(totpActivo ? p.exitoFondo() : p.errorFondo());
         estado.setForeground(totpActivo ? p.exitoTexto() : p.acento());
+        estadoCorreo.setText(correoActivo ? "Activo" : "Sin configurar");
+        estadoCorreo.setBackground(correoActivo ? p.exitoFondo() : p.errorFondo());
+        estadoCorreo.setForeground(correoActivo ? p.exitoTexto() : p.acento());
+        boolean ambos = totpActivo && correoActivo;
+        etiquetaApp.setText("App autenticadora" + (ambos && "app".equals(preferido) ? " · se pide por defecto" : "") + ":");
+        etiquetaCorreo.setText("Código por correo" + (ambos && "correo".equals(preferido) ? " · se pide por defecto" : "") + ":");
+        etiquetaApp.setForeground(p.texto());
+        etiquetaCorreo.setForeground(p.texto());
+        botonPreferido.setText("app".equals(preferido) ? "Pedir el correo por defecto" : "Pedir la app por defecto");
+        botonPreferido.setVisible(ambos);
+        bloqueAgregarCorreo.setVisible(!correoActivo);
+        botonEnviarCodigo.setVisible(correoActivo);
+        ayudaCambio.setText((totpActivo ? "Para cambiar o restablecer tu autenticador (teléfono nuevo o perdido)"
+                : "Para agregar la app autenticadora") + ", escribe un código vigente (de la app, del correo o de respaldo)");
+        botonCambio.setText(totpActivo ? "Cambiar autenticador" : "Agregar app autenticadora");
         restantes.setText(respaldo + " disponibles");
         restantes.setBackground(respaldo > 2 ? p.exitoFondo() : p.errorFondo());
         restantes.setForeground(respaldo > 2 ? p.exitoTexto() : p.acento());
@@ -448,6 +489,31 @@ class PanelPerfil extends JPanel {
 
     private void eliminarCategoria(long categoriaId) {
         accion("eliminar la categoría", () -> Api.delete("/api/perfil/categorias/" + categoriaId), null);
+    }
+
+    // ───────────── Verificación en dos pasos: métodos (los mismos de la web) ─────────────
+
+    private void cambiarPreferido() {
+        String otro = "app".equals(preferido) ? "correo" : "app";
+        accion("cambiar el método por defecto", () -> Api.post("/api/perfil/dos-pasos/preferido", Json.de("metodo", otro)),
+                null);
+    }
+
+    private void agregarCorreo() {
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/dos-pasos/correo", null),
+                r -> aviso.exito(Json.texto(r, "mensaje")), e -> aviso.error(Ui.mensajeError("enviar el código").apply(e)));
+    }
+
+    private void activarCorreo() {
+        String texto = codigoCorreoNuevo.getText();
+        accion("activar el código por correo",
+                () -> Api.post("/api/perfil/dos-pasos/correo/confirmar", Json.de("codigo", texto)),
+                () -> codigoCorreoNuevo.setText(""));
+    }
+
+    private void enviarCodigo() {
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/dos-pasos/codigo", null),
+                r -> aviso.exito(Json.texto(r, "mensaje")), e -> aviso.error(Ui.mensajeError("enviar el código").apply(e)));
     }
 
     private void mostrarCodigosNuevos(List<String> lista) {
