@@ -169,9 +169,11 @@ Cada versión tiene su propio diagrama detallado en
 
 - **Runtimes con parches de seguridad:** la web fija Python 3.12.15 y certifi 2026.10.19 o
   posterior, que deja de confiar en los certificados intermedios comprometidos de eMudhra; el
-  escritorio trae Java 21 al día y sin las raíces que firmaron los intermedios comprometidos de eMudhra. La imagen tampoco
-  confía en las raíces emSign ni «AAA Certificate Services» que firmaron los intermedios comprometidos de eMudhra (la
-  misma mitigación que publicó Red Hat).
+  escritorio trae Java 21 al día y sin las raíces que firmaron los intermedios comprometidos de
+  eMudhra. La imagen tampoco confía en las raíces emSign ni «AAA Certificate Services» que
+  firmaron los intermedios comprometidos de eMudhra (la misma mitigación que publicó Red Hat). Las
+  dependencias se auditan (npm audit, pip-audit o dotnet list package --vulnerable) y quedaron sin
+  vulnerabilidades conocidas altas ni críticas.
 - **Una sola seguridad:** contraseña, autenticador, códigos de respaldo, llaves
   de acceso, bloqueos y sesiones se validan en el servidor, para la web y para
   el escritorio. El escritorio no guarda claves ni datos de conexión.
