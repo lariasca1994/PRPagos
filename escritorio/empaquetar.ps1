@@ -58,6 +58,20 @@ $comunes = @(
 )
 & jpackage --type app-image @comunes
 if ($LASTEXITCODE -ne 0) { throw "Falló jpackage (app-image)" }
+
+# 5. Java incluido sin las raíces que firmaron los intermedios de eMudhra cuyas llaves se
+#    comprometieron (octubre 2026): emSign y Comodo "AAA Certificate Services" (la misma
+#    mitigación que publicó Red Hat). La app solo habla con la API de PRPagos y con GitHub,
+#    que no dependen de ellas. Los alias cambian entre JDK 21 y 25: se buscan por nombre.
+$cacerts = Join-Path $build "dist\PRPagos\runtime\lib\security\cacerts"
+$quitar = & keytool -list -keystore $cacerts -storepass changeit 2>$null |
+    Select-String '^(.*?\[jdk\]),' | ForEach-Object { $_.Matches[0].Groups[1].Value } |
+    Where-Object { $_ -match 'emsign|aaa_?cert|comodoaaa' }
+foreach ($alias in $quitar) {
+    & keytool -delete -alias $alias -keystore $cacerts -storepass changeit -noprompt
+    if ($LASTEXITCODE -ne 0) { throw "No se pudo quitar la raíz $alias" }
+    Write-Host "Raíz quitada del Java incluido: $alias"
+}
 Write-Host "Listo: $(Join-Path $build 'dist\PRPagos\PRPagos.exe')"
 
 if ($Instalador) {
