@@ -378,6 +378,9 @@ página de Releases del proyecto.
   con auditoría, y las consultas usan parámetros.
 - **Conexión cifrada:** la aplicación habla con el servidor por HTTPS, y el servidor con la base por
   TLS con Wallet, usando un usuario propio sin permisos para crear ni borrar tablas.
+- **Java incluido con parches de seguridad:** el instalador trae Java 21 al día y sin las raíces
+  emSign ni «AAA Certificate Services», que firmaron los intermedios comprometidos de eMudhra
+  (octubre de 2026); la aplicación instalada se actualiza sola a esa versión.
 
 ## 6. Agradecimientos
 
