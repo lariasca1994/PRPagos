@@ -42,7 +42,7 @@ def seguridad_antigua():
 
 @router.get("/perfil")
 def pantalla_perfil(request: Request, usuario: UsuarioActual = Depends(exigir_login)):
-    return templates.TemplateResponse("perfil.html", {
+    return templates.TemplateResponse(request, "perfil.html", {
         "request": request, "usuario": usuario, **servicio.datos(usuario.usuario_id),
         "error": request.query_params.get("error"), "ok": request.query_params.get("ok"),
     })
@@ -78,7 +78,7 @@ def cambiar_contrasena(actual: str = Form(...), nueva: str = Form(...), confirma
 
 
 def _pantalla_codigos(request: Request, usuario: UsuarioActual, codigos: list[str]):
-    return templates.TemplateResponse("perfil_respaldo.html",
+    return templates.TemplateResponse(request, "perfil_respaldo.html",
                                       {"request": request, "usuario": usuario, "codigos": codigos})
 
 
@@ -108,7 +108,7 @@ def form_autenticador_nuevo(request: Request, usuario: UsuarioActual = Depends(e
     if secreto is None:
         return _redirigir("El cambio de autenticador expiró; empieza de nuevo")
     config = acceso.configuracion_autenticador(secreto, usuario.usuario)
-    return templates.TemplateResponse("perfil_autenticador.html", {
+    return templates.TemplateResponse(request, "perfil_autenticador.html", {
         "request": request, "usuario": usuario, "qr": config["qr"], "secreto": config["clave"],
         "error": request.query_params.get("error"),
     })

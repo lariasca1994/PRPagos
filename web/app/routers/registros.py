@@ -34,7 +34,7 @@ def listar_registros(request: Request, usuario: UsuarioActual = Depends(exigir_l
     filtros = servicio.parsear_filtros(tipo, concepto, monto_min, monto_max, fecha_desde, fecha_hasta,
                                        categoria)
     resultado = servicio.consultar(usuario.usuario_id, usuario.es_admin, filtros)
-    return templates.TemplateResponse("registros_lista.html", {
+    return templates.TemplateResponse(request, "registros_lista.html", {
         "request": request, "usuario": usuario, "tipos": servicio.TIPOS, **resultado,
         "filtros": {"tipo": filtros["tipo"] or "", "concepto": concepto or "", "monto_min": monto_min or "",
                     "monto_max": monto_max or "", "fecha_desde": fecha_desde or "",

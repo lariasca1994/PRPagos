@@ -92,7 +92,7 @@ def _hacia_paso(paso: acceso.PasoIngreso, mensaje: str | None = None) -> Redirec
 
 @router.get("/login")
 def form_login(request: Request):
-    return templates.TemplateResponse("login.html", _contexto(request))
+    return templates.TemplateResponse(request, "login.html", _contexto(request))
 
 
 @router.post("/login")
@@ -119,7 +119,7 @@ def form_codigo(request: Request):
         metodos = acceso.metodos_de(datos["usuario_id"])
     except ErrorServicio as e:
         return _redirigir("/login", e.mensaje)
-    return templates.TemplateResponse("login_codigo.html", _contexto(
+    return templates.TemplateResponse(request, "login_codigo.html", _contexto(
         request, correo=datos["usuario"], metodo=_metodo(datos), metodos=metodos))
 
 
@@ -157,7 +157,7 @@ def form_elegir(request: Request):
     datos = _parcial(request, "elegir")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
-    return templates.TemplateResponse("login_elegir.html", _contexto(request, correo=datos["usuario"]))
+    return templates.TemplateResponse(request, "login_elegir.html", _contexto(request, correo=datos["usuario"]))
 
 
 @router.post("/login/elegir")
@@ -207,8 +207,7 @@ def form_configurar(request: Request):
     if secreto is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
     config = acceso.configuracion_autenticador(secreto, datos["usuario"])
-    return templates.TemplateResponse(
-        "login_configurar.html",
+    return templates.TemplateResponse(request, "login_configurar.html",
         _contexto(request, correo=datos["usuario"], qr=config["qr"], secreto=config["clave"]))
 
 
@@ -224,7 +223,7 @@ def procesar_configurar(request: Request, codigo: str = Form(...)):
         destino = "/login" if e.mensaje in (acceso.MENSAJE_BLOQUEO, acceso.MENSAJE_EXPIRADO) else "/login/configurar"
         return _redirigir(destino, e.mensaje)
     # Los códigos se muestran una sola vez, en esta misma respuesta.
-    pantalla = templates.TemplateResponse("login_respaldo.html", _contexto(request, codigos=codigos))
+    pantalla = templates.TemplateResponse(request, "login_respaldo.html", _contexto(request, codigos=codigos))
     return _abrir_sesion(cred, pantalla)
 
 
@@ -252,7 +251,7 @@ def form_codigo_correo(request: Request):
     datos = _parcial(request, "correo", "activar_correo")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
-    return templates.TemplateResponse("login_correo.html", _contexto(
+    return templates.TemplateResponse(request, "login_correo.html", _contexto(
         request, correo=datos["usuario"], minutos=MINUTOS_CODIGO_CORREO,
         activar=datos["etapa"] == "activar_correo"))
 
@@ -266,7 +265,7 @@ def procesar_codigo_correo(request: Request, codigo: str = Form(...)):
         if datos["etapa"] == "activar_correo":
             cred, codigos = acceso.activar_correo(datos["usuario_id"], codigo)
             # Los códigos de respaldo se muestran una sola vez, en esta misma respuesta.
-            pantalla = templates.TemplateResponse("login_respaldo.html", _contexto(request, codigos=codigos))
+            pantalla = templates.TemplateResponse(request, "login_respaldo.html", _contexto(request, codigos=codigos))
             return _abrir_sesion(cred, pantalla)
         paso = acceso.verificar_codigo_correo(datos["usuario_id"], codigo)
     except ErrorServicio as e:
@@ -288,7 +287,7 @@ def logout():
 
 @router.get("/registro")
 def form_registro(request: Request):
-    return templates.TemplateResponse("registro.html", _contexto(request))
+    return templates.TemplateResponse(request, "registro.html", _contexto(request))
 
 
 @router.post("/registro")
@@ -302,7 +301,7 @@ def procesar_registro(usuario: str = Form(...), nombre: str = Form(...), contras
 
 @router.get("/recuperar")
 def form_recuperar(request: Request):
-    return templates.TemplateResponse("recuperar.html", _contexto(request))
+    return templates.TemplateResponse(request, "recuperar.html", _contexto(request))
 
 
 @router.post("/recuperar")

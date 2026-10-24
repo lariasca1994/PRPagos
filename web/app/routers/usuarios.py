@@ -22,7 +22,7 @@ def _resultado(funcion, *args) -> RedirectResponse:
 
 @router.get("")
 def listar(request: Request, usuario: UsuarioActual = Depends(exigir_admin)):
-    return templates.TemplateResponse("admin_usuarios.html",
+    return templates.TemplateResponse(request, "admin_usuarios.html",
                                       {"request": request, "usuario": usuario, "usuarios": servicio.listar()})
 
 

@@ -30,7 +30,7 @@ def presupuesto(request: Request, usuario: UsuarioActual = Depends(exigir_login)
                 anio: str | None = None, mes: str | None = None):
     elegido = servicio.anio_elegido(anio)
     vista = servicio.vista(usuario.usuario_id, elegido, servicio.mes_elegido(mes, elegido))
-    return templates.TemplateResponse("presupuesto.html", {
+    return templates.TemplateResponse(request, "presupuesto.html", {
         "request": request, "usuario": usuario, "v": vista, "graficas_json": json.dumps(vista).replace("<", "\\u003c"),
         "error": request.query_params.get("error"), "ok": request.query_params.get("ok"),
     })
