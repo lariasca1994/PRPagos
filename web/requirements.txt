@@ -8,3 +8,5 @@ python-dotenv==1.0.1
 cryptography==50.0.1
 qrcode==8.2
 webauthn==3.0.1
+# CA de confianza sin los intermedios comprometidos de eMudhra (octubre 2026).
+certifi>=2026.10.19
