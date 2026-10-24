@@ -378,6 +378,8 @@ página de Releases del proyecto.
   con auditoría, y las consultas usan parámetros.
 - **Conexión cifrada:** la aplicación habla con el servidor por HTTPS, y el servidor con la base por
   TLS con Wallet, usando un usuario propio sin permisos para crear ni borrar tablas.
+- **Java incluido al día:** el instalador trae Java con los últimos parches de seguridad y la
+  aplicación instalada se actualiza sola.
 
 ## 6. Agradecimientos
 

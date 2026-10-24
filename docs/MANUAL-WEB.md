@@ -358,6 +358,8 @@ protege y no los comparte con terceros.
 - **Conexión cifrada a la base:** Oracle Autonomous Database exige TLS con Wallet.
 - **Secretos fuera del repositorio:** credenciales, clave de cifrado y clave de Brevo viven en la
   configuración del servidor, nunca en el código.
+- **Al día en seguridad:** el runtime, el sistema y las dependencias se mantienen con los últimos
+  parches y se revisan periódicamente.
 
 ## 6. Agradecimientos
 

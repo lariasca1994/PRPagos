@@ -166,6 +166,8 @@ Cada versión tiene su propio diagrama detallado en
 
 ### Seguridad
 
+- **Al día en seguridad:** el runtime, el sistema y las dependencias se mantienen con los últimos
+  parches y se revisan periódicamente.
 - **Una sola seguridad:** contraseña, autenticador, códigos de respaldo, llaves
   de acceso, bloqueos y sesiones se validan en el servidor, para la web y para
   el escritorio. El escritorio no guarda claves ni datos de conexión.
@@ -239,7 +241,7 @@ Resumen del flujo, igual en ambas:
 
 - Una base Oracle accesible (por ejemplo, Oracle Autonomous Database)
 - El Wallet de esa base, descargado desde la consola de Oracle Cloud
-- Para la versión web: Python 3.11 o superior
+- Para la versión web: Python 3.12 (3.12.15 o posterior, con los parches de seguridad de octubre de 2026)
 - Para compilar la versión de escritorio: JDK 17 o superior (para usarla basta
   el ejecutable de Releases; no necesita base ni configuración)
 - Para los correos: una cuenta de Brevo (plan gratuito) con un remitente verificado
