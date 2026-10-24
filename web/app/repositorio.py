@@ -44,7 +44,10 @@ def obtener_credenciales(
             "nombre": v_nombre,
             "password": v_password,
             "totp_secreto": v_secreto,
-            "totp_activo": bool(v_activo),
+            # totp_activo guarda las banderas de los métodos (ver app/dos_pasos.py):
+            # la app es el bit 1; "dos_pasos" conserva el valor completo.
+            "totp_activo": bool(int(v_activo or 0) & 1),
+            "dos_pasos": int(v_activo or 0),
             "totp_ultimo_paso": int(v_paso or 0),
             "bloqueada": bool(v_bloqueada),
         }
@@ -68,8 +71,53 @@ def registrar_acceso_exitoso(usuario_id: int, paso: int, motivo: str = "INGRESO"
 
 
 def guardar_totp(usuario_id: int, secreto_cifrado: str, paso: int) -> None:
+    """Activa la app autenticadora. guardar_totp deja totp_activo = 1: si la
+    cuenta ya usaba el correo, se conservan sus banderas (app/dos_pasos.py)."""
     with obtener_conexion() as conn:
-        conn.cursor().callproc("guardar_totp", [usuario_id, secreto_cifrado, paso])
+        cur = conn.cursor()
+        cur.execute("SELECT totp_activo FROM TBPLogin WHERE id = :id", id=usuario_id)
+        fila = cur.fetchone()
+        previo = int(fila[0] or 0) if fila else 0
+        cur.callproc("guardar_totp", [usuario_id, secreto_cifrado, paso])
+        if previo & ~1:
+            cur.execute("UPDATE TBPLogin SET totp_activo = :v WHERE id = :id", v=previo | 1, id=usuario_id)
+            conn.commit()
+
+
+def guardar_dos_pasos(usuario_id: int, valor: int, detalle: str) -> None:
+    """Métodos de la verificación en dos pasos (banderas de app/dos_pasos.py)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE TBPLogin SET totp_activo = :v WHERE id = :id", v=valor, id=usuario_id)
+        cur.execute(
+            "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+            "VALUES (tbauditoria_sequence.NEXTVAL, :id, NULL, 'DOS_PASOS', :d)",
+            id=usuario_id, d=detalle[:200],
+        )
+        conn.commit()
+
+
+def envios_codigo_recientes(usuario_id: int, minutos: int) -> int:
+    """Códigos enviados por correo en los últimos minutos (tope de envíos)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM TBAuditoria WHERE usuario_id = :id AND accion = 'CODIGO_CORREO' "
+            "AND fecha_hora > SYSTIMESTAMP - NUMTODSINTERVAL(:m, 'MINUTE')",
+            id=usuario_id, m=minutos,
+        )
+        return int(cur.fetchone()[0])
+
+
+def registrar_envio_codigo(usuario_id: int, detalle: str) -> None:
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+            "VALUES (tbauditoria_sequence.NEXTVAL, :id, NULL, 'CODIGO_CORREO', :d)",
+            id=usuario_id, d=detalle[:200],
+        )
+        conn.commit()
 
 
 def cambiar_password(usuario_id: int, contrasena_hash: str, motivo: str) -> None:

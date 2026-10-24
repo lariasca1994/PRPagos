@@ -86,7 +86,7 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
   aplicación esté cerrada
 
 **Cuentas y seguridad**
-- Ingreso en dos pasos obligatorio (TOTP), el mismo de la web
+- Ingreso en dos pasos obligatorio (app autenticadora o código por correo, a elección), el mismo de la web
 - Códigos de respaldo y código por correo si se pierde el teléfono
 - **Llaves de acceso con Windows Hello** (PIN, huella o rostro): la misma llave de
   Edge o Chrome en ese Windows; se agregan desde Perfil
@@ -214,8 +214,9 @@ cambiar entre tema claro y oscuro.
 
 1. En la portada, pulsa **Regístrate**: correo, nombre completo y contraseña. La
    misma cuenta sirve en la web.
-2. Ingresa con **Correo** y **Contraseña**; la primera vez escanea el QR con tu
-   app autenticadora y guarda los 10 **códigos de respaldo**.
+2. Ingresa con **Correo** y **Contraseña**; la primera vez elige **App
+   autenticadora** (escanea el QR) o **Código por correo**, y guarda los 10
+   **códigos de respaldo**.
 3. Las siguientes veces, escribe el código de 6 dígitos (o uno de respaldo), o
    pulsa **Ingresar con llave de acceso** si agregaste este equipo en Perfil.
 

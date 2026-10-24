@@ -6,9 +6,10 @@ app o de respaldo), así que una sesión robada no alcanza para tomar la cuenta.
 """
 import oracledb
 
-from .. import finanzas, llaves, repositorio
+from .. import dos_pasos, finanzas, llaves, repositorio
 from ..seguridad import (
     cifrar_secreto,
+    hash_corto,
     generar_secreto_totp,
     hash_password,
     problema_contrasena,
@@ -17,7 +18,7 @@ from ..seguridad import (
 )
 from .verificacion import verificar_segundo_factor
 from . import ErrorServicio
-from .acceso import nuevos_codigos_respaldo
+from .acceso import enviar_codigo, nuevos_codigos_respaldo, texto_codigo_enviado
 from .registros import GRUPOS
 
 MENSAJE_BLOQUEO = "Cuenta bloqueada temporalmente; espera 5 minutos"
@@ -29,6 +30,7 @@ def datos(usuario_id: int) -> dict:
     return {
         "perfil": repositorio.perfil(usuario_id),
         "totp_activo": bool(cred and cred["totp_activo"]),
+        "dos_pasos": dos_pasos.de_cuenta(cred) if cred else dos_pasos.metodos(0),
         "pcts": pcts,
         "textos_pct": {g: finanzas.texto_pct(v) for g, v in pcts.items()},
         "categorias": repositorio.categorias(usuario_id),
@@ -124,6 +126,59 @@ def confirmar_autenticador(usuario_id: int, secreto: str, codigo: str) -> list[s
         raise ErrorServicio("El código no coincide con el nuevo autenticador")
     repositorio.guardar_totp(usuario_id, cifrar_secreto(secreto), paso)
     return nuevos_codigos_respaldo(usuario_id)
+
+
+# ───────────────────── Verificación en dos pasos ─────────────────────
+
+
+def _cuenta(usuario_id: int) -> dict:
+    cred = repositorio.obtener_credenciales(usuario_id=usuario_id)
+    if cred is None or cred["bloqueada"]:
+        raise ErrorServicio(MENSAJE_BLOQUEO)
+    return cred
+
+
+def enviar_codigo_perfil(usuario_id: int) -> str:
+    """Código por correo para confirmar una acción de seguridad del perfil (cuentas con el correo activo)."""
+    cred = _cuenta(usuario_id)
+    if not dos_pasos.de_cuenta(cred)["correo"]:
+        raise ErrorServicio("Tu cuenta no usa el código por correo")
+    enviar_codigo(cred, "Tu código para confirmar un cambio en PRPagos")
+    return texto_codigo_enviado(cred["usuario"])
+
+
+def iniciar_agregar_correo(usuario_id: int) -> str:
+    """Agregar el código por correo: se envía un código para confirmarlo."""
+    cred = _cuenta(usuario_id)
+    if dos_pasos.de_cuenta(cred)["correo"]:
+        raise ErrorServicio("El código por correo ya está activo")
+    enviar_codigo(cred, "Activa el código por correo en PRPagos")
+    return texto_codigo_enviado(cred["usuario"])
+
+
+def confirmar_correo(usuario_id: int, codigo: str) -> str:
+    cred = _cuenta(usuario_id)
+    metodos = dos_pasos.de_cuenta(cred)
+    limpio = "".join(c for c in (codigo or "") if c.isdigit())
+    if len(limpio) != 6 or not repositorio.usar_codigo_correo(cred["usuario_id"], hash_corto(limpio)):
+        repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_CORREO")
+        raise ErrorServicio("Código incorrecto o vencido")
+    repositorio.guardar_dos_pasos(
+        cred["usuario_id"], dos_pasos.banderas(metodos["app"], True, metodos["preferido"] or dos_pasos.CORREO),
+        "Código por correo agregado")
+    return "El código por correo quedó activo"
+
+
+def elegir_preferido(usuario_id: int, metodo: str) -> str:
+    cred = _cuenta(usuario_id)
+    metodos = dos_pasos.de_cuenta(cred)
+    if metodo not in (dos_pasos.APP, dos_pasos.CORREO) or not metodos[metodo]:
+        raise ErrorServicio("Ese método no está activo en tu cuenta")
+    repositorio.guardar_dos_pasos(
+        cred["usuario_id"], dos_pasos.banderas(metodos["app"], metodos["correo"], metodo),
+        f"Método por defecto: {metodo}")
+    return ("Ahora se pide la app autenticadora por defecto" if metodo == dos_pasos.APP
+            else "Ahora se pide el código por correo por defecto")
 
 
 # ───────────────────────── Llaves de acceso ─────────────────────────

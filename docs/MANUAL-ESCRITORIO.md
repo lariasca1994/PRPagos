@@ -122,6 +122,18 @@ oscuro.
 
 ### 4.4 Configurar la verificación en dos pasos (solo la primera vez)
 
+La primera vez eliges cómo recibir el código de la verificación en dos pasos (es obligatoria):
+
+| Método | Cómo funciona |
+|---|---|
+| **App autenticadora** (recomendado) | Escaneas el código QR con Google Authenticator, Microsoft Authenticator u otra app; la app muestra un código nuevo cada 30 segundos, incluso sin internet. Los pasos están abajo. |
+| **Código por correo** | Te llega un código de 6 dígitos que vence en 15 minutos y sirve una sola vez (como máximo 3 envíos cada 10 minutos). Escríbelo y pulsa **Activar e ingresar**; recibes tus **códigos de respaldo**. |
+
+En **Perfil → Verificación en dos pasos** agregas el método que no elegiste y escoges cuál se pide
+por defecto; con los dos activos, la pantalla del código ofrece **Usar un código por correo** o
+**Usar la app autenticadora**. Es la misma cuenta en la web y en el escritorio.
+
+
 ![Configuración del autenticador con código QR](img/manual-escritorio/03-configurar.png)
 
 | # | Campo | Qué hacer |
@@ -242,7 +254,7 @@ en la auditoría.
 | 1 | Tus datos | Cambiar tu nombre y activar o desactivar los **resúmenes por correo** |
 | 2 | Plan 50/30/20 | Ajustar los porcentajes de Necesidades, Deseos y Ahorro y deudas (deben sumar 100) |
 | 3 | Categorías | Ver las sugeridas y **agregar** las tuyas (nombre, tipo y grupo del plan); las tuyas se pueden eliminar si no tienen registros |
-| 4 | Verificación en dos pasos | **Cambiar autenticador** (teléfono nuevo o perdido) con un código de la app o de respaldo |
+| 4 | Verificación en dos pasos | Muestra tus métodos; **Agregar código por correo** (escribe el código que llega y pulsa **Activar código por correo**), **Agregar app autenticadora** o **Cambiar autenticador** (con un código vigente: de la app, del correo o de respaldo), **Pedir … por defecto** y **Enviarme un código por correo** para confirmar cambios |
 | 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
 | 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.17) |
 | 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
@@ -369,7 +381,7 @@ página de Releases del proyecto.
   huella o la versión no coinciden.
 - **Cada quien ve solo lo suyo:** dashboard, consulta, exportación, edición y correos filtran por la
   cuenta que inició sesión.
-- **Verificación en dos pasos obligatoria (TOTP)**, compartida con la web: un código no se puede
+- **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en 15 minutos, sirve una vez y se envían máximo 3 cada 10 minutos), compartida con la web: un código no se puede
   usar dos veces.
 - **Contraseñas con PBKDF2-SHA256** (600.000 iteraciones y sal única por cuenta).
 - **Bloqueo temporal:** 5 intentos fallidos seguidos bloquean la cuenta 5 minutos, en el

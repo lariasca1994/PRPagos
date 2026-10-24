@@ -82,8 +82,9 @@ detalle de la migración.
 - Botones **Enviarme el resumen semanal / del mes** en el dashboard
 
 **Cuentas y seguridad**
-- Ingreso en dos pasos obligatorio: contraseña y código TOTP; el autenticador
-  se configura una sola vez y sirve también en el escritorio
+- Ingreso en dos pasos obligatorio: contraseña y código TOTP o por correo, a
+  elección; el método se configura una sola vez y sirve también en el escritorio
+  (en Perfil se agrega el otro y se elige el preferido)
 - 10 **códigos de respaldo** de un solo uso y **código por correo** si se pierde el teléfono
 - **Llaves de acceso (passkeys):** **Ingresar con llave de acceso** con Windows Hello, huella,
   rostro o PIN, en Windows, Android (también en la PWA) y iPhone; se agregan desde Perfil
@@ -198,8 +199,8 @@ del repositorio.
   no puede crear ni borrar tablas.
 - Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única). Las cuentas
   creadas con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
-- Verificación en dos pasos obligatoria (TOTP); un código no se puede usar dos
-  veces. El secreto se guarda cifrado con AES-256-GCM; la clave (`TOTP_CLAVE`)
+- Verificación en dos pasos obligatoria (TOTP o código por correo, con tope de 3
+  envíos cada 10 minutos); un código no se puede usar dos veces. El secreto se guarda cifrado con AES-256-GCM; la clave (`TOTP_CLAVE`)
   vive fuera de la base.
 - Llaves de acceso: verificación del dispositivo obligatoria, solo para el dominio de la web, reto
   nuevo en una cookie firmada de 5 minutos y firma comprobada con la clave pública guardada (ES256
@@ -245,9 +246,9 @@ El paso a paso con capturas de cada pantalla está en el
 1. En la portada, pulsa **Regístrate**: correo, nombre completo y contraseña
    (mínimo 8 caracteres). La misma cuenta sirve en el escritorio.
 2. Ingresa con **Correo** y **Contraseña** y pulsa **Continuar**.
-3. **Primera vez:** escanea el QR con tu app autenticadora, escribe el código y
-   pulsa **Activar e ingresar**; guarda los 10 **códigos de respaldo** que
-   aparecen. Si ya lo configuraste en el escritorio, este paso no aparece.
+3. **Primera vez:** elige **App autenticadora** (escanea el QR, escribe el código y
+   pulsa **Activar e ingresar**) o **Código por correo** (escribe el código que
+   llega); guarda los 10 **códigos de respaldo** que aparecen. Si ya lo configuraste en el escritorio, este paso no aparece.
 4. **Siguientes veces:** escribe el código de 6 dígitos (o uno de respaldo), o pulsa **Ingresar
    con llave de acceso** si agregaste este dispositivo en Perfil.
 

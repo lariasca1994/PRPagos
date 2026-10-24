@@ -129,6 +129,29 @@ def confirmar_autenticador_nuevo(request: Request, codigo: str = Form(...),
     return respuesta
 
 
+# ───────────────────── Verificación en dos pasos ─────────────────────
+
+
+@router.post("/perfil/dos-pasos/codigo")
+def codigo_perfil(usuario: UsuarioActual = Depends(exigir_login)):
+    return _accion(servicio.enviar_codigo_perfil, usuario.usuario_id, ancla="#dos-pasos")
+
+
+@router.post("/perfil/dos-pasos/correo")
+def agregar_correo(usuario: UsuarioActual = Depends(exigir_login)):
+    return _accion(servicio.iniciar_agregar_correo, usuario.usuario_id, ancla="#dos-pasos")
+
+
+@router.post("/perfil/dos-pasos/correo/confirmar")
+def confirmar_correo(codigo: str = Form(...), usuario: UsuarioActual = Depends(exigir_login)):
+    return _accion(servicio.confirmar_correo, usuario.usuario_id, codigo, ancla="#dos-pasos")
+
+
+@router.post("/perfil/dos-pasos/preferido")
+def elegir_preferido(metodo: str = Form(...), usuario: UsuarioActual = Depends(exigir_login)):
+    return _accion(servicio.elegir_preferido, usuario.usuario_id, metodo, ancla="#dos-pasos")
+
+
 # ───────────────────────── Llaves de acceso ─────────────────────────
 
 

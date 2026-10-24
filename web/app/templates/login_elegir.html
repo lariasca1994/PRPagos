@@ -1,0 +1,16 @@
+{% extends "acceso_base.html" %}
+{% block titulo %}Elige tu verificación en dos pasos - PRPagos{% endblock %}
+{% block paso %}Acceso · Paso 2 de 2{% endblock %}
+{% block titulo_form %}Verificación en dos pasos{% endblock %}
+{% block subtitulo %}Es obligatoria para todas las cuentas ({{ correo }}). Elige cómo recibir el código; después puedes agregar el otro método desde tu perfil.{% endblock %}
+{% block formulario %}
+<form method="post" action="/login/elegir">
+    <button type="submit" name="metodo" value="app" class="boton">App autenticadora (recomendado)</button>
+</form>
+<form method="post" action="/login/elegir">
+    <button type="submit" name="metodo" value="correo" class="boton boton-secundario">Código por correo</button>
+</form>
+{% endblock %}
+{% block enlaces %}
+<a href="/logout">Usar otra cuenta</a>
+{% endblock %}
