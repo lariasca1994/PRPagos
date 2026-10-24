@@ -68,20 +68,21 @@ def _contexto(request: Request, **extra) -> dict:
             "ok": request.query_params.get("ok"), **extra}
 
 
-def _parcial(request: Request, etapa: str) -> dict | None:
+def _parcial(request: Request, *etapas: str) -> dict | None:
     datos = leer_token_parcial(request.cookies.get(COOKIE_ACCESO))
-    return datos if datos and datos.get("etapa") == etapa else None
+    return datos if datos and datos.get("etapa") in etapas else None
+
+
+# Pantalla de cada etapa del ingreso (ver acceso.PasoIngreso).
+_PANTALLAS = {"codigo": "/login/codigo", "codigo_correo": "/login/codigo", "elegir": "/login/elegir",
+              "configurar": "/login/configurar", "activar_correo": "/login/correo"}
 
 
 def _hacia_paso(paso: acceso.PasoIngreso, mensaje: str | None = None) -> RedirectResponse:
     cred = paso.cred
-    if paso.etapa == "codigo":
-        respuesta = _redirigir("/login/codigo", mensaje, exito=True)
-        token = crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], "codigo")
-    else:
-        respuesta = _redirigir("/login/configurar", mensaje, exito=True)
-        token = crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], "configurar",
-                                    secreto_pendiente=paso.secreto)
+    respuesta = _redirigir(_PANTALLAS[paso.etapa], mensaje or paso.mensaje, exito=True)
+    token = crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], paso.etapa,
+                                secreto_pendiente=paso.secreto)
     _cookie(respuesta, COOKIE_ACCESO, token, 600)
     return respuesta
 
@@ -105,23 +106,69 @@ def procesar_login(usuario: str = Form(...), contrasena: str = Form(...)):
 # ───────────────────── Paso 2a: código del autenticador ─────────────────────
 
 
+def _metodo(datos: dict) -> str:
+    return "correo" if datos.get("etapa") == "codigo_correo" else "app"
+
+
 @router.get("/login/codigo")
 def form_codigo(request: Request):
-    datos = _parcial(request, "codigo")
+    datos = _parcial(request, "codigo", "codigo_correo")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
-    return templates.TemplateResponse("login_codigo.html", _contexto(request, correo=datos["usuario"]))
+    try:
+        metodos = acceso.metodos_de(datos["usuario_id"])
+    except ErrorServicio as e:
+        return _redirigir("/login", e.mensaje)
+    return templates.TemplateResponse("login_codigo.html", _contexto(
+        request, correo=datos["usuario"], metodo=_metodo(datos), metodos=metodos))
 
 
 @router.post("/login/codigo")
 def procesar_codigo(request: Request, codigo: str = Form(...)):
-    datos = _parcial(request, "codigo")
+    datos = _parcial(request, "codigo", "codigo_correo")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
     try:
-        return _abrir_sesion(acceso.verificar_codigo(datos["usuario_id"], codigo))
+        return _abrir_sesion(acceso.verificar_codigo(datos["usuario_id"], codigo, _metodo(datos)))
     except ErrorServicio as e:
         destino = "/login" if e.mensaje in (acceso.MENSAJE_BLOQUEO, acceso.MENSAJE_EXPIRADO) else "/login/codigo"
+        return _redirigir(destino, e.mensaje)
+
+
+@router.post("/login/cambiar-metodo")
+def cambiar_metodo(request: Request):
+    """Con los dos métodos activos: usar el otro en este ingreso."""
+    datos = _parcial(request, "codigo", "codigo_correo")
+    if datos is None:
+        return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
+    otro = "app" if _metodo(datos) == "correo" else "correo"
+    try:
+        return _hacia_paso(acceso.cambiar_metodo(datos["usuario_id"], otro))
+    except ErrorServicio as e:
+        destino = "/login" if e.mensaje in (acceso.MENSAJE_BLOQUEO, acceso.MENSAJE_EXPIRADO) else "/login/codigo"
+        return _redirigir(destino, e.mensaje)
+
+
+# ─────────────── Primer ingreso: elegir la verificación en dos pasos ───────────────
+
+
+@router.get("/login/elegir")
+def form_elegir(request: Request):
+    datos = _parcial(request, "elegir")
+    if datos is None:
+        return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
+    return templates.TemplateResponse("login_elegir.html", _contexto(request, correo=datos["usuario"]))
+
+
+@router.post("/login/elegir")
+def procesar_elegir(request: Request, metodo: str = Form(...)):
+    datos = _parcial(request, "elegir")
+    if datos is None:
+        return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
+    try:
+        return _hacia_paso(acceso.elegir_metodo(datos["usuario_id"], metodo))
+    except ErrorServicio as e:
+        destino = "/login" if e.mensaje in (acceso.MENSAJE_BLOQUEO, acceso.MENSAJE_EXPIRADO) else "/login/elegir"
         return _redirigir(destino, e.mensaje)
 
 
@@ -202,19 +249,25 @@ def perdi_telefono(request: Request):
 
 @router.get("/login/correo")
 def form_codigo_correo(request: Request):
-    datos = _parcial(request, "correo")
+    datos = _parcial(request, "correo", "activar_correo")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
-    return templates.TemplateResponse(
-        "login_correo.html", _contexto(request, correo=datos["usuario"], minutos=MINUTOS_CODIGO_CORREO))
+    return templates.TemplateResponse("login_correo.html", _contexto(
+        request, correo=datos["usuario"], minutos=MINUTOS_CODIGO_CORREO,
+        activar=datos["etapa"] == "activar_correo"))
 
 
 @router.post("/login/correo")
 def procesar_codigo_correo(request: Request, codigo: str = Form(...)):
-    datos = _parcial(request, "correo")
+    datos = _parcial(request, "correo", "activar_correo")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
     try:
+        if datos["etapa"] == "activar_correo":
+            cred, codigos = acceso.activar_correo(datos["usuario_id"], codigo)
+            # Los códigos de respaldo se muestran una sola vez, en esta misma respuesta.
+            pantalla = templates.TemplateResponse("login_respaldo.html", _contexto(request, codigos=codigos))
+            return _abrir_sesion(cred, pantalla)
         paso = acceso.verificar_codigo_correo(datos["usuario_id"], codigo)
     except ErrorServicio as e:
         destino = "/login" if e.mensaje == acceso.MENSAJE_BLOQUEO else "/login/correo"

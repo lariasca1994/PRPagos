@@ -15,7 +15,7 @@ from datetime import date
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
-from .. import llaves, repositorio
+from .. import dos_pasos, llaves, repositorio
 from ..dependencias import UsuarioActual, exigir_admin, exigir_login
 from ..seguridad import (
     MENSAJES_CIERRE,
@@ -56,19 +56,25 @@ def _sesion(cred: dict, **extra) -> dict:
 
 
 def _paso(paso: acceso.PasoIngreso) -> dict:
+    """Etapas como en la web: codigo, codigo_correo, elegir, configurar y activar_correo."""
     cred = paso.cred
-    if paso.etapa == "codigo":
-        return {"etapa": "codigo", "correo": cred["usuario"],
-                "token": crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], "codigo")}
-    config = acceso.configuracion_autenticador(paso.secreto, cred["usuario"])
-    return {"etapa": "configurar", "correo": cred["usuario"], "uri": config["uri"], "clave": config["clave"],
-            "token": crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], "configurar",
-                                         secreto_pendiente=paso.secreto)}
+    respuesta = {"etapa": paso.etapa, "correo": cred["usuario"],
+                 "token": crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], paso.etapa,
+                                              secreto_pendiente=paso.secreto)}
+    if paso.mensaje:
+        respuesta["mensaje"] = paso.mensaje
+    if paso.etapa in ("codigo", "codigo_correo"):
+        respuesta["metodo"] = "correo" if paso.etapa == "codigo_correo" else "app"
+        respuesta["metodos"] = dos_pasos.de_cuenta(cred)
+    elif paso.etapa == "configurar":
+        config = acceso.configuracion_autenticador(paso.secreto, cred["usuario"])
+        respuesta.update(uri=config["uri"], clave=config["clave"])
+    return respuesta
 
 
-def _parcial(datos: dict, etapa: str) -> dict:
+def _parcial(datos: dict, *etapas: str) -> dict:
     token = leer_token_parcial(_texto(datos, "token"))
-    if not token or token.get("etapa") != etapa:
+    if not token or token.get("etapa") not in etapas:
         raise ErrorServicio(acceso.MENSAJE_EXPIRADO)
     return token
 
@@ -92,8 +98,22 @@ def ingresar(datos: dict = Body(...)):
 
 @router.post("/acceso/codigo")
 def codigo(datos: dict = Body(...)):
-    token = _parcial(datos, "codigo")
-    return _sesion(acceso.verificar_codigo(token["usuario_id"], _texto(datos, "codigo")))
+    token = _parcial(datos, "codigo", "codigo_correo")
+    metodo = "correo" if token["etapa"] == "codigo_correo" else "app"
+    return _sesion(acceso.verificar_codigo(token["usuario_id"], _texto(datos, "codigo"), metodo))
+
+
+@router.post("/acceso/cambiar-metodo")
+def cambiar_metodo(datos: dict = Body(...)):
+    token = _parcial(datos, "codigo", "codigo_correo")
+    otro = "app" if token["etapa"] == "codigo_correo" else "correo"
+    return _paso(acceso.cambiar_metodo(token["usuario_id"], otro))
+
+
+@router.post("/acceso/elegir")
+def elegir(datos: dict = Body(...)):
+    token = _parcial(datos, "elegir")
+    return _paso(acceso.elegir_metodo(token["usuario_id"], _texto(datos, "metodo")))
 
 
 @router.post("/acceso/configurar")
@@ -116,7 +136,10 @@ def perdi_telefono(datos: dict = Body(...)):
 
 @router.post("/acceso/correo")
 def codigo_correo(datos: dict = Body(...)):
-    token = _parcial(datos, "correo")
+    token = _parcial(datos, "correo", "activar_correo")
+    if token["etapa"] == "activar_correo":
+        cred, codigos = acceso.activar_correo(token["usuario_id"], _texto(datos, "codigo"))
+        return _sesion(cred, codigos=codigos)
     respuesta = _paso(acceso.verificar_codigo_correo(token["usuario_id"], _texto(datos, "codigo")))
     respuesta["mensaje"] = "Código verificado: configura tu autenticador nuevo."
     return respuesta
@@ -312,6 +335,27 @@ def confirmar_autenticador(datos: dict = Body(...), usuario: UsuarioActual = Dep
     if secreto is None:
         raise ErrorServicio("El cambio de autenticador expiró; empieza de nuevo")
     return {"codigos": perfil.confirmar_autenticador(usuario.usuario_id, secreto, _texto(datos, "codigo"))}
+
+
+@router.post("/perfil/dos-pasos/codigo")
+def codigo_perfil(usuario: UsuarioActual = Depends(exigir_login)):
+    """Código por correo para confirmar una acción de seguridad (cuentas con el correo activo)."""
+    return {"mensaje": perfil.enviar_codigo_perfil(usuario.usuario_id)}
+
+
+@router.post("/perfil/dos-pasos/correo")
+def agregar_correo(usuario: UsuarioActual = Depends(exigir_login)):
+    return {"mensaje": perfil.iniciar_agregar_correo(usuario.usuario_id)}
+
+
+@router.post("/perfil/dos-pasos/correo/confirmar")
+def confirmar_correo(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
+    return {"mensaje": perfil.confirmar_correo(usuario.usuario_id, _texto(datos, "codigo"))}
+
+
+@router.post("/perfil/dos-pasos/preferido")
+def elegir_preferido(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
+    return {"mensaje": perfil.elegir_preferido(usuario.usuario_id, _texto(datos, "metodo"))}
 
 
 @router.post("/perfil/llaves/opciones")

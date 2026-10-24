@@ -89,7 +89,8 @@ migración de escritorio a web.
 - Botones para recibirlos al momento desde la web o el escritorio, con el mismo contenido
 
 **Cuentas y seguridad (una sola para web y escritorio)**
-- Ingreso en dos pasos obligatorio: contraseña y código de una app autenticadora (TOTP)
+- Ingreso en dos pasos obligatorio: contraseña y código de una app autenticadora (TOTP) o por
+  correo, a elección; en Perfil se agrega el otro método y se elige el preferido
 - **Llaves de acceso (passkeys):** ingreso con Windows Hello, huella, rostro o PIN, en la web
   (Windows, Android y iPhone) y en el escritorio; la misma llave sirve en Edge y en la app del mismo Windows
 - **Códigos de respaldo** y **código por correo** para recuperar el acceso si se pierde el teléfono
@@ -174,8 +175,9 @@ Cada versión tiene su propio diagrama detallado en
   el escritorio. El escritorio no guarda claves ni datos de conexión.
 - Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única); las cuentas
   con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
-- Verificación en dos pasos obligatoria (TOTP, RFC 6238); un código no se puede
-  reutilizar. El secreto se guarda cifrado con AES-256-GCM y la clave vive
+- Verificación en dos pasos obligatoria, a elección: TOTP (RFC 6238) o código por
+  correo (15 minutos, un solo uso, máximo 3 envíos cada 10 minutos); un código no
+  se puede reutilizar. El secreto se guarda cifrado con AES-256-GCM y la clave vive
   fuera de la base.
 - Llaves de acceso (WebAuthn): en la base solo se guarda la clave pública y un contador; exigen
   la verificación del dispositivo, solo valen para el sitio de PRPagos y cada firma se comprueba
@@ -221,8 +223,9 @@ Resumen del flujo, igual en ambas:
 
 1. **Crear cuenta:** correo, nombre completo y contraseña (mínimo 8 caracteres).
 2. **Iniciar sesión** con correo y contraseña, y luego el código de 6 dígitos de tu
-   app autenticadora. La primera vez se configura escaneando un QR y se reciben
-   10 códigos de respaldo.
+   app autenticadora o el que llega a tu correo. La primera vez eliges el método
+   (**App autenticadora**: escaneas un QR; **Código por correo**: escribes el código
+   que te llega) y recibes 10 códigos de respaldo. En **Perfil** agregas el otro.
 3. **Dashboard:** el mes con ingresos, gastos, balance, ahorro y el avance del plan 50/30/20.
 4. **Presupuesto:** planea cada categoría por mes (solo un mes, hasta diciembre o todo el año)
    y compáralo con lo registrado; toca una categoría para ver sus movimientos.

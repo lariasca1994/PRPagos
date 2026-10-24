@@ -1,13 +1,13 @@
 {% extends "acceso_base.html" %}
 {% block titulo %}Código enviado a tu correo - PRPagos{% endblock %}
-{% block paso %}Perdí mi teléfono{% endblock %}
+{% block paso %}{% if activar %}Acceso · Código por correo{% else %}Perdí mi teléfono{% endif %}{% endblock %}
 {% block titulo_form %}Revisa tu correo{% endblock %}
 {% block subtitulo %}Te enviamos un código de 6 dígitos a {{ correo }}. Vence en {{ minutos }} minutos.{% endblock %}
 {% block formulario %}
 <form method="post" action="/login/correo">
     <label for="codigo">Código del correo</label>
     <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus>
-    <button type="submit" class="boton">Verificar y configurar autenticador</button>
+    <button type="submit" class="boton">{% if activar %}Activar e ingresar{% else %}Verificar y configurar autenticador{% endif %}</button>
 </form>
 {% endblock %}
 {% block enlaces %}

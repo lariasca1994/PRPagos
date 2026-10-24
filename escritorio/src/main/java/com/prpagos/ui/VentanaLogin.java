@@ -32,7 +32,8 @@ import com.prpagos.seguridad.WindowsHello;
  *
  * Toda la lógica está en el servidor, la misma de la web: cada paso llama a la
  * API y muestra su respuesta. La verificación en dos pasos es obligatoria y
- * compartida con la web: el autenticador que se configure aquí sirve allá.
+ * compartida con la web: el método que se elija aquí (app autenticadora o
+ * código por correo) sirve allá, y desde el perfil se agrega el otro.
  */
 public class VentanaLogin extends JFrame {
 
@@ -49,6 +50,15 @@ public class VentanaLogin extends JFrame {
     private final JTextField codigo = Ui.campoCodigo();
     private final JTextArea subtituloCodigo = Ui.suave("");
     private final Ui.Aviso avisoCodigo = new Ui.Aviso();
+    private final JButton enlacePerdi = Ui.enlace("Perdí mi teléfono", e -> perdiTelefono());
+    private final JButton enlaceCambiar = Ui.enlace("Usar un código por correo", e -> cambiarMetodo());
+    // Primer ingreso: elegir el método de la verificación en dos pasos
+    private final JTextArea subtituloElegir = Ui.suave("");
+    private final Ui.Aviso avisoElegir = new Ui.Aviso();
+    // Activar el código por correo (primer ingreso)
+    private final JTextField codigoActivar = Ui.campoCodigo();
+    private final JTextArea subtituloActivar = Ui.suave("");
+    private final Ui.Aviso avisoActivar = new Ui.Aviso();
     // Configurar autenticador
     private final PanelQr qr = new PanelQr();
     private final JLabel claveManual = new JLabel();
@@ -104,6 +114,8 @@ public class VentanaLogin extends JFrame {
         formularios.add(formRegistro(), "registro");
         formularios.add(formRecuperar(), "recuperar");
         formularios.add(formCorreo(), "correo");
+        formularios.add(formElegir(), "elegir");
+        formularios.add(formActivarCorreo(), "activar");
         formularios.add(formRespaldo(), "respaldo");
 
         JPanel lado = new JPanel(new BorderLayout());
@@ -126,7 +138,8 @@ public class VentanaLogin extends JFrame {
             lado.setBackground(Tema.c().accesoFondo());
             // En la portada los campos van sobre blanco (.formulario-acceso input).
             for (JTextField t : new JTextField[] {correo, contrasena, codigo, codigoConfig, regCorreo, regNombre,
-                regClave, regConfirmacion, recCorreo, recNombre, recCodigo, recClave, recConfirmacion}) {
+                regClave, regConfirmacion, recCorreo, recNombre, recCodigo, recClave, recConfirmacion,
+                codigoCorreo, codigoActivar}) {
                 t.setBackground(Tema.c().superficie());
             }
         });
@@ -260,8 +273,36 @@ public class VentanaLogin extends JFrame {
                 avisoCodigo,
                 Ui.etiqueta("Código de 6 dígitos (o un código de respaldo)"), codigo,
                 (JComponent) Ui.espacio(20), ingresar,
-                enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null)),
-                        Ui.enlace("Perdí mi teléfono", e -> perdiTelefono())));
+                enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null)), enlacesCodigo()));
+    }
+
+    /** "Perdí mi teléfono" (solo app) o "Usar el otro método" (con los dos activos), como en la web. */
+    private JPanel enlacesCodigo() {
+        JPanel p = Ui.fila(12);
+        p.add(enlaceCambiar);
+        p.add(enlacePerdi);
+        return p;
+    }
+
+    private JPanel formElegir() {
+        return formulario(
+                encabezado("Acceso · Paso 2 de 2", "Verificación en dos pasos", subtituloElegir),
+                avisoElegir,
+                botonAncho(Ui.primario("App autenticadora (recomendado)", e -> elegir("app"))),
+                (JComponent) Ui.espacio(10),
+                botonAncho(Ui.secundario("Código por correo", e -> elegir("correo"))),
+                enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null))));
+    }
+
+    private JPanel formActivarCorreo() {
+        JButton activar = botonAncho(Ui.primario("Activar e ingresar", e -> activarCorreo()));
+        codigoActivar.addActionListener(e -> activarCorreo());
+        return formulario(
+                encabezado("Acceso · Código por correo", "Revisa tu correo", subtituloActivar),
+                avisoActivar,
+                Ui.etiqueta("Código del correo"), codigoActivar,
+                (JComponent) Ui.espacio(20), activar,
+                enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null))));
     }
 
     private JPanel formCorreo() {
@@ -347,7 +388,7 @@ public class VentanaLogin extends JFrame {
 
     private void mostrar(String tarjeta) {
         for (Ui.Aviso a : new Ui.Aviso[] {avisoIngreso, avisoCodigo, avisoConfig, avisoRegistro, avisoRecuperar,
-            avisoCorreo, avisoLlave}) {
+            avisoCorreo, avisoLlave, avisoElegir, avisoActivar}) {
             a.ocultar();
         }
         tarjetas.show(formularios, tarjeta);
@@ -375,21 +416,46 @@ public class VentanaLogin extends JFrame {
                 this::siguientePaso, e -> avisoIngreso.error(Ui.mensajeError("ingresar").apply(e)));
     }
 
-    /** Respuesta con "etapa": pedir el código del autenticador o configurarlo. */
+    /**
+     * Respuesta con "etapa" (las mismas de la web): código de la app ("codigo") o del correo
+     * ("codigo_correo"), elegir el método ("elegir"), configurar la app ("configurar") o
+     * activar el correo ("activar_correo").
+     */
     private void siguientePaso(JsonObject paso) {
         tokenAcceso = Json.texto(paso, "token");
-        if ("codigo".equals(Json.texto(paso, "etapa"))) {
-            subtituloCodigo.setText("Abre tu app autenticadora y escribe el código de 6 dígitos de PRPagos ("
-                    + Json.texto(paso, "correo") + ").");
+        String etapa = Json.texto(paso, "etapa");
+        String mensaje = Json.texto(paso, "mensaje");
+        if ("codigo".equals(etapa) || "codigo_correo".equals(etapa)) {
+            boolean porCorreo = "codigo_correo".equals(etapa);
+            JsonObject metodos = Json.objeto(paso, "metodos");
+            boolean ambos = Json.logico(metodos, "app") && Json.logico(metodos, "correo");
+            subtituloCodigo.setText(porCorreo
+                    ? "Escribe el código de 6 dígitos que te enviamos a " + Json.texto(paso, "correo") + "."
+                    : "Abre tu app autenticadora y escribe el código de 6 dígitos de PRPagos ("
+                            + Json.texto(paso, "correo") + ").");
+            enlaceCambiar.setText(porCorreo ? "Usar la app autenticadora" : "Usar un código por correo");
+            enlaceCambiar.setVisible(ambos);
+            enlacePerdi.setVisible(!porCorreo && !Json.logico(metodos, "correo"));
             codigo.setText("");
             mostrar("codigo");
+            if (!mensaje.isEmpty()) {
+                avisoCodigo.exito(mensaje);
+            }
             codigo.requestFocusInWindow();
+        } else if ("elegir".equals(etapa)) {
+            subtituloElegir.setText("Es obligatoria para todas las cuentas (" + Json.texto(paso, "correo")
+                    + "). Elige cómo recibir el código; después puedes agregar el otro método desde tu perfil.");
+            mostrar("elegir");
+        } else if ("activar_correo".equals(etapa)) {
+            subtituloActivar.setText(mensaje);
+            codigoActivar.setText("");
+            mostrar("activar");
+            codigoActivar.requestFocusInWindow();
         } else {
             qr.mostrar(Json.texto(paso, "uri"));
             claveManual.setText("Clave:  " + Json.texto(paso, "clave"));
             codigoConfig.setText("");
             mostrar("configurar");
-            String mensaje = Json.texto(paso, "mensaje");
             if (!mensaje.isEmpty()) {
                 avisoConfig.exito(mensaje);
             }
@@ -418,6 +484,46 @@ public class VentanaLogin extends JFrame {
                     codigo.setText("");
                     if (!volverAlInicio(e)) {
                         avisoCodigo.error(Ui.mensajeError("verificar el código").apply(e));
+                    }
+                });
+    }
+
+    /** Con los dos métodos activos: usar el otro en este ingreso. */
+    private void cambiarMetodo() {
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/cambiar-metodo", Json.de("token", token)),
+                this::siguientePaso, e -> {
+                    if (!volverAlInicio(e)) {
+                        avisoCodigo.error(Ui.mensajeError("cambiar de método").apply(e));
+                    }
+                });
+    }
+
+    // ───────────── Primer ingreso: elegir y activar el método ─────────────
+
+    private void elegir(String metodo) {
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/elegir", Json.de("token", token, "metodo", metodo)),
+                this::siguientePaso, e -> {
+                    if (!volverAlInicio(e)) {
+                        avisoElegir.error(Ui.mensajeError("elegir el método").apply(e));
+                    }
+                });
+    }
+
+    private void activarCorreo() {
+        String texto = codigoActivar.getText();
+        String token = tokenAcceso;
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/correo", Json.de("token", token, "codigo", texto)),
+                respuesta -> {
+                    sesionLista = guardarSesion(respuesta);
+                    // Con el primer método llegan los 10 códigos de respaldo (se muestran una sola vez).
+                    PanelPerfil.mostrarCodigos(rejillaRespaldo, Json.textos(respuesta, "codigos"));
+                    mostrar("respaldo");
+                }, e -> {
+                    codigoActivar.setText("");
+                    if (!volverAlInicio(e)) {
+                        avisoActivar.error(Ui.mensajeError("verificar el código").apply(e));
                     }
                 });
     }
