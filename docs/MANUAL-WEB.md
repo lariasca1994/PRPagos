@@ -358,6 +358,8 @@ protege y no los comparte con terceros.
 - **Conexión cifrada a la base:** Oracle Autonomous Database exige TLS con Wallet.
 - **Secretos fuera del repositorio:** credenciales, clave de cifrado y clave de Brevo viven en la
   configuración del servidor, nunca en el código.
+- **Runtime con parches de seguridad:** la imagen fija Python 3.12.15 y certifi 2026.10.19 o
+  posterior, que deja de confiar en los certificados intermedios comprometidos de eMudhra.
 
 ## 6. Agradecimientos
 
