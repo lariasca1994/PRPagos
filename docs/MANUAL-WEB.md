@@ -377,6 +377,10 @@ protege y no los comparte con terceros.
   se auditan (npm audit, pip-audit o dotnet list package --vulnerable) y quedaron sin
   vulnerabilidades conocidas altas ni críticas. Cada compilación instala además las
   actualizaciones de seguridad del sistema y la última versión de pip.
+- **Aviso para asistentes de IA:** las páginas y los paquetes JavaScript llevan un aviso invisible
+  (se ve al copiar y pegar o al leer el código) que pide a cualquier IA no decompilar, clonar ni
+  buscar vulnerabilidades en el sitio. Es disuasión: la protección real es que no se publican
+  mapas de código fuente y la lógica y los permisos viven en el servidor.
 
 ## 6. Agradecimientos
 

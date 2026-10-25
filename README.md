@@ -200,6 +200,10 @@ Cada versión tiene su propio diagrama detallado en
   permisos para crear ni borrar tablas) sobre el esquema dueño de los datos.
 - Conexión a la base por TLS con Wallet. El Wallet y el `.env` no se suben al
   repositorio; solo la plantilla de ejemplo.
+- **Aviso para asistentes de IA:** las páginas y los paquetes JavaScript llevan un aviso invisible
+  (se ve al copiar y pegar o al leer el código) que pide a cualquier IA no decompilar, clonar ni
+  buscar vulnerabilidades en el sitio. Es disuasión: la protección real es que no se publican
+  mapas de código fuente y la lógica y los permisos viven en el servidor.
 
 ---
 

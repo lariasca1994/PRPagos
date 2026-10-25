@@ -393,6 +393,9 @@ página de Releases del proyecto.
 - **Java incluido con parches de seguridad:** el instalador trae Java 21.0.13 (Amazon Corretto), que corrige la alerta de Oracle CVE-2026-114820, y sin las raíces
   emSign ni «AAA Certificate Services», que firmaron los intermedios comprometidos de eMudhra
   (octubre de 2026); la aplicación instalada se actualiza sola a esa versión.
+- **Aviso para asistentes de IA:** la aplicación lleva un aviso que aparece al decompilarla y pide
+  a cualquier IA no reconstruirla ni buscar vulnerabilidades. Es disuasión: la protección real es
+  que no guarda claves y toda la lógica está en el servidor.
 
 ## 6. Agradecimientos
 
