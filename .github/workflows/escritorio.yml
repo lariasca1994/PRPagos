@@ -38,9 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Amazon Corretto (OpenJDK libre): la serie 21 ya trae 21.0.13, que corrige la alerta de
+      # Oracle CVE-2026-114820 (JSSE, raíces de eMudhra); Temurin aún no la publicaba.
       - uses: actions/setup-java@v6
         with:
-          distribution: temurin
+          distribution: corretto
           java-version: '21'
 
       # Inno Setup 6 (gratuito) arma el instalador automático con desinstalador.

@@ -375,7 +375,8 @@ protege y no los comparte con terceros.
   imagen tampoco confía en las raíces emSign ni «AAA Certificate Services» que firmaron esos
   intermedios comprometidos de eMudhra (la misma mitigación que publicó Red Hat). Las dependencias
   se auditan (npm audit, pip-audit o dotnet list package --vulnerable) y quedaron sin
-  vulnerabilidades conocidas altas ni críticas.
+  vulnerabilidades conocidas altas ni críticas. Cada compilación instala además las
+  actualizaciones de seguridad del sistema y la última versión de pip.
 
 ## 6. Agradecimientos
 
