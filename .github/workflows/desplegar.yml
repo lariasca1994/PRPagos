@@ -34,9 +34,9 @@ concurrency:
 
 env:
   PROYECTO: prpagos
-  REGION: southamerica-east1
+  REGION: us-east4
   SERVICIO: prpagos-web
-  IMAGEN: southamerica-east1-docker.pkg.dev/prpagos/cloud-run-source-deploy/prpagos-web
+  IMAGEN: us-east4-docker.pkg.dev/prpagos/cloud-run-source-deploy/prpagos-web
 
 jobs:
   desplegar:

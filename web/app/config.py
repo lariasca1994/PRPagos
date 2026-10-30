@@ -40,7 +40,7 @@ class Settings:
     brevo_remitente: str = os.getenv("BREVO_REMITENTE", "")
     # Dirección pública de la web (enlace "Ver mi dashboard" de los correos).
     url_publica: str = os.getenv(
-        "URL_PUBLICA", "https://prpagos-web-1087929107584.southamerica-east1.run.app"
+        "URL_PUBLICA", "https://prpagos-web-1087929107584.us-east4.run.app"
     )
     # Token con el que GitHub Actions llama a /tareas/resumenes cada día.
     tareas_token: str = os.getenv("TAREAS_TOKEN", "")

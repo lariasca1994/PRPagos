@@ -1,7 +1,7 @@
 # PRPagos Web
 
 <p>
-  <a href="https://prpagos-web-1087929107584.southamerica-east1.run.app"><img src="../docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
+  <a href="https://prpagos-web-1087929107584.us-east4.run.app"><img src="../docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
   <a href="https://frontend-nine-topaz-99.vercel.app"><img src="https://portafolio-status.onrender.com/api/status/prpagos/badge.svg" alt="Estado en vivo del proyecto" height="32"></a>
   <a href="https://d4i3vsgw7xwmh.cloudfront.net"><img src="https://portafolio-status.onrender.com/api/status/prpagos/qa-badge.svg" alt="Fecha y resultado de la última prueba E2E" height="32"></a>
 </p>
@@ -53,13 +53,13 @@ detalle de la migración.
   la API del escritorio; la autorización y la auditoría viven además en
   procedimientos de Oracle, y la app entra a la base con un usuario propio de
   privilegios mínimos.
-- **Cómo probarlo:** entra a la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
+- **Cómo probarlo:** entra a la [demo](https://prpagos-web-1087929107584.us-east4.run.app)
   y crea un usuario. Para correrlo en tu equipo, ve a
   [Instalación para pruebas](#6-instalación-para-pruebas).
 
 ### Demo en vivo
 
-**Aplicación:** [abrir la demo en vivo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
+**Aplicación:** [abrir la demo en vivo](https://prpagos-web-1087929107584.us-east4.run.app)
 
 ### Funcionalidades
 
@@ -284,7 +284,7 @@ gastos presupuestados vs. reales de los 12 meses, distribución frente al plan
 
 ### 5.5 Instalar la app (PWA)
 
-Abre la [demo](https://prpagos-web-1087929107584.southamerica-east1.run.app) y:
+Abre la [demo](https://prpagos-web-1087929107584.us-east4.run.app) y:
 
 | Plataforma | Cómo instalarla |
 |---|---|

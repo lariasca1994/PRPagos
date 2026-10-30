@@ -1,7 +1,7 @@
 # PRPagos Escritorio
 
 <p>
-  <a href="https://prpagos-web-1087929107584.southamerica-east1.run.app"><img src="../docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
+  <a href="https://prpagos-web-1087929107584.us-east4.run.app"><img src="../docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
   <a href="https://frontend-nine-topaz-99.vercel.app"><img src="https://portafolio-status.onrender.com/api/status/prpagos/badge.svg" alt="Estado en vivo del proyecto" height="32"></a>
   <a href="https://d4i3vsgw7xwmh.cloudfront.net"><img src="https://portafolio-status.onrender.com/api/status/prpagos/qa-badge.svg" alt="Fecha y resultado de la última prueba E2E" height="32"></a>
 </p>
@@ -55,14 +55,14 @@ detalle de la migración.
   apariencia que la web.
 - **Cómo probarlo:** descarga la [última versión](https://github.com/lariasca1994/PRPagos/releases/latest),
   ábrela y crea una cuenta (o usa la de la web). Para probar sin instalar nada,
-  usa la [demo web](https://prpagos-web-1087929107584.southamerica-east1.run.app).
+  usa la [demo web](https://prpagos-web-1087929107584.us-east4.run.app).
 
 ### Demo en vivo
 
 La versión de escritorio se ejecuta en el equipo de cada usuario.
 **Descarga:** [última versión](https://github.com/lariasca1994/PRPagos/releases/latest).
 
-**Versión web (los mismos datos):** [abrir la demo en vivo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
+**Versión web (los mismos datos):** [abrir la demo en vivo](https://prpagos-web-1087929107584.us-east4.run.app)
 
 ### Funcionalidades
 

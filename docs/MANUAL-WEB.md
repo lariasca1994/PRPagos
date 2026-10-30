@@ -5,7 +5,7 @@ qué protege la plataforma. La versión de escritorio tiene su propio manual
 ([MANUAL-ESCRITORIO.md](MANUAL-ESCRITORIO.md)); las dos usan las mismas cuentas y los mismos datos.
 Para la parte técnica vuelve al [README](../README.md).
 
-**Demo web:** [PRPagos (Google Cloud Run)](https://prpagos-web-1087929107584.southamerica-east1.run.app)
+**Demo web:** [PRPagos (Google Cloud Run)](https://prpagos-web-1087929107584.us-east4.run.app)
 
 ## Contenido
 

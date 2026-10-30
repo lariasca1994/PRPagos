@@ -1,7 +1,7 @@
 # PRPagos
 
 <p>
-  <a href="https://prpagos-web-1087929107584.southamerica-east1.run.app"><img src="docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
+  <a href="https://prpagos-web-1087929107584.us-east4.run.app"><img src="docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
   <a href="https://frontend-nine-topaz-99.vercel.app"><img src="https://portafolio-status.onrender.com/api/status/prpagos/badge.svg" alt="Estado en vivo del proyecto" height="32"></a>
   <a href="https://d4i3vsgw7xwmh.cloudfront.net"><img src="https://portafolio-status.onrender.com/api/status/prpagos/qa-badge.svg" alt="Fecha y resultado de la última prueba E2E" height="32"></a>
 </p>
@@ -58,13 +58,13 @@ migración de escritorio a web.
   los cálculos y los mensajes viven en la capa de servicios del servidor
   (`web/app/servicios/`); las páginas web la usan directamente y la app de
   escritorio por una API JSON. Un dato es uno solo, se vea donde se vea.
-- **Cómo probarlo:** entra a la [demo web](https://prpagos-web-1087929107584.southamerica-east1.run.app)
+- **Cómo probarlo:** entra a la [demo web](https://prpagos-web-1087929107584.us-east4.run.app)
   y crea un usuario, o descarga la [aplicación de escritorio](https://github.com/lariasca1994/PRPagos/releases/latest).
   Para correrlo desde el código, ve a [Instalación para pruebas](#6-instalación-para-pruebas).
 
 ### Demo en vivo
 
-**Aplicación web:** [abrir la demo en vivo](https://prpagos-web-1087929107584.southamerica-east1.run.app)
+**Aplicación web:** [abrir la demo en vivo](https://prpagos-web-1087929107584.us-east4.run.app)
 
 **Aplicación de escritorio:** [descargar la última versión](https://github.com/lariasca1994/PRPagos/releases/latest)
 (instalador o portable para Windows; se instala y se usa, sin configuración).

@@ -30,7 +30,7 @@ import com.google.gson.JsonParser;
 public final class Api {
 
     /** Dirección de producción; -Dprpagos.url o la variable PRPAGOS_URL la cambian (pruebas locales). */
-    private static final String URL_POR_DEFECTO = "https://prpagos-web-1087929107584.southamerica-east1.run.app";
+    private static final String URL_POR_DEFECTO = "https://prpagos-web-1087929107584.us-east4.run.app";
 
     private static final Gson GSON = new Gson();
     // HTTP/1.1: sin el intento de "upgrade" a HTTP/2 que algunos servidores rechazan en http://.
