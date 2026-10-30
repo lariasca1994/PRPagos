@@ -113,7 +113,7 @@ class PanelConsulta extends JPanel {
     private JPanel filtros() {
         JPanel tarjeta = Ui.tarjeta();
         tarjeta.setBorder(BorderFactory.createEmptyBorder(14, 18, 16, 18));
-        JPanel fila1 = new JPanel(new GridLayout(1, 4, 14, 0));
+        JPanel fila1 = Ui.adaptable(new JPanel(new GridLayout(1, 4, 14, 0)), 4, 140);
         fila1.setOpaque(false);
         tipoFiltro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         tipoFiltro.setAlignmentX(LEFT_ALIGNMENT);
@@ -121,7 +121,7 @@ class PanelConsulta extends JPanel {
         fila1.add(campoConEtiqueta("Concepto contiene", concepto));
         fila1.add(campoConEtiqueta("Monto mínimo", montoMin));
         fila1.add(campoConEtiqueta("Monto máximo", montoMax));
-        JPanel fila2 = new JPanel(new GridLayout(1, 4, 14, 0));
+        JPanel fila2 = Ui.adaptable(new JPanel(new GridLayout(1, 4, 14, 0)), 4, 140);
         fila2.setOpaque(false);
         fila2.add(campoConEtiqueta("Desde", desde));
         fila2.add(campoConEtiqueta("Hasta", hasta));

@@ -38,7 +38,9 @@ y las dos interfaces los muestran.
 
 - **[`web/`](./web)** — versión web en Python (FastAPI + Jinja2 + Chart.js),
   desplegada en Google Cloud Run. Es además una **PWA**: se instala como app en
-  Android, iPhone/iPad, Windows, macOS y Linux desde el navegador.
+  Android, iPhone/iPad, Windows, macOS y Linux desde el navegador. Al abrirla desde su
+  ícono muestra una animación de entrada (el recibo y el escudo con check), igual que el
+  escritorio.
 - **[`escritorio/`](./escritorio)** — aplicación de escritorio en Java/Swing
   (FlatLaf + JFreeChart), publicada como **PRPagos.exe** con Java incluido y
   con actualización automática. No tiene base de datos ni claves: pide todo a

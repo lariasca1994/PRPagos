@@ -106,7 +106,9 @@ public class VentanaLogin extends JFrame {
         super("PRPagos");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 760);
-        setMinimumSize(new Dimension(900, 640));
+        // Admite tablets de 10" de pie: por debajo de 1000 px de ancho, o si la ventana es más
+        // alta que ancha, la portada se apila (ver acomodarPortada).
+        setMinimumSize(new Dimension(420, 600));
         setLocationRelativeTo(null);
         Iconos.aplicarIcono(this);
 
@@ -147,11 +149,51 @@ public class VentanaLogin extends JFrame {
             }
         });
 
-        JPanel portada = new JPanel(new GridLayout(1, 2));
-        portada.add(lado);
-        portada.add(new PanelMarca());
+        PanelMarca panelMarca = new PanelMarca();
+        JPanel portada = new JPanel();
+        acomodarPortada(portada, lado, panelMarca, true);
+        portada.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                acomodarPortada(portada, lado, panelMarca, false);
+            }
+        });
         setContentPane(portada);
         getRootPane().setDefaultButton(null);
+    }
+
+    /**
+     * Portada adaptable, igual que acceso.css: en ventanas anchas, formulario a la izquierda y marca
+     * a la derecha; en angostas o verticales (tablet de pie), la marca compacta arriba y el
+     * formulario debajo, con desplazamiento si no cabe.
+     */
+    private void acomodarPortada(JPanel portada, JPanel lado, PanelMarca marca, boolean inicial) {
+        int ancho = portada.getWidth() > 0 ? portada.getWidth() : getWidth();
+        int alto = portada.getHeight() > 0 ? portada.getHeight() : getHeight();
+        boolean apilada = ancho < 1000 || alto > ancho;
+        boolean estaApilada = portada.getLayout() instanceof BorderLayout;
+        marca.setPuntosVisibles(ancho > 1050);
+        if (!inicial && apilada == estaApilada) {
+            return;
+        }
+        portada.removeAll();
+        marca.setCompacto(apilada);
+        if (apilada) {
+            portada.setLayout(new BorderLayout());
+            javax.swing.JScrollPane desplazable = new javax.swing.JScrollPane(lado,
+                    javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            desplazable.setBorder(BorderFactory.createEmptyBorder());
+            desplazable.getVerticalScrollBar().setUnitIncrement(16);
+            portada.add(marca, BorderLayout.NORTH);
+            portada.add(desplazable, BorderLayout.CENTER);
+        } else {
+            portada.setLayout(new GridLayout(1, 2));
+            portada.add(lado);
+            portada.add(marca);
+        }
+        portada.revalidate();
+        portada.repaint();
     }
 
     // ───────────────────────── Formularios ─────────────────────────
@@ -655,7 +697,8 @@ public class VentanaLogin extends JFrame {
 
     public static void main(String[] args) {
         Tema.iniciar();
-        SwingUtilities.invokeLater(() -> new VentanaLogin().setVisible(true));
+        // Animación de entrada (paridad con la web instalada) y luego la ventana de acceso.
+        SwingUtilities.invokeLater(() -> SplashArranque.mostrar(() -> new VentanaLogin().setVisible(true)));
         // Actualización automática (solo en la aplicación instalada con PRPagos.exe).
         com.prpagos.actualizaciones.Comprobador.iniciar();
     }

@@ -115,7 +115,7 @@ class PanelDashboard extends JPanel {
         tarjetas.add(tarjetaCifra("Balance", balance, null));
         tarjetas.add(tarjetaCifra("Ahorro del mes", ahorro, movimientos));
         tarjetas.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
-        add(tarjetas);
+        add(Ui.adaptable(tarjetas, 4, 170));
         add(Ui.espacio(14));
 
         JPanel meses = tarjetaGrafica(Ui.titulo("Ingresos vs. gastos · últimos 6 meses", 16f), graficaMeses);
@@ -129,7 +129,7 @@ class PanelDashboard extends JPanel {
         categorias.add(ayudaCategorias, 2);
         fila.add(categorias);
         fila.add(tarjetaGrafica(tituloPlanGrafica, graficaPlan));
-        add(fila);
+        add(Ui.adaptable(fila, 2, 380));
         add(Ui.espacio(14));
 
         JPanel plan = Ui.tarjeta();

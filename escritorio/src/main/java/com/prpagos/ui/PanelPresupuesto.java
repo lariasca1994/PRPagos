@@ -123,7 +123,7 @@ class PanelPresupuesto extends JPanel {
         tarjetas.add(PanelDashboard.tarjetaCifra("Quedan", quedan, quedanPlan));
         tarjetas.add(PanelDashboard.tarjetaCifra("Presupuesto de gastos usado", usado, usadoEstado));
         tarjetas.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
-        add(tarjetas);
+        add(Ui.adaptable(tarjetas, 4, 170));
         add(Ui.espacio(14));
 
         JPanel serie = PanelDashboard.tarjetaGrafica(tituloSerie, graficaAnual);
@@ -139,7 +139,7 @@ class PanelPresupuesto extends JPanel {
         tarjetaMayores.add(Ui.espacio(8));
         tarjetaMayores.add(mayores);
         fila.add(tarjetaMayores);
-        add(fila);
+        add(Ui.adaptable(fila, 2, 380));
         add(Ui.espacio(14));
 
         JPanel mes = Ui.tarjeta();

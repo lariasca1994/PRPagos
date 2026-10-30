@@ -97,7 +97,16 @@ registros de uso y sus preferencias; tu cuenta y tus datos siguen en la web.
 
 ![Portada de PRPagos Escritorio](img/manual-escritorio/01-portada.png)
 
+Al abrir PRPagos aparece primero una **animación de entrada** de 1,4 segundos, la misma de la app
+web instalada: sube el recibo, se escriben sus líneas, aparece el escudo con el check y luego el
+nombre. Después se abre la portada.
+
 La portada es el inicio de sesión (paso 1: correo y contraseña), con la misma animación de la web.
+
+**Tablet o ventana angosta:** la aplicación se acomoda sola al tamaño de la ventana, igual que la
+web. Con la tablet de pie (o una ventana de menos de 1000 px de ancho), la portada pone la marca
+arriba y el formulario debajo; en las demás pantallas el menú baja a una segunda fila y las tarjetas
+y gráficas pasan a dos columnas o a una sola, sin cortarse ni necesitar barra horizontal.
 Desde ahí eliges **Regístrate** u **Olvidé mi contraseña**. El botón ◐ cambia entre tema claro y
 oscuro.
 

@@ -34,6 +34,13 @@ public class PanelMarca extends JPanel {
         {"Ahorro", "840.000,00"},
     };
 
+    private final JLabel titular = new JLabel();
+    private final javax.swing.JTextArea bajada;
+    private final JLabel puntos = new JLabel();
+    private final Recibo recibo = new Recibo();
+    private final java.util.List<Component> soloAmplio = new java.util.ArrayList<>();
+    private boolean compacto;
+
     public PanelMarca() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBorder(BorderFactory.createEmptyBorder(48, 56, 48, 56));
@@ -42,34 +49,33 @@ public class PanelMarca extends JPanel {
         JLabel etiqueta = new JLabel("PRESUPUESTO PERSONAL · ORACLE");
         etiqueta.setFont(etiqueta.getFont().deriveFont(Font.BOLD, 11.5f));
 
-        JLabel titular = new JLabel();
         titular.setFont(new Font("Georgia", Font.BOLD, 36));
 
-        javax.swing.JTextArea bajada = Ui.suave(
+        bajada = Ui.suave(
                 "Registra ingresos y gastos por categoría, sigue tu plan 50/30/20 en el dashboard y recibe "
                 + "un resumen por correo cada semana y cada mes. Cada usuario ve solo lo suyo.");
         bajada.setFont(bajada.getFont().deriveFont(14.5f));
         bajada.setMaximumSize(new Dimension(460, 120));
 
-        JLabel puntos = new JLabel();
         puntos.setFont(puntos.getFont().deriveFont(13.5f));
 
         for (JComponent c : new JComponent[] {etiqueta, titular, bajada, puntos}) {
             c.setAlignmentX(Component.LEFT_ALIGNMENT);
         }
-        Recibo recibo = new Recibo();
+        Component[] espacios = {Ui.espacio(14), Ui.espacio(32), Ui.espacio(36)};
 
         add(javax.swing.Box.createVerticalGlue());
         add(etiqueta);
         add(Ui.espacio(12));
         add(titular);
-        add(Ui.espacio(14));
+        add(espacios[0]);
         add(bajada);
-        add(Ui.espacio(32));
+        add(espacios[1]);
         add(recibo);
-        add(Ui.espacio(36));
+        add(espacios[2]);
         add(puntos);
         add(javax.swing.Box.createVerticalGlue());
+        soloAmplio.addAll(java.util.List.of(espacios[0], bajada, espacios[1], recibo, espacios[2], puntos));
 
         Tema.alCambiar(() -> {
             Tema.Paleta p = Tema.c();
@@ -85,6 +91,33 @@ public class PanelMarca extends JPanel {
                     + "Recibe</b> tu resumen por correo</html>");
             repaint();
         });
+    }
+
+    /**
+     * Versión compacta para pantallas angostas o verticales (tablet de pie), como la web por debajo
+     * de 760 px: va arriba del formulario, solo con la etiqueta y el titular; sin bajada, recibo ni
+     * puntos.
+     */
+    public void setCompacto(boolean compacto) {
+        if (this.compacto == compacto) {
+            return;
+        }
+        this.compacto = compacto;
+        for (Component c : soloAmplio) {
+            c.setVisible(!compacto);
+        }
+        titular.setFont(new Font("Georgia", Font.BOLD, compacto ? 26 : 36));
+        setBorder(compacto ? BorderFactory.createEmptyBorder(22, 32, 22, 32)
+                : BorderFactory.createEmptyBorder(48, 56, 48, 56));
+        revalidate();
+        repaint();
+    }
+
+    /** En ventanas medianas (hasta 1050 px) se ocultan los tres puntos, como en la web. */
+    void setPuntosVisibles(boolean visibles) {
+        if (!compacto) {
+            puntos.setVisible(visibles);
+        }
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.prpagos.ui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Component;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -74,7 +75,9 @@ public class VentanaPrincipal extends JFrame {
         this.sesion = sesion;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 780);
-        setMinimumSize(new Dimension(860, 600));
+        // Admite tablets de 10" de pie (unos 800 px de ancho): el menú baja a una segunda fila y
+        // las rejillas pasan a 2 o 1 columna (Ui.adaptable).
+        setMinimumSize(new Dimension(480, 560));
         setLocationRelativeTo(null);
         Iconos.aplicarIcono(this);
 
@@ -129,7 +132,7 @@ public class VentanaPrincipal extends JFrame {
         marca.add(Ui.botonTema());
         barra.add(marca, BorderLayout.WEST);
 
-        JPanel nav = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 0));
+        JPanel nav = new JPanel(new FilaQueSeParte(FlowLayout.RIGHT, 20, 0));
         nav.setOpaque(false);
         menu.put(DASHBOARD, opcion("Dashboard", () -> ir(DASHBOARD)));
         menu.put(PRESUPUESTO, opcion("Presupuesto", () -> ir(PRESUPUESTO)));
@@ -140,6 +143,26 @@ public class VentanaPrincipal extends JFrame {
         menu.values().forEach(nav::add);
         nav.add(opcion("Salir (" + sesion.nombre() + ")", () -> cerrarSesion(CIERRE_SALIR, true)));
         barra.add(nav, BorderLayout.EAST);
+        // En ventanas angostas (tablet de pie) el menú baja debajo de la marca, como la web.
+        barra.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                java.awt.Insets m = barra.getInsets();
+                int disponible = barra.getWidth() - m.left - m.right;
+                int enUnaFila = marca.getPreferredSize().width + 24 + ((FilaQueSeParte) nav.getLayout()).anchoEnUnaFila(nav);
+                boolean abajo = disponible < enUnaFila;
+                Object lugar = ((BorderLayout) barra.getLayout()).getConstraints(nav);
+                if (abajo == BorderLayout.SOUTH.equals(lugar)) {
+                    return;
+                }
+                barra.remove(nav);
+                ((FlowLayout) nav.getLayout()).setAlignment(abajo ? FlowLayout.LEFT : FlowLayout.RIGHT);
+                nav.setBorder(abajo ? BorderFactory.createEmptyBorder(8, -20, 0, 0) : null);
+                barra.add(nav, abajo ? BorderLayout.SOUTH : BorderLayout.EAST);
+                barra.revalidate();
+                barra.repaint();
+            }
+        });
         Tema.alCambiar(this::marcarMenu);
         return barra;
     }
@@ -172,7 +195,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     private JScrollPane desplazable(JPanel panel) {
-        JPanel margen = new JPanel(new BorderLayout()) {
+        JPanel margen = new MargenDesplazable() {
             @Override
             public void scrollRectToVisible(java.awt.Rectangle r) {
                 if (System.currentTimeMillis() >= anclarArribaHasta) {
@@ -188,6 +211,81 @@ public class VentanaPrincipal extends JFrame {
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         Tema.alCambiar(() -> scroll.getViewport().setBackground(Tema.c().fondo()));
         return scroll;
+    }
+
+    /** FlowLayout que pasa a varias líneas y calcula su alto según el ancho disponible. */
+    private static final class FilaQueSeParte extends FlowLayout {
+        FilaQueSeParte(int alineacion, int hgap, int vgap) {
+            super(alineacion, hgap, vgap);
+        }
+
+        int anchoEnUnaFila(java.awt.Container c) {
+            int ancho = 0;
+            for (Component h : c.getComponents()) {
+                if (h.isVisible()) {
+                    ancho += h.getPreferredSize().width + getHgap();
+                }
+            }
+            return ancho;
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(java.awt.Container c) {
+            int disponible = c.getWidth() > 0 ? c.getWidth() : Integer.MAX_VALUE;
+            java.awt.Insets m = c.getInsets();
+            disponible -= m.left + m.right;
+            int x = 0;
+            int alto = 0;
+            int altoFila = 0;
+            int maximo = 0;
+            for (Component h : c.getComponents()) {
+                if (!h.isVisible()) {
+                    continue;
+                }
+                Dimension d = h.getPreferredSize();
+                if (x > 0 && x + getHgap() + d.width > disponible) {
+                    alto += altoFila + 6;
+                    x = 0;
+                    altoFila = 0;
+                }
+                x += (x > 0 ? getHgap() : 0) + d.width;
+                maximo = Math.max(maximo, x);
+                altoFila = Math.max(altoFila, d.height);
+            }
+            return new Dimension(maximo + m.left + m.right + 2 * getHgap(), alto + altoFila + m.top + m.bottom);
+        }
+    }
+
+    /** Sigue el ancho de la vista: nunca hay barra horizontal; el contenido se reacomoda. */
+    private static class MargenDesplazable extends JPanel implements javax.swing.Scrollable {
+        MargenDesplazable() {
+            super(new BorderLayout());
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(java.awt.Rectangle r, int orientacion, int direccion) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(java.awt.Rectangle r, int orientacion, int direccion) {
+            return Math.max(16, r.height - 32);
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return getParent() instanceof javax.swing.JViewport v && v.getHeight() > getPreferredSize().height;
+        }
     }
 
     private JPanel pie() {

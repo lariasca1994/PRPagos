@@ -31,7 +31,7 @@ compartidos con la versión de escritorio.
 ### Alcance: qué necesitas y qué esperar
 
 - Solo necesitas un navegador; también se puede **instalar como app** (PWA) desde el navegador, en
-  el celular o en el computador.
+  el celular o en el computador. Al abrirla desde su ícono muestra una **animación de entrada** breve (1 a 1,6 s) (sube el recibo, se escriben sus líneas y aparece el escudo con el check); en el navegador no aparece, y si el equipo tiene activado "reducir movimiento" se muestra sin animar.
 - Un **correo real**: es tu usuario y ahí llegan los resúmenes y los códigos de recuperación.
 - Una **app autenticadora** en el celular (Google Authenticator, Microsoft Authenticator, Authy…):
   la verificación en dos pasos es obligatoria. Se configura una sola vez y sirve también en la

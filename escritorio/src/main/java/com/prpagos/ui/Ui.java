@@ -290,6 +290,39 @@ public final class Ui {
     }
 
     /** Envuelve un contenido con ancho máximo y centrado (como main { max-width }). */
+    /**
+     * Rejilla adaptable, como grid-template-columns con auto-fit en la web: con espacio de sobra usa
+     * {@code columnas}; si cada celda quedaría por debajo de {@code anchoCelda}, parte las columnas a
+     * la mitad (4 → 2 → 1), así las tarjetas y gráficas no se cortan en una tablet de pie.
+     */
+    public static JPanel adaptable(JPanel rejilla, int columnas, int anchoCelda) {
+        java.awt.GridLayout base = (java.awt.GridLayout) rejilla.getLayout();
+        boolean conAltoMaximo = rejilla.isMaximumSizeSet();
+        rejilla.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int ancho = rejilla.getWidth();
+                int c = columnas;
+                while (c > 1 && ancho < c * anchoCelda + (c - 1) * base.getHgap()) {
+                    c = c % 2 == 0 ? c / 2 : 1;
+                }
+                java.awt.GridLayout actual = (java.awt.GridLayout) rejilla.getLayout();
+                if (actual.getColumns() == c) {
+                    return;
+                }
+                int filas = (columnas + c - 1) / c;
+                rejilla.setLayout(new java.awt.GridLayout(filas, c, base.getHgap(), filas > 1 ? 14 : base.getVgap()));
+                if (conAltoMaximo) {
+                    rejilla.setMaximumSize(null);
+                    rejilla.setMaximumSize(new Dimension(Integer.MAX_VALUE, rejilla.getPreferredSize().height));
+                }
+                rejilla.revalidate();
+                rejilla.repaint();
+            }
+        });
+        return rejilla;
+    }
+
     public static JPanel centrado(JComponent contenido, int anchoMaximo) {
         JPanel envoltura = new JPanel(new java.awt.GridBagLayout());
         envoltura.setOpaque(false);
@@ -301,8 +334,17 @@ public final class Ui {
         JPanel limite = new JPanel(new BorderLayout()) {
             @Override
             public Dimension getPreferredSize() {
+                // Nunca más ancho que la envoltura: si no, GridBagLayout cae a los tamaños mínimos y
+                // las gráficas quedan aplastadas en ventanas angostas (tablet de pie).
                 Dimension d = super.getPreferredSize();
-                return new Dimension(Math.min(d.width, anchoMaximo), d.height);
+                int tope = getParent() != null && getParent().getWidth() > 0
+                        ? Math.min(anchoMaximo, getParent().getWidth()) : anchoMaximo;
+                return new Dimension(Math.min(d.width, tope), d.height);
+            }
+
+            @Override
+            public Dimension getMinimumSize() {
+                return new Dimension(0, super.getMinimumSize().height);
             }
 
             @Override

@@ -149,7 +149,7 @@ class PanelPerfil extends JPanel {
     }
 
     private static JPanel par(JPanel izquierda, JPanel derecha) {
-        JPanel fila = new JPanel(new GridLayout(1, 2, 16, 0));
+        JPanel fila = Ui.adaptable(new JPanel(new GridLayout(1, 2, 16, 0)), 2, 300);
         fila.setOpaque(false);
         fila.setAlignmentX(LEFT_ALIGNMENT);
         fila.add(arriba(izquierda));
@@ -182,7 +182,7 @@ class PanelPerfil extends JPanel {
         JPanel categorias = Ui.tarjeta();
         listaCategorias.setOpaque(false);
         tipoCategoria.addActionListener(e -> grupoCategoria.setEnabled(tipoCategoria.getSelectedIndex() == 0));
-        JPanel nuevaCategoria = new JPanel(new GridLayout(1, 4, 12, 0));
+        JPanel nuevaCategoria = Ui.adaptable(new JPanel(new GridLayout(1, 4, 12, 0)), 4, 140);
         nuevaCategoria.setOpaque(false);
         nuevaCategoria.add(conEtiqueta("Nombre", nombreCategoria));
         nuevaCategoria.add(conEtiqueta("Tipo", tipoCategoria));
@@ -238,7 +238,7 @@ class PanelPerfil extends JPanel {
         p.add(Ui.espacio(16));
 
         JPanel clave = Ui.tarjeta();
-        JPanel columnas = new JPanel(new GridLayout(1, 2, 16, 0));
+        JPanel columnas = Ui.adaptable(new JPanel(new GridLayout(1, 2, 16, 0)), 2, 260);
         columnas.setOpaque(false);
         JPanel izq = Ui.columna();
         agregar(izq, Ui.etiqueta("Contraseña actual"), actual, Ui.etiqueta("Nueva contraseña (mínimo 8 caracteres)"), nueva);
