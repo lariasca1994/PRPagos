@@ -56,3 +56,7 @@ CLAUDE.local.md
 
 # Hojas de cálculo personales (presupuestos de referencia): nunca al repositorio
 docs/*.xlsx
+
+# Restos locales del antiguo despliegue en OCI (identificadores de infraestructura)
+web/route-rules.json
+web/security-list-ids.json
