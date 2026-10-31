@@ -72,7 +72,7 @@ END obtener_credenciales;
 /
 
 -- Un intento fallido (contrasena, codigo TOTP o datos de recuperacion). Al
--- quinto seguido la cuenta queda bloqueada 5 minutos.
+-- quinto seguido la cuenta queda bloqueada 15 minutos (mismo criterio en todo el portafolio).
 CREATE OR REPLACE PROCEDURE registrar_fallo_acceso(
     p_usuario_id IN NUMBER,
     p_motivo IN VARCHAR2
@@ -84,7 +84,7 @@ BEGIN
     WHERE id = p_usuario_id;
 
     UPDATE TBPLogin
-    SET bloqueo_hasta = SYSTIMESTAMP + INTERVAL '5' MINUTE,
+    SET bloqueo_hasta = SYSTIMESTAMP + INTERVAL '15' MINUTE,
         intentos_fallidos = 0
     WHERE id = p_usuario_id
       AND intentos_fallidos >= 5;

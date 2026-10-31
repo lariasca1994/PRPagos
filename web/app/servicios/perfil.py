@@ -21,7 +21,7 @@ from . import ErrorServicio
 from .acceso import enviar_codigo, nuevos_codigos_respaldo, texto_codigo_enviado
 from .registros import GRUPOS
 
-MENSAJE_BLOQUEO = "Cuenta bloqueada temporalmente; espera 5 minutos"
+MENSAJE_BLOQUEO = "Cuenta bloqueada temporalmente; espera unos minutos"
 
 
 def datos(usuario_id: int) -> dict:

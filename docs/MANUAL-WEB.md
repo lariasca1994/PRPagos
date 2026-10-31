@@ -362,6 +362,8 @@ protege y no los comparte con terceros.
   código por correo vence en pocos minutos; cada uso queda en la auditoría.
 - **Contraseñas protegidas:** solo se guarda su huella con sal, nunca la contraseña.
 - **Bloqueo temporal** ante intentos fallidos repetidos, en la web y en el escritorio a la vez.
+- **Registro de eventos de seguridad:** ingresos, intentos fallidos, bloqueos y cambios de
+  contraseña quedan registrados (nunca contraseñas ni códigos) y se depuran solos.
 - **Sesión segura** que se cierra sola por inactividad o por tiempo máximo, con un mensaje que
   explica el motivo.
 - **Reglas de negocio en la base:** las operaciones pasan por procedimientos almacenados de Oracle

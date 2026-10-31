@@ -2,7 +2,7 @@
 Segundo factor común al ingreso, la recuperación y el perfil: acepta el
 código de 6 dígitos de la app autenticadora, el del correo (si la cuenta usa
 ese método y pidió uno) o uno de los códigos de respaldo (ABCD-EFGH). Cada
-fallo cuenta para el bloqueo de 5 minutos.
+fallo cuenta para el bloqueo de 15 minutos.
 """
 from .. import dos_pasos, repositorio
 from ..seguridad import descifrar_o_none, hash_corto, normalizar_respaldo, verificar_totp

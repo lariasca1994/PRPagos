@@ -55,7 +55,7 @@ def obtener_credenciales(
 
 def registrar_fallo_acceso(usuario_id: int, motivo: str) -> None:
     """motivo: FALLO_CLAVE, FALLO_TOTP o FALLO_RECUPERAR. Al quinto fallo
-    seguido la cuenta queda bloqueada 5 minutos."""
+    seguido la cuenta queda bloqueada 15 minutos."""
     with obtener_conexion() as conn:
         conn.cursor().callproc("registrar_fallo_acceso", [usuario_id, motivo])
 
@@ -107,6 +107,31 @@ def envios_codigo_recientes(usuario_id: int, minutos: int) -> int:
             id=usuario_id, m=minutos,
         )
         return int(cur.fetchone()[0])
+
+
+# Acciones de TBAuditoria que son eventos de seguridad (ingresos, fallos, códigos y cambios
+# de la cuenta). La auditoría de los registros financieros no se toca.
+EVENTOS_SEGURIDAD = (
+    "INGRESO", "VERIFICA_TOTP", "RECUPERAR_TOTP", "FALLO_CLAVE", "FALLO_TOTP", "FALLO_CORREO",
+    "FALLO_LLAVE", "FALLO_RECUPERAR", "CODIGO_CORREO", "DOS_PASOS", "TOTP_ACTIVADO",
+    "USO_RESPALDO", "RECUPERA_CORREO", "CAMBIO_CLAVE", "RECUPERAR_CLAVE", "MIGRAR_HASH",
+)
+RETENCION_EVENTOS_DIAS = 15
+
+
+def depurar_eventos_seguridad() -> int:
+    """Borra los eventos de seguridad de más de 15 días. Devuelve cuántos borró."""
+    marcadores = ", ".join(f":a{i}" for i in range(len(EVENTOS_SEGURIDAD)))
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            f"DELETE FROM TBAuditoria WHERE id_pago IS NULL AND accion IN ({marcadores}) "
+            "AND fecha_hora < SYSTIMESTAMP - NUMTODSINTERVAL(:dias, 'DAY')",
+            {**{f"a{i}": a for i, a in enumerate(EVENTOS_SEGURIDAD)}, "dias": RETENCION_EVENTOS_DIAS},
+        )
+        borrados = cur.rowcount
+        conn.commit()
+        return borrados
 
 
 def registrar_envio_codigo(usuario_id: int, detalle: str) -> None:

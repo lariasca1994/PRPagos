@@ -391,6 +391,8 @@ página de Releases del proyecto.
   usar dos veces.
 - **Contraseñas protegidas:** solo se guarda su huella con sal, nunca la contraseña.
 - **Bloqueo temporal** ante intentos fallidos repetidos, en el escritorio y en la web a la vez.
+- **Registro de eventos de seguridad:** ingresos, intentos fallidos, bloqueos y cambios de
+  contraseña quedan registrados (nunca contraseñas ni códigos) y se depuran solos.
 - **Reglas de negocio en la base:** las operaciones pasan por procedimientos almacenados de Oracle
   con auditoría, y las consultas usan parámetros.
 - **Conexión cifrada:** la aplicación habla con el servidor por HTTPS, y el servidor con la base

@@ -41,7 +41,13 @@ def tarea_resumenes(x_tarea_token: str = Header(""), forzar: str | None = None):
     _autorizar(x_tarea_token)
     if forzar not in (None, "semanal", "mensual"):
         raise HTTPException(status_code=400, detail="forzar debe ser semanal o mensual")
-    return resumenes.tarea_diaria(forzar)
+    resultado = resumenes.tarea_diaria(forzar)
+    # Misma tarea diaria: depura los eventos de seguridad de más de 15 días.
+    try:
+        resultado["eventos_depurados"] = repositorio.depurar_eventos_seguridad()
+    except Exception:  # noqa: BLE001 - la depuración no debe frenar los resúmenes
+        resultado["eventos_depurados"] = None
+    return resultado
 
 
 @router.post("/version-escritorio", include_in_schema=False)

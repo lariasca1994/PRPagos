@@ -9,7 +9,7 @@ configurado, después de la contraseña se elige; con los dos activos, se pide
 el preferido y se puede usar el otro.
 
 Cinco intentos fallidos seguidos (contraseña, código o datos de
-recuperación) bloquean la cuenta 5 minutos: lo decide la base.
+recuperación) bloquean la cuenta 15 minutos: lo decide la base.
 """
 from dataclasses import dataclass
 
@@ -36,7 +36,7 @@ from ..seguridad import (
 from .verificacion import verificar_segundo_factor
 from . import ErrorServicio
 
-MENSAJE_BLOQUEO = "Demasiados intentos fallidos. Espera 5 minutos e inténtalo de nuevo."
+MENSAJE_BLOQUEO = "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo."
 MENSAJE_CREDENCIALES = "Usuario o contraseña incorrectos"
 MENSAJE_EXPIRADO = "Tu ingreso expiró; vuelve a escribir tu contraseña"
 MENSAJE_TOPE_CORREO = "Ya enviamos 3 códigos en los últimos 10 minutos. Usa el último o espera un momento."

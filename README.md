@@ -97,7 +97,8 @@ migración de escritorio a web.
   (Windows, Android y iPhone) y en el escritorio; la misma llave sirve en Edge y en la app del mismo Windows
 - **Códigos de respaldo** y **código por correo** para recuperar el acceso si se pierde el teléfono
 - **Perfil** con datos, plan, categorías, autenticador, códigos de respaldo y contraseña
-- Bloqueo temporal ante intentos fallidos repetidos
+- Bloqueo temporal ante intentos fallidos repetidos y registro de eventos de seguridad (ingresos,
+  intentos fallidos, bloqueos y cambios de contraseña), depurado a los 15 días
 - Sesión que se cierra sola por inactividad o por tiempo máximo, con un mensaje del motivo
 
 **Escritorio**
@@ -181,6 +182,8 @@ Cada versión tiene su propio diagrama detallado en
   dispositivo y solo valen para el sitio de PRPagos.
 - Recuperación sin el teléfono: códigos de respaldo de un solo uso o un código por
   correo; cada uso queda en la auditoría.
+- Bloqueo temporal ante intentos fallidos repetidos y registro de eventos de seguridad,
+  depurado a los 15 días.
 - La visibilidad de los registros está limitada por usuario, y el procedimiento
   de actualización verifica la autorización antes de modificar un registro.
 - Las tareas internas están protegidas y las actualizaciones del escritorio se

@@ -251,8 +251,7 @@ class PanelPerfil extends JPanel {
                 Ui.primario("Guardar contraseña", e -> cambiarContrasena()));
         p.add(clave);
         p.add(Ui.espacio(16));
-        JTextArea nota = ayuda("Las contraseñas se guardan con PBKDF2-SHA256 y la clave de tu autenticador, cifrada con "
-                + "AES-256-GCM. Tras 5 intentos fallidos seguidos la cuenta se bloquea 5 minutos.");
+        JTextArea nota = ayuda("Tu contraseña y tu autenticador se guardan protegidos. Tras varios intentos fallidos seguidos la cuenta se bloquea unos minutos.");
         nota.setFont(nota.getFont().deriveFont(12f));
         p.add(nota);
         return p;
