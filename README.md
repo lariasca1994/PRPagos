@@ -97,13 +97,13 @@ migración de escritorio a web.
   (Windows, Android y iPhone) y en el escritorio; la misma llave sirve en Edge y en la app del mismo Windows
 - **Códigos de respaldo** y **código por correo** para recuperar el acceso si se pierde el teléfono
 - **Perfil** con datos, plan, categorías, autenticador, códigos de respaldo y contraseña
-- Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
-- Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con un mensaje del motivo
+- Bloqueo temporal ante intentos fallidos repetidos
+- Sesión que se cierra sola por inactividad o por tiempo máximo, con un mensaje del motivo
 
 **Escritorio**
 - **PRPagos.exe** con Java incluido: instalador por usuario o versión portable,
   sin configuración ni claves dentro
-- **Actualización automática** desde GitHub Releases, verificada con SHA-256
+- **Actualización automática** desde GitHub Releases, verificada antes de instalarse
 
 **Interfaz**
 - Web y escritorio con la misma estructura, menú, ícono, portada animada y
@@ -115,12 +115,12 @@ migración de escritorio a web.
 |---|---|---|
 | Interfaz | Jinja2, HTML, CSS y Chart.js | Java Swing con FlatLaf y JFreeChart |
 | Lógica y reglas | `web/app/servicios/` (FastAPI) | La misma, por la API JSON (`/api/...`) |
-| Acceso a datos | python-oracledb (modo thin), usuario de la app sin permisos de DDL | — (solo la API) |
+| Acceso a datos | python-oracledb (modo thin) | — (solo la API) |
 | Base de datos | Oracle Autonomous Database | La misma, a través del servidor |
 | Correos | Brevo (API HTTPS) desde el servidor | Los envía el servidor |
-| Sesiones | JWT en cookie httponly; 6 h sin uso, máximo 8 h | El mismo JWT, en la cabecera Bearer |
-| Contraseñas y TOTP | PBKDF2-SHA256; secreto TOTP cifrado con AES-256-GCM | Validados en el servidor |
-| Llaves de acceso | WebAuthn en el navegador (librería `webauthn`) | Windows Hello (`webauthn.dll` vía JNA), verificadas en el servidor |
+| Sesiones | JWT en cookie segura | El mismo JWT, en la cabecera Bearer |
+| Contraseñas y TOTP | Contraseñas con hash y sal; secreto TOTP cifrado | Validados en el servidor |
+| Llaves de acceso | WebAuthn en el navegador | Windows Hello, verificadas en el servidor |
 | Distribución | Docker en Google Cloud Run (GitHub Actions) | PRPagos.exe en GitHub Releases (jpackage) |
 | App instalable | PWA (Android, iOS, Windows, macOS, Linux) | Instalador o portable para Windows |
 
@@ -156,8 +156,7 @@ eso; recibe los datos ya calculados por la API.
   JSON (`/api/...`) llaman a las mismas funciones.
 - La **versión de escritorio** (Java Swing) corre en el equipo del usuario y es
   un cliente de esa API: recibe los datos, las cifras y los mensajes ya listos.
-- Solo el servidor llega a la base (TLS con Wallet, con un usuario propio de la
-  app que no puede crear ni borrar tablas) y llama a los procedimientos
+- Solo el servidor llega a la base, por una conexión cifrada, y llama a los procedimientos
   almacenados, que verifican la autorización y registran la auditoría.
 - **GitHub Actions** despliega la web, la llama cada día a las 08:00 para enviar
   los resúmenes por **Brevo**, y publica el ejecutable de escritorio como
@@ -174,27 +173,20 @@ Cada versión tiene su propio diagrama detallado en
 - **Una sola seguridad:** contraseña, autenticador, códigos de respaldo, llaves
   de acceso, bloqueos y sesiones se validan en el servidor, para la web y para
   el escritorio. El escritorio no guarda claves ni datos de conexión.
-- Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única); las cuentas
-  con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
-- Verificación en dos pasos obligatoria, a elección: TOTP (RFC 6238) o código por
-  correo (15 minutos, un solo uso, máximo 3 envíos cada 10 minutos); un código no
-  se puede reutilizar. El secreto se guarda cifrado con AES-256-GCM y la clave vive
-  fuera de la base.
-- Llaves de acceso (WebAuthn): en la base solo se guarda la clave pública y un contador; exigen
-  la verificación del dispositivo, solo valen para el sitio de PRPagos y cada firma se comprueba
-  con un reto nuevo. Agregar una pide un código vigente.
-- Recuperación sin el teléfono: 10 códigos de respaldo de un solo uso (solo se
-  guarda su huella SHA-256) o un código por correo que vence en 15 minutos; cada
-  uso queda en la auditoría.
+- Contraseñas guardadas solo como hash con sal, nunca en texto plano.
+- Verificación en dos pasos obligatoria, a elección: app autenticadora (TOTP) o
+  código por correo de un solo uso que vence en pocos minutos; un código no se
+  puede reutilizar y el secreto del autenticador se guarda cifrado.
+- Llaves de acceso (WebAuthn): solo se guarda la clave pública, exigen la verificación del
+  dispositivo y solo valen para el sitio de PRPagos.
+- Recuperación sin el teléfono: códigos de respaldo de un solo uso o un código por
+  correo; cada uso queda en la auditoría.
 - La visibilidad de los registros está limitada por usuario, y el procedimiento
   de actualización verifica la autorización antes de modificar un registro.
-- La tarea de resúmenes y el registro de versiones exigen un token; las
-  actualizaciones del escritorio solo se aceptan desde GitHub por HTTPS y con la
-  huella SHA-256 que entrega el servidor.
-- La base se usa con un usuario de la aplicación de privilegios mínimos (sin
-  permisos para crear ni borrar tablas) sobre el esquema dueño de los datos.
-- Conexión a la base por TLS con Wallet. El Wallet y el `.env` no se suben al
-  repositorio; solo la plantilla de ejemplo.
+- Las tareas internas están protegidas y las actualizaciones del escritorio se
+  verifican antes de instalarse.
+- Conexión cifrada a la base. Credenciales y configuración privada nunca se suben
+  al repositorio; solo la plantilla de ejemplo.
 
 ---
 
@@ -305,7 +297,9 @@ web local, ejecútala con `PRPAGOS_URL=http://localhost:8000`. Detalle en
 Todo sale de GitHub: cada commit y push a `main` despliega la web en Cloud Run
 (`desplegar.yml`) y publica el escritorio como Release (`escritorio.yml`), que
 las aplicaciones instaladas toman solas; `resumenes.yml` llama cada día a la
-tarea de los correos. Nada se despliega a mano.
+tarea de los correos, y `depuracion.yml` limpia cada 15 días lo que ya no
+sirve (cachés, artefactos, versiones viejas del escritorio e imágenes). Nada se
+despliega a mano.
 
 ---
 

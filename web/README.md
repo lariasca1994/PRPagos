@@ -51,8 +51,7 @@ detalle de la migración.
   y cada día 29. Cada persona ve solo lo suyo.
 - **Qué lo hace interesante:** una sola capa de servicios alimenta las páginas y
   la API del escritorio; la autorización y la auditoría viven además en
-  procedimientos de Oracle, y la app entra a la base con un usuario propio de
-  privilegios mínimos.
+  procedimientos de Oracle.
 - **Cómo probarlo:** entra a la [demo](https://prpagos-web-1087929107584.us-east4.run.app)
   y crea un usuario. Para correrlo en tu equipo, ve a
   [Instalación para pruebas](#6-instalación-para-pruebas).
@@ -85,14 +84,14 @@ detalle de la migración.
 - Ingreso en dos pasos obligatorio: contraseña y código TOTP o por correo, a
   elección; el método se configura una sola vez y sirve también en el escritorio
   (en Perfil se agrega el otro y se elige el preferido)
-- 10 **códigos de respaldo** de un solo uso y **código por correo** si se pierde el teléfono
+- **Códigos de respaldo** de un solo uso y **código por correo** si se pierde el teléfono
 - **Llaves de acceso (passkeys):** **Ingresar con llave de acceso** con Windows Hello, huella,
   rostro o PIN, en Windows, Android (también en la PWA) y iPhone; se agregan desde Perfil
 - **Perfil**: datos, resúmenes, plan, categorías, autenticador, códigos de
   respaldo y contraseña
-- Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
-- Sesión en una cookie `httponly` que se cierra tras 6 horas sin uso (máximo 8
-  horas); la página vuelve sola al ingreso con un mensaje del motivo
+- Bloqueo temporal ante intentos fallidos repetidos
+- Sesión que se cierra sola por inactividad o por tiempo máximo; la página vuelve
+  sola al ingreso con un mensaje del motivo
 
 **API para la aplicación de escritorio**
 - `/api/...` en JSON: acceso (dos pasos, llaves de acceso, recuperación),
@@ -122,10 +121,10 @@ con contraseña cuando la URL contiene "pagos".
 | Base de datos | Oracle Autonomous Database |
 | Reglas de negocio | Procedimientos almacenados PL/SQL |
 | Correos | Brevo (API HTTPS) con las plantillas de `../compartido/correo/` |
-| Tareas programadas | GitHub Actions → `POST /tareas/resumenes` con token |
-| Sesiones | JWT (HS256) en cookie httponly; 6 h sin uso, máximo 8 h |
-| Contraseñas | PBKDF2-SHA256 (600.000 iteraciones, sal única) |
-| Verificación en dos pasos | TOTP (RFC 6238); QR en SVG; secreto cifrado con AES-256-GCM |
+| Tareas programadas | GitHub Actions |
+| Sesiones | JWT en cookie segura |
+| Contraseñas | Hash con sal |
+| Verificación en dos pasos | App autenticadora (TOTP) o código por correo |
 | Llaves de acceso | WebAuthn: librería `webauthn` (servidor) y `static/llaves.js` (navegador) |
 | App instalable | PWA: manifiesto web y service worker |
 | Despliegue | Docker en Google Cloud Run |
@@ -144,7 +143,7 @@ web/
 └── app/
     ├── main.py           Punto de entrada y manejo de errores
     ├── config.py         Carga del .env
-    ├── database.py       Conexión a Oracle con el Wallet (usuario de la app + DB_ESQUEMA)
+    ├── database.py       Conexión a Oracle
     ├── servicios/        LA lógica: acceso, registros, dashboard, presupuesto, perfil, cuentas y
     │                     verificación del segundo factor (web y API la usan igual)
     ├── repositorio.py    Procedimientos almacenados y consultas compartidas
@@ -152,7 +151,7 @@ web/
     ├── finanzas.py       Periodos, formato de moneda, plan 50/30/20 y HTML de correos
     ├── resumenes.py      Arma y envía los resúmenes; tarea diaria
     ├── correo.py         Cliente de la API de Brevo
-    ├── seguridad.py      PBKDF2, TOTP, cifrado AES-GCM, códigos de respaldo y JWT
+    ├── seguridad.py      Contraseñas, verificación en dos pasos y sesión
     ├── llaves.py         Llaves de acceso (WebAuthn): opciones, reto firmado y verificación
     ├── qr.py             Código QR del autenticador (SVG)
     ├── dependencias.py   Identificación del usuario en cada petición
@@ -182,10 +181,10 @@ del repositorio.
   sesión solo se emite al final, y cada petición la valida antes de responder.
 - `repositorio.py` concentra el acceso a datos: llama a los procedimientos y a
   las consultas de `../compartido/consultas`, con `python-oracledb` en modo thin
-  y el **Wallet** (copiado a la imagen al construirla) por TLS.
+  por una conexión cifrada.
 - `finanzas.py` y `resumenes.py` calculan el dashboard y los resúmenes; los
   correos usan las plantillas de `../compartido/correo` y salen por **Brevo**.
-- **GitHub Actions** llama cada día a `POST /tareas/resumenes`; la app decide si
+- **GitHub Actions** lanza cada día la tarea de resúmenes; la app decide si
   hoy toca el semanal (viernes) o el mensual (día 29 o último de febrero) y no
   repite un envío ya hecho.
 
@@ -194,33 +193,23 @@ del repositorio.
 - **Una sola seguridad para las dos interfaces:** todo se valida aquí, también
   lo que llega del escritorio por la API; un autenticador o una llave de acceso
   configurados en una interfaz sirven en la otra.
-- La base se usa con un usuario propio de la app (`DB_USUARIO`), que solo puede
-  leer, escribir y ejecutar los procedimientos del esquema dueño (`DB_ESQUEMA`);
-  no puede crear ni borrar tablas.
-- Contraseñas con PBKDF2-SHA256 (600.000 iteraciones y sal única). Las cuentas
-  creadas con el SHA-256 anterior se actualizan solas en su siguiente ingreso.
-- Verificación en dos pasos obligatoria (TOTP o código por correo, con tope de 3
-  envíos cada 10 minutos); un código no se puede usar dos veces. El secreto se guarda cifrado con AES-256-GCM; la clave (`TOTP_CLAVE`)
-  vive fuera de la base.
-- Llaves de acceso: verificación del dispositivo obligatoria, solo para el dominio de la web, reto
-  nuevo en una cookie firmada de 5 minutos y firma comprobada con la clave pública guardada (ES256
-  o RS256); un contador que no avanza se rechaza. Agregar una pide un código vigente.
-- Códigos de respaldo y código por correo: solo se guarda su huella SHA-256,
-  sirven una vez (el de correo vence en 15 minutos) y cada uso queda auditado.
-- Cinco intentos fallidos seguidos bloquean la cuenta 5 minutos; lo decide la
-  base, venga el intento de la web o del escritorio.
+- Contraseñas guardadas solo como hash con sal, nunca en texto plano.
+- Verificación en dos pasos obligatoria (app autenticadora o código por correo);
+  un código no se puede usar dos veces y el secreto del autenticador se guarda cifrado.
+- Llaves de acceso con verificación del dispositivo, válidas solo para el sitio de
+  PRPagos y comprobadas en el servidor.
+- Códigos de respaldo y código por correo de un solo uso; cada uso queda auditado.
+- Bloqueo temporal ante intentos fallidos repetidos, venga el intento de la web o
+  del escritorio.
 - Cambiar la contraseña o el autenticador pide un código vigente.
-- Sesión en cookie `httponly`, `Secure` y `SameSite=Lax`: JavaScript no puede
-  leer el token.
+- Sesión en una cookie segura que JavaScript no puede leer.
 - Un usuario solo ve y modifica sus propios registros; esa regla vive en los
   procedimientos y en las consultas, siempre filtradas por la cuenta.
-- `/tareas/*` exige el token `TAREAS_TOKEN` (comparación en tiempo constante);
-  sin token configurado, la tarea queda desactivada.
-- Los errores de base de datos muestran un mensaje genérico; el detalle queda
-  solo en el log del servidor.
+- Las tareas internas están protegidas.
+- Los errores muestran un mensaje genérico, sin detalles internos.
 - El service worker solo guarda en caché archivos estáticos y la página sin
-  conexión: las páginas con datos, la sesión y los CSV siempre van a la red.
-- El Wallet y el `.env` (con las claves) no se suben al repositorio.
+  conexión: las páginas con datos y la sesión siempre van a la red.
+- Credenciales y configuración privada nunca se suben al repositorio.
 
 ---
 
@@ -403,16 +392,11 @@ base de datos. El despliegue es continuo: cada push a `main` que cambie
 2. La publica en Artifact Registry.
 3. Actualiza el servicio de Cloud Run, conservando sus variables de entorno.
 
-[`.github/workflows/resumenes.yml`](../.github/workflows/resumenes.yml) llama
-cada día a las 08:00 (hora de Colombia) a `POST /tareas/resumenes` con el
-secreto `TAREAS_TOKEN`; se puede lanzar a mano forzando el semanal o el mensual.
+[`.github/workflows/resumenes.yml`](../.github/workflows/resumenes.yml) lanza
+cada día a las 08:00 (hora de Colombia) la tarea de resúmenes; se puede lanzar a
+mano forzando el semanal o el mensual.
 
-- El Wallet no está en Git: el flujo lo toma de Secret Manager al construir
-  la imagen.
-- GitHub se autentica en Google Cloud por federación de identidades, sin
-  llaves guardadas en el repositorio.
-- Las variables del `.env` viven como variables de entorno del servicio en
-  Cloud Run, nunca como un archivo dentro de la imagen.
+- Ninguna credencial está en el repositorio ni dentro de la imagen.
 
 ---
 

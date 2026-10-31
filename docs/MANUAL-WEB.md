@@ -115,7 +115,7 @@ La primera vez eliges cómo recibir el código de la verificación en dos pasos 
 | Método | Cómo funciona |
 |---|---|
 | **App autenticadora** (recomendado) | Escaneas el código QR con Google Authenticator, Microsoft Authenticator u otra app; la app muestra un código nuevo cada 30 segundos, incluso sin internet. Los pasos están abajo. |
-| **Código por correo** | Te llega un código de 6 dígitos que vence en 15 minutos y sirve una sola vez (como máximo 3 envíos cada 10 minutos). Escríbelo y pulsa **Activar e ingresar**; recibes tus **códigos de respaldo**. |
+| **Código por correo** | Te llega un código de 6 dígitos que vence en pocos minutos y sirve una sola vez. Escríbelo y pulsa **Activar e ingresar**; recibes tus **códigos de respaldo**. |
 
 En **Perfil → Verificación en dos pasos** agregas el método que no elegiste y escoges cuál se pide
 por defecto; con los dos activos, la pantalla del código ofrece **Usar un código por correo** o
@@ -143,7 +143,7 @@ Si ya lo configuraste en la versión de escritorio, este paso no aparece.
 | 2 | Ingresar | Abre el **Dashboard** |
 | 3 | Perdí mi teléfono | Te envía un código al correo (ver 4.13) |
 
-La sesión se cierra tras **6 horas sin uso** o a las **8 horas** del ingreso, con un mensaje que
+La sesión se cierra sola tras un tiempo **sin uso** o al cumplir su **duración máxima**, con un mensaje que
 explica el motivo.
 
 ### 4.5 Dashboard
@@ -341,9 +341,9 @@ protege y no los comparte con terceros.
 | Dato | Para qué se usa | Dónde se guarda | Quién lo ve |
 |---|---|---|---|
 | Correo y nombre | Identificar tu cuenta, enviarte los resúmenes y recuperar el acceso | Oracle Autonomous Database | Solo tú |
-| Contraseña | Iniciar sesión | Oracle, solo su huella PBKDF2-SHA256 con sal | Nadie la ve en texto plano |
-| Clave del autenticador | Verificar tus códigos | Oracle, cifrada con AES-256-GCM | Nadie; la clave de cifrado vive fuera de la base |
-| Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella SHA-256 | Nadie los ve después de mostrarlos |
+| Contraseña | Iniciar sesión | Oracle, solo su huella con sal | Nadie la ve en texto plano |
+| Clave del autenticador | Verificar tus códigos | Oracle, cifrada | Nadie |
+| Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella | Nadie los ve después de mostrarlos |
 | Ingresos, gastos, categorías y plan | Tu presupuesto | Oracle, marcados con tu cuenta | Solo tú |
 | Llaves de acceso | Ingresar con huella, rostro o PIN | Oracle, solo la clave pública y un contador | Nadie: la huella y la clave privada nunca salen de tu dispositivo |
 | Sesión | Mantenerte conectado | Cookie en tu navegador | Firmada, invisible para JavaScript |
@@ -352,24 +352,22 @@ protege y no los comparte con terceros.
 
 - **Cada quien ve solo lo suyo:** dashboard, consulta, exportación, edición y correos filtran por la
   cuenta que inició sesión. Cambiar el número del registro en la URL no abre registros ajenos.
-- **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en 15 minutos, sirve una vez y se envían máximo 3 cada 10 minutos): sin el código de tu app o de tu correo (o uno de respaldo), la
+- **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en pocos minutos y sirve una vez): sin el código de tu app o de tu correo (o uno de respaldo), la
   contraseña sola no basta para entrar, recuperar la cuenta ni cambiar la contraseña. Un código no
   se puede usar dos veces.
 - **Llaves de acceso (WebAuthn):** exigen la verificación del dispositivo (huella, rostro o PIN),
   solo sirven en el sitio de PRPagos (no se pueden usar en una página falsa) y cada firma se
   comprueba en el servidor con la clave pública guardada. Agregar una pide un código vigente.
 - **Recuperación sin el teléfono controlada:** los códigos de respaldo sirven una sola vez y el
-  código por correo vence en 15 minutos; cada uso queda en la auditoría.
-- **Contraseñas con PBKDF2-SHA256** (600.000 iteraciones y sal única por cuenta).
-- **Bloqueo temporal:** 5 intentos fallidos seguidos bloquean la cuenta 5 minutos, en la web y en el
-  escritorio a la vez.
-- **Sesión con JWT en cookie `HttpOnly`, `Secure` y `SameSite=Lax`**: se cierra tras 6 horas sin uso
-  o a las 8 horas, con un mensaje que explica el motivo.
+  código por correo vence en pocos minutos; cada uso queda en la auditoría.
+- **Contraseñas protegidas:** solo se guarda su huella con sal, nunca la contraseña.
+- **Bloqueo temporal** ante intentos fallidos repetidos, en la web y en el escritorio a la vez.
+- **Sesión segura** que se cierra sola por inactividad o por tiempo máximo, con un mensaje que
+  explica el motivo.
 - **Reglas de negocio en la base:** las operaciones pasan por procedimientos almacenados de Oracle
   con auditoría, y las consultas usan parámetros (sin concatenar texto del usuario en el SQL).
-- **Conexión cifrada a la base:** Oracle Autonomous Database exige TLS con Wallet.
-- **Secretos fuera del repositorio:** credenciales, clave de cifrado y clave de Brevo viven en la
-  configuración del servidor, nunca en el código.
+- **Conexión cifrada a la base.**
+- **Secretos fuera del repositorio:** las credenciales nunca están en el código.
 - **Al día en seguridad:** el runtime, el sistema y las dependencias se mantienen con los últimos
   parches y se revisan periódicamente.
 

@@ -136,7 +136,7 @@ La primera vez eliges cómo recibir el código de la verificación en dos pasos 
 | Método | Cómo funciona |
 |---|---|
 | **App autenticadora** (recomendado) | Escaneas el código QR con Google Authenticator, Microsoft Authenticator u otra app; la app muestra un código nuevo cada 30 segundos, incluso sin internet. Los pasos están abajo. |
-| **Código por correo** | Te llega un código de 6 dígitos que vence en 15 minutos y sirve una sola vez (como máximo 3 envíos cada 10 minutos). Escríbelo y pulsa **Activar e ingresar**; recibes tus **códigos de respaldo**. |
+| **Código por correo** | Te llega un código de 6 dígitos que vence en pocos minutos y sirve una sola vez. Escríbelo y pulsa **Activar e ingresar**; recibes tus **códigos de respaldo**. |
 
 En **Perfil → Verificación en dos pasos** agregas el método que no elegiste y escoges cuál se pide
 por defecto; con los dos activos, la pantalla del código ofrece **Usar un código por correo** o
@@ -164,7 +164,7 @@ Si ya lo configuraste en la web, este paso no aparece.
 | 2 | Ingresar | Abre el **Dashboard** |
 | 3 | Perdí mi teléfono | Te envía un código al correo (ver 4.14) |
 
-La sesión se cierra tras **6 horas sin uso** o a las **8 horas** del ingreso, con un mensaje que
+La sesión se cierra sola tras un tiempo **sin uso** o al cumplir su **duración máxima**, con un mensaje que
 explica el motivo, igual que en la web.
 
 ### 4.6 Dashboard
@@ -322,7 +322,7 @@ avisa:
 - **Al cerrar:** la instala cuando cierres la aplicación; la próxima vez ya abre actualizada.
 
 Si algo falla (sin internet, descarga incompleta, archivo que no coincide), sigues con la versión
-que tenías y se reintenta más tarde. El registro queda en `%APPDATA%\PRPagos\logs\actualizador.log`.
+que tenías y se reintenta más tarde.
 
 ### 4.17 Llaves de acceso (Windows Hello)
 
@@ -370,9 +370,9 @@ página de Releases del proyecto.
 | Dato | Para qué se usa | Dónde se guarda | Quién lo ve |
 |---|---|---|---|
 | Correo y nombre | Identificar tu cuenta, enviarte los resúmenes y recuperar el acceso | Oracle Autonomous Database | Solo tú |
-| Contraseña | Iniciar sesión | Oracle, solo su huella PBKDF2-SHA256 con sal | Nadie la ve en texto plano |
-| Clave del autenticador | Verificar tus códigos | Oracle, cifrada con AES-256-GCM | Nadie; la clave de cifrado no está en la base |
-| Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella SHA-256 | Nadie los ve después de mostrarlos |
+| Contraseña | Iniciar sesión | Oracle, solo su huella con sal | Nadie la ve en texto plano |
+| Clave del autenticador | Verificar tus códigos | Oracle, cifrada | Nadie |
+| Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella | Nadie los ve después de mostrarlos |
 | Ingresos, gastos, categorías y plan | Tu presupuesto | Oracle, marcados con tu cuenta | Solo tú |
 | Llaves de acceso | Ingresar con Windows Hello | Oracle, solo la clave pública y un contador | Nadie: el PIN, la huella y la clave privada nunca salen del equipo |
 | Sesión | Mantenerte conectado | En memoria, mientras la aplicación está abierta | Nadie; se borra al cerrar |
@@ -381,24 +381,20 @@ página de Releases del proyecto.
 
 - **Sin claves en tu equipo:** la aplicación no guarda la contraseña de la base ni ninguna otra
   clave; solo conoce la dirección pública de PRPagos. Copiarla no da acceso a ningún dato.
-- **Llaves de acceso con Windows Hello:** la aplicación usa la misma API de Windows que Edge y
-  Chrome (webauthn.dll), exige la verificación (PIN, huella o rostro) y comprueba cada firma con la
-  clave pública guardada, el sitio de PRPagos y un reto nuevo en cada ingreso (la comprobación la
-  hace el servidor).
-- **Actualizaciones verificadas:** solo se descargan por HTTPS desde GitHub; la huella SHA-256
-  esperada la da el servidor de PRPagos (no el sitio de descarga), y el paquete se descarta si la
-  huella o la versión no coinciden.
+- **Llaves de acceso con Windows Hello:** exigen la verificación (PIN, huella o rostro) y el
+  servidor comprueba cada ingreso.
+- **Actualizaciones verificadas:** solo se descargan desde GitHub y se descartan si no son
+  exactamente la versión publicada.
 - **Cada quien ve solo lo suyo:** dashboard, consulta, exportación, edición y correos filtran por la
   cuenta que inició sesión.
-- **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en 15 minutos, sirve una vez y se envían máximo 3 cada 10 minutos), compartida con la web: un código no se puede
+- **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en pocos minutos y sirve una vez), compartida con la web: un código no se puede
   usar dos veces.
-- **Contraseñas con PBKDF2-SHA256** (600.000 iteraciones y sal única por cuenta).
-- **Bloqueo temporal:** 5 intentos fallidos seguidos bloquean la cuenta 5 minutos, en el
-  escritorio y en la web a la vez.
+- **Contraseñas protegidas:** solo se guarda su huella con sal, nunca la contraseña.
+- **Bloqueo temporal** ante intentos fallidos repetidos, en el escritorio y en la web a la vez.
 - **Reglas de negocio en la base:** las operaciones pasan por procedimientos almacenados de Oracle
   con auditoría, y las consultas usan parámetros.
-- **Conexión cifrada:** la aplicación habla con el servidor por HTTPS, y el servidor con la base por
-  TLS con Wallet, usando un usuario propio sin permisos para crear ni borrar tablas.
+- **Conexión cifrada:** la aplicación habla con el servidor por HTTPS, y el servidor con la base
+  por una conexión cifrada.
 - **Java incluido al día:** el instalador trae Java con los últimos parches de seguridad y la
   aplicación instalada se actualiza sola.
 

@@ -91,8 +91,8 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 - **Llaves de acceso con Windows Hello** (PIN, huella o rostro): la misma llave de
   Edge o Chrome en ese Windows; se agregan desde Perfil
 - **Perfil** con datos, plan, categorías, autenticador, códigos, llaves y contraseña
-- Bloqueo de 5 minutos tras 5 intentos fallidos seguidos
-- Sesión que se cierra tras 6 horas sin uso (máximo 8 horas), con el mensaje del motivo
+- Bloqueo temporal ante intentos fallidos repetidos
+- Sesión que se cierra sola por inactividad o por tiempo máximo, con el mensaje del motivo
 
 **Aplicación de Windows**
 - **PRPagos.exe** con Java incluido: instalador automático por usuario (sin
@@ -109,10 +109,10 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 | Interfaz | Java Swing con FlatLaf (tema claro y oscuro) y JFreeChart |
 | Lenguaje | Java 17 (el ejecutable incluye su propio Java) |
 | Datos y reglas | API JSON de la web (`/api/...`) con `java.net.http` y Gson |
-| Sesión | El mismo token de la web (Bearer); 6 h sin uso, máximo 8 h |
+| Sesión | La misma sesión de la web |
 | Verificación en dos pasos | TOTP en el servidor; QR del autenticador con ZXing |
-| Llaves de acceso | Windows Hello con `webauthn.dll` (JNA); la firma la verifica el servidor |
-| Distribución | jpackage + Inno Setup (instalador automático con desinstalador) → GitHub Releases; actualización con verificación SHA-256 |
+| Llaves de acceso | Windows Hello; la firma la verifica el servidor |
+| Distribución | jpackage + Inno Setup (instalador automático con desinstalador) → GitHub Releases; actualización verificada |
 
 ---
 
@@ -128,7 +128,7 @@ escritorio/
     ├── java/com/prpagos/
     │   ├── cliente/         Api (único acceso a los datos: la API de la web) y Json
     │   ├── datos/           Sesion y Pago, tal como los entrega la API
-    │   ├── seguridad/       WindowsHello (llaves de acceso con webauthn.dll)
+    │   ├── seguridad/       WindowsHello (llaves de acceso)
     │   ├── actualizaciones/ Actualizador y comprobación periódica de versiones
     │   └── ui/              Portada, ventana principal y paneles (Dashboard,
     │                        Presupuesto, Consulta, Registro, Perfil), Tema y componentes
@@ -155,27 +155,21 @@ claves: todo eso vive solo en el servidor (`../web/app/servicios/`).
   y la dibuja con JFreeChart.
 - **WindowsHello** muestra la ventana de Windows (PIN, huella o rostro) y arma la
   respuesta como un navegador; el servidor la verifica.
-- El **Actualizador** pide a la API la última versión publicada y su huella
-  SHA-256, la descarga de **GitHub Releases** y la instala al cerrar.
+- El **Actualizador** consulta la última versión publicada, la descarga de
+  **GitHub Releases**, la verifica y la instala al cerrar.
 
 ### Seguridad
 
 - **Sin secretos en el equipo:** el instalador no lleva contraseña de la base,
   wallet ni claves; solo la dirección pública de la web. Aunque alguien copie la
   aplicación, no obtiene acceso a los datos.
-- **Una sola seguridad:** contraseñas (PBKDF2), verificación en dos pasos,
+- **Una sola seguridad:** contraseñas, verificación en dos pasos,
   códigos de respaldo, bloqueos, llaves de acceso y sesiones se validan en el
   servidor, igual que para la web.
-- **Sesión:** el mismo token firmado de la web, en memoria mientras la
-  aplicación está abierta; nunca se guarda en disco.
-- **Llaves de acceso:** Windows Hello vía `webauthn.dll`, la misma API de Edge y
-  Chrome; la firma, el sitio, el reto y la verificación del usuario los comprueba
-  el servidor.
-- **Actualizaciones verificadas** (mismo esquema que los agentes de SysPulse):
-  solo HTTPS y solo GitHub (también tras las redirecciones), tamaño máximo,
-  huella SHA-256 entregada por el servidor y no por el sitio de descarga, y
-  versión del `.jar` igual a la publicada. Si algo falla, se conserva la versión
-  instalada.
+- **Sesión:** la misma de la web; nunca se guarda en disco.
+- **Llaves de acceso:** Windows Hello, verificadas en el servidor.
+- **Actualizaciones verificadas:** solo se instalan desde GitHub y después de
+  comprobar que son las publicadas. Si algo falla, se conserva la versión instalada.
 
 ---
 
