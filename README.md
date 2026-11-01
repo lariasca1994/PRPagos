@@ -80,7 +80,8 @@ migración de escritorio a web.
   de los últimos 6 meses, gastos por categoría y avance del plan con su estado
 - **Presupuesto** por categoría y mes (como una hoja de presupuesto anual), comparado con
   los registros: tarjetas, gastos presupuestados vs. reales del año, distribución frente
-  al plan, mayores gastos, estado por categoría y resumen de los 12 meses
+  al plan, mayores gastos, estado por categoría y resumen de los 12 meses; un mes se puede
+  copiar del anterior para ajustar solo lo que cambia
 - Interactivo: un mes de las gráficas abre ese mes, una categoría abre sus registros y
   cada registro nuevo avisa cómo va el presupuesto de su categoría
 - Consulta con filtros (tipo, concepto, montos, fechas y categoría), totales y exportación a CSV
