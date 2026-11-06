@@ -65,6 +65,31 @@ try {
             Set-ItemProperty -Path $ClaveDesinstalar -Name "Inno Setup: App Version" -Value $Version -ErrorAction SilentlyContinue
         } catch { Registrar "No se pudo actualizar la versión en Aplicaciones instaladas: $($_.Exception.Message)" }
     }
+    # Nombre visible "Simulador de pagos": Aplicaciones instaladas y accesos directos.
+    try {
+        if (Test-Path $ClaveDesinstalar) {
+            Set-ItemProperty -Path $ClaveDesinstalar -Name DisplayName -Value "Simulador de pagos"
+        }
+        $shell = New-Object -ComObject WScript.Shell
+        $escritorio = [Environment]::GetFolderPath("Desktop")
+        $programas = Join-Path ([Environment]::GetFolderPath("Programs")) "Simulador de pagos"
+        $exe = Join-Path $Instalada "PRPagos.exe"
+        $viejoEscritorio = Join-Path $escritorio "PRPagos.lnk"
+        if (Test-Path $viejoEscritorio) {
+            Remove-Item $viejoEscritorio -Force
+            $a = $shell.CreateShortcut((Join-Path $escritorio "Simulador de pagos.lnk")); $a.TargetPath = $exe; $a.WorkingDirectory = $Instalada; $a.Save()
+        }
+        $viejosProgramas = Join-Path ([Environment]::GetFolderPath("Programs")) "PRPagos"
+        if (Test-Path $viejosProgramas) {
+            New-Item -ItemType Directory -Force -Path $programas | Out-Null
+            $a = $shell.CreateShortcut((Join-Path $programas "Simulador de pagos.lnk")); $a.TargetPath = $exe; $a.WorkingDirectory = $Instalada; $a.Save()
+            $desinstalar = Get-ChildItem -Path $Instalada -Filter "unins*.exe" -File | Select-Object -First 1
+            if ($desinstalar) {
+                $a = $shell.CreateShortcut((Join-Path $programas "Desinstalar Simulador de pagos.lnk")); $a.TargetPath = $desinstalar.FullName; $a.Save()
+            }
+            Remove-Item -Recurse -Force $viejosProgramas
+        }
+    } catch { Registrar "No se pudieron renombrar los accesos directos: $($_.Exception.Message)" }
     Registrar "Actualización $Version instalada en $Instalada."
 } catch {
     Registrar "La instalación falló: $($_.Exception.Message). Sigue la versión anterior; se reintenta al próximo inicio."

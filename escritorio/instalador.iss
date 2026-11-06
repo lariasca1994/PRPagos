@@ -1,4 +1,4 @@
-; Instalador de PRPagos Escritorio (Inno Setup 6, gratuito). Lo compila
+; Instalador del Simulador de pagos (escritorio) (Inno Setup 6, gratuito). Lo compila
 ; empaquetar.ps1 -Instalador (y el workflow escritorio.yml) a partir de la
 ; carpeta build\dist\PRPagos que arma jpackage.
 ;
@@ -6,7 +6,7 @@
 ;   de administrador) en %LOCALAPPDATA%\Programs\PRPagos, crea los accesos
 ;   directos y abre la aplicación al terminar.
 ; - Con desinstalador: queda en Configuración > Aplicaciones instaladas y en el
-;   menú Inicio ("Desinstalar PRPagos"). Desinstalar borra la aplicación, sus
+;   menú Inicio ("Desinstalar Simulador de pagos"). Desinstalar borra la aplicación, sus
 ;   registros de uso y sus preferencias; la cuenta y los datos siguen en la web.
 ; - Versiones futuras: el mismo AppId actualiza la instalación en su lugar; la
 ;   actualización automática (instalar.ps1) conserva el desinstalador y deja la
@@ -20,10 +20,10 @@
 
 [Setup]
 AppId={{B6F0B0C2-5C1E-4D4B-9E1F-7A2C3D4E5F60}
-AppName=PRPagos
+AppName=Simulador de pagos
 AppVersion={#Version}
-AppVerName=PRPagos {#Version}
-AppPublisher=PRPagos
+AppVerName=Simulador de pagos {#Version}
+AppPublisher=Simulador de pagos
 AppComments=Control de ingresos y gastos con presupuesto y plan 50/30/20
 VersionInfoVersion={#Version}
 DefaultDirName={localappdata}\Programs\PRPagos
@@ -39,7 +39,7 @@ CloseApplications=no
 RestartApplications=no
 SetupIconFile=resources\icono.ico
 UninstallDisplayIcon={app}\PRPagos.exe
-UninstallDisplayName=PRPagos
+UninstallDisplayName=Simulador de pagos
 OutputDir=build\dist
 OutputBaseFilename=PRPagos-{#Version}
 Compression=lzma2
@@ -56,14 +56,17 @@ Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 ; Al actualizar, sin restos de la versión anterior (librerías o Java viejos).
 Type: filesandordirs; Name: "{app}\app"
 Type: filesandordirs; Name: "{app}\runtime"
+; Accesos directos con el nombre anterior (se reemplazan por "Simulador de pagos").
+Type: files; Name: "{userdesktop}\PRPagos.lnk"
+Type: filesandordirs; Name: "{userprograms}\PRPagos"
 
 [Files]
 Source: "build\dist\PRPagos\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{userprograms}\PRPagos\PRPagos"; Filename: "{app}\PRPagos.exe"
-Name: "{userprograms}\PRPagos\Desinstalar PRPagos"; Filename: "{uninstallexe}"
-Name: "{userdesktop}\PRPagos"; Filename: "{app}\PRPagos.exe"
+Name: "{userprograms}\Simulador de pagos\Simulador de pagos"; Filename: "{app}\PRPagos.exe"
+Name: "{userprograms}\Simulador de pagos\Desinstalar Simulador de pagos"; Filename: "{uninstallexe}"
+Name: "{userdesktop}\Simulador de pagos"; Filename: "{app}\PRPagos.exe"
 
 [Run]
 Filename: "{app}\PRPagos.exe"; Flags: nowait skipifsilent

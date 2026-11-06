@@ -32,6 +32,17 @@ public final class Api {
     /** Dirección de producción; -Dprpagos.url o la variable PRPAGOS_URL la cambian (pruebas locales). */
     private static final String URL_POR_DEFECTO = "https://prpagos-web-1087929107584.us-east4.run.app";
 
+    /**
+     * Archivo del repositorio con la dirección vigente del servidor. Si la web
+     * cambia de dirección, las aplicaciones instaladas la encuentran aquí (y la
+     * guardan), así que nunca se quedan sin poder actualizarse.
+     */
+    private static final String URL_DESCUBRIMIENTO =
+            "https://raw.githubusercontent.com/lariasca1994/PRPagos/main/escritorio/servidor.json";
+    private static final long ESPERA_DESCUBRIMIENTO_MS = 60_000;
+    private static volatile String descubierta = leerGuardada();
+    private static volatile long ultimoDescubrimiento;
+
     private static final Gson GSON = new Gson();
     // HTTP/1.1: sin el intento de "upgrade" a HTTP/2 que algunos servidores rechazan en http://.
     private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -52,6 +63,9 @@ public final class Api {
         String url = System.getProperty("prpagos.url");
         if (url == null || url.isBlank()) {
             url = System.getenv("PRPAGOS_URL");
+        }
+        if (url == null || url.isBlank()) {
+            url = descubierta;
         }
         url = url == null || url.isBlank() ? URL_POR_DEFECTO : url.trim();
         return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
@@ -138,8 +152,29 @@ public final class Api {
         }
     }
 
+    /**
+     * Si el servidor no responde (o la dirección ya no existe), consulta la
+     * dirección vigente en el repositorio y, si cambió, repite el pedido allí.
+     */
     private static String enviar(String metodo, String ruta, Object cuerpo) throws ErrorApi {
-        HttpRequest.Builder pedido = HttpRequest.newBuilder(URI.create(base() + ruta))
+        String actual = base();
+        try {
+            return enviar(actual, metodo, ruta, cuerpo);
+        } catch (SinServidor e) {
+            String nueva = descubrir();
+            if (nueva != null && !nueva.equals(actual)) {
+                try {
+                    return enviar(nueva, metodo, ruta, cuerpo);
+                } catch (SinServidor otra) {
+                    throw new ErrorApi(otra.getMessage());
+                }
+            }
+            throw new ErrorApi(e.getMessage());
+        }
+    }
+
+    private static String enviar(String base, String metodo, String ruta, Object cuerpo) throws ErrorApi {
+        HttpRequest.Builder pedido = HttpRequest.newBuilder(URI.create(base + ruta))
                 .timeout(Duration.ofSeconds(60))
                 .header("Accept", "application/json");
         String actual = token;
@@ -156,7 +191,7 @@ public final class Api {
         try {
             respuesta = HTTP.send(pedido.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            throw new ErrorApi("No se pudo conectar con el simulador de pagos. Revisa tu conexión a internet e inténtalo de nuevo.");
+            throw new SinServidor("No se pudo conectar con el simulador de pagos. Revisa tu conexión a internet e inténtalo de nuevo.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ErrorApi("Se interrumpió la conexión con el simulador de pagos.");
@@ -170,6 +205,10 @@ public final class Api {
         if (estado >= 200 && estado < 300) {
             return respuesta.body();
         }
+        if (estado == 404 && !esRespuestaDeLaApi(respuesta.body())) {
+            // La dirección ya no tiene la aplicación: puede haberse mudado.
+            throw new SinServidor("No se pudo conectar con el simulador de pagos. Inténtalo de nuevo en unos minutos.");
+        }
         String mensaje = mensajeDe(respuesta.body(), estado);
         if (estado == 401 && actual != null) {
             token = null;
@@ -177,6 +216,87 @@ public final class Api {
             throw new SesionCerrada(mensaje);
         }
         throw new ErrorApi(mensaje);
+    }
+
+    private static boolean esRespuestaDeLaApi(String cuerpo) {
+        try {
+            return JsonParser.parseString(cuerpo).isJsonObject();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    // ───────────────────────── Dirección vigente del servidor ─────────────────────────
+
+    /** Lee la dirección vigente publicada en el repositorio y la guarda. Null si no se pudo. */
+    static String descubrir() {
+        long ahora = System.currentTimeMillis();
+        if (ahora - ultimoDescubrimiento < ESPERA_DESCUBRIMIENTO_MS) {
+            return descubierta;
+        }
+        ultimoDescubrimiento = ahora;
+        try {
+            HttpRequest pedido = HttpRequest.newBuilder(URI.create(URL_DESCUBRIMIENTO))
+                    .timeout(Duration.ofSeconds(20)).header("Accept", "application/json").GET().build();
+            HttpResponse<String> r = HTTP.send(pedido, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (r.statusCode() != 200) {
+                return null;
+            }
+            String url = urlValida(JsonParser.parseString(r.body()).getAsJsonObject().get("url").getAsString());
+            if (url == null) {
+                return null;
+            }
+            if (!url.equals(descubierta)) {
+                descubierta = url;
+                guardar(url);
+            }
+            return url;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+    }
+
+    /** Solo direcciones HTTPS sin ruta ni credenciales. */
+    static String urlValida(String texto) {
+        try {
+            URI u = URI.create(texto.strip());
+            if (!"https".equals(u.getScheme()) || u.getHost() == null || u.getUserInfo() != null) {
+                return null;
+            }
+            return "https://" + u.getHost() + (u.getPort() > 0 ? ":" + u.getPort() : "");
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static java.nio.file.Path archivoGuardado() {
+        String appData = System.getenv("APPDATA");
+        java.nio.file.Path carpeta = appData != null ? java.nio.file.Path.of(appData, "PRPagos")
+                : java.nio.file.Path.of(System.getProperty("user.home"), ".prpagos");
+        return carpeta.resolve("servidor.txt");
+    }
+
+    private static String leerGuardada() {
+        try {
+            java.nio.file.Path f = archivoGuardado();
+            return java.nio.file.Files.isRegularFile(f)
+                    ? urlValida(java.nio.file.Files.readString(f, StandardCharsets.UTF_8)) : null;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static void guardar(String url) {
+        try {
+            java.nio.file.Path f = archivoGuardado();
+            java.nio.file.Files.createDirectories(f.getParent());
+            java.nio.file.Files.writeString(f, url, StandardCharsets.UTF_8);
+        } catch (IOException | RuntimeException e) {
+            // Sin guardarla, se vuelve a consultar en la próxima falla.
+        }
     }
 
     private static String mensajeDe(String cuerpo, int estado) {
@@ -203,6 +323,15 @@ public final class Api {
         private static final long serialVersionUID = 1L;
 
         public ErrorApi(String mensaje) {
+            super(mensaje);
+        }
+    }
+
+    /** No respondió el servidor o la dirección ya no lo tiene: se intenta la dirección vigente. */
+    static final class SinServidor extends ErrorApi {
+        private static final long serialVersionUID = 1L;
+
+        SinServidor(String mensaje) {
             super(mensaje);
         }
     }

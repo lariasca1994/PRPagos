@@ -2,8 +2,10 @@
 # main que toque el escritorio (o las consultas y plantillas compartidas)
 # compila, empaqueta con jpackage (PRPagos.exe con Java incluido) y crea un
 # Release en GitHub con dos descargas:
-#   - PRPagos-Escritorio-<versión>.zip   portable: descomprimir y abrir PRPagos.exe
-#   - PRPagos-<versión>.exe              instalador automático (sin preguntas) con desinstalador
+#   - Simulador-de-pagos-escritorio-<versión>.zip   portable: descomprimir y abrir PRPagos.exe
+#   - Simulador-de-pagos-<versión>.exe              instalador automático (sin preguntas) con desinstalador
+# El título y las descargas usan el nombre visible del producto; los nombres
+# internos de la aplicación no cambian porque el actualizador los usa.
 # El enlace estable es /releases/latest. Repositorio público: sin costo.
 # Luego registra la versión y la huella SHA-256 del .zip en la base: las
 # aplicaciones instaladas se actualizan solas (ver Actualizador.java).
@@ -61,7 +63,9 @@ jobs:
       - name: Comprimir versión portable
         shell: pwsh
         working-directory: escritorio/build/dist
-        run: Compress-Archive -Path PRPagos -DestinationPath "PRPagos-Escritorio-$env:VERSION.zip"
+        run: |
+          Compress-Archive -Path PRPagos -DestinationPath "Simulador-de-pagos-escritorio-$env:VERSION.zip"
+          Copy-Item "PRPagos-$env:VERSION.exe" "Simulador-de-pagos-$env:VERSION.exe"
 
       - name: Crear Release
         shell: pwsh
@@ -70,16 +74,16 @@ jobs:
         run: |
           $dist = 'escritorio/build/dist'
           $notas = @"
-          Aplicación de escritorio de PRPagos para Windows (Java incluido, no hace falta instalar nada más).
+          Simulador de pagos para Windows (Java incluido, no hace falta instalar nada más).
 
-          - **PRPagos-$env:VERSION.exe**: instalador automático: se instala sin preguntas, crea los accesos directos y abre la aplicación. Se desinstala desde Configuración > Aplicaciones instaladas o con "Desinstalar PRPagos" en el menú Inicio.
-          - **PRPagos-Escritorio-$env:VERSION.zip**: versión portable; descomprime y abre ``PRPagos.exe``.
+          - **Simulador-de-pagos-$env:VERSION.exe**: instalador automático: se instala sin preguntas, crea los accesos directos y abre la aplicación. Se desinstala desde Configuración > Aplicaciones instaladas o desde su acceso de desinstalación en el menú Inicio.
+          - **Simulador-de-pagos-escritorio-$env:VERSION.zip**: versión portable; descomprime y abre ``PRPagos.exe``.
 
           Se instala y se usa: no necesita configuración. Los datos son los mismos de la web (misma cuenta).
           "@
           gh release create "escritorio-v$env:VERSION" `
-            "$dist/PRPagos-$env:VERSION.exe" "$dist/PRPagos-Escritorio-$env:VERSION.zip" `
-            --title "PRPagos Escritorio $env:VERSION" --notes $notas --latest --target $env:GITHUB_SHA
+            "$dist/Simulador-de-pagos-$env:VERSION.exe" "$dist/Simulador-de-pagos-escritorio-$env:VERSION.zip" `
+            --title "Simulador de pagos (escritorio) $env:VERSION" --notes $notas --latest --target $env:GITHUB_SHA
 
       # Actualización automática: registra la versión y la huella SHA-256 del .zip en la
       # base (vía la web). Las aplicaciones instaladas la comprueban al abrir y cada hora,
@@ -90,10 +94,10 @@ jobs:
           TAREAS_TOKEN: ${{ secrets.TAREAS_TOKEN }}
           URL_PUBLICA: ${{ vars.URL_PUBLICA }}
         run: |
-          $zip = "escritorio/build/dist/PRPagos-Escritorio-$env:VERSION.zip"
+          $zip = "escritorio/build/dist/Simulador-de-pagos-escritorio-$env:VERSION.zip"
           $cuerpo = @{
             version = $env:VERSION
-            url     = "https://github.com/${{ github.repository }}/releases/download/escritorio-v$env:VERSION/PRPagos-Escritorio-$env:VERSION.zip"
+            url     = "https://github.com/${{ github.repository }}/releases/download/escritorio-v$env:VERSION/Simulador-de-pagos-escritorio-$env:VERSION.zip"
             sha256  = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
           } | ConvertTo-Json
           # La web puede estar desplegándose en este mismo push: se reintenta.

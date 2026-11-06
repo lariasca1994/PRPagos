@@ -150,7 +150,10 @@ claves: todo eso vive solo en el servidor (`../web/app/servicios/`).
   `com.prpagos.ui.VentanaLogin`.
 - **cliente.Api** es el único acceso a los datos: llama por HTTPS a la API de la
   web con el token de la sesión y lo renueva con cada respuesta. Si el servidor
-  da la sesión por cerrada, la ventana vuelve al ingreso con su mensaje.
+  da la sesión por cerrada, la ventana vuelve al ingreso con su mensaje. Si la
+  dirección del servidor deja de responder, consulta la vigente en
+  `escritorio/servidor.json` del repositorio, la guarda y sigue funcionando (así
+  las instalaciones nunca se quedan sin actualizaciones si la web cambia de lugar).
 - El **Dashboard** recibe la vista ya calculada y formateada (la misma de la web)
   y la dibuja con JFreeChart.
 - **WindowsHello** muestra la ventana de Windows (PIN, huella o rostro) y arma la
@@ -196,13 +199,13 @@ cambiar entre tema claro y oscuro.
 ### 5.1 Instalar
 
 1. Descarga de [Releases](https://github.com/lariasca1994/PRPagos/releases/latest)
-   el instalador `PRPagos-<versión>.exe` o el portable `PRPagos-Escritorio-<versión>.zip`.
+   el instalador `Simulador-de-pagos-<versión>.exe` o el portable `Simulador-de-pagos-escritorio-<versión>.zip`.
    El instalador es automático: no hace preguntas, crea los accesos directos y abre
    la aplicación.
-2. Abre **PRPagos** desde el acceso directo. No hace falta configurar nada; las
+2. Abre **Simulador de pagos** desde el acceso directo. No hace falta configurar nada; las
    versiones nuevas se instalan solas.
-3. Para desinstalar: **Configuración → Aplicaciones instaladas → PRPagos**, o
-   **Desinstalar PRPagos** en el menú Inicio.
+3. Para desinstalar: **Configuración → Aplicaciones instaladas → Simulador de pagos**, o
+   **Desinstalar Simulador de pagos** en el menú Inicio.
 
 ### 5.2 Crear una cuenta e ingresar
 

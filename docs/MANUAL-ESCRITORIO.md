@@ -79,18 +79,18 @@ En las tablas, `#` es el orden en que aparece cada campo en la pantalla, de arri
 
 1. Entra a la [última versión](https://github.com/lariasca1994/PRPagos/releases/latest) y descarga
    una de las dos opciones:
-   - **`PRPagos-<versión>.exe`** (instalador): ábrelo y se instala solo, sin preguntas ni permisos de
-     administrador. Crea el acceso directo **PRPagos** en el escritorio y en el menú Inicio y abre la
+   - **`Simulador-de-pagos-<versión>.exe`** (instalador): ábrelo y se instala solo, sin preguntas ni permisos de
+     administrador. Crea el acceso directo **Simulador de pagos** en el escritorio y en el menú Inicio y abre la
      aplicación al terminar. Si Windows muestra "Windows protegió su PC", pulsa **Más información →
      Ejecutar de todas formas** (el instalador es gratuito y no lleva firma de pago).
-   - **`PRPagos-Escritorio-<versión>.zip`** (portable): descomprímelo y abre `PRPagos.exe`.
-2. Abre **PRPagos** e inicia sesión con tu cuenta (la misma de la web) o crea una.
+   - **`Simulador-de-pagos-escritorio-<versión>.zip`** (portable): descomprímelo y abre `PRPagos.exe`.
+2. Abre **Simulador de pagos** e inicia sesión con tu cuenta (la misma de la web) o crea una.
 
 No hay nada más que copiar ni configurar, en este equipo ni en otro (por ejemplo, una tablet con
 Windows): basta instalarla. Las versiones nuevas se instalan solas (ver 4.16).
 
-**Desinstalar:** en **Configuración → Aplicaciones → Aplicaciones instaladas → PRPagos →
-Desinstalar**, o con **Desinstalar PRPagos** en el menú Inicio. Se borran la aplicación, sus
+**Desinstalar:** en **Configuración → Aplicaciones → Aplicaciones instaladas → Simulador de pagos →
+Desinstalar**, o con **Desinstalar Simulador de pagos** en el menú Inicio. Se borran la aplicación, sus
 registros de uso y sus preferencias; tu cuenta y tus datos siguen en la web.
 
 ### 4.2 Portada
@@ -322,7 +322,15 @@ cierras la aplicación antes de ver el aviso, se instala al salir y la próxima 
 actualizada.
 
 Si algo falla (sin internet, descarga incompleta, archivo que no coincide), sigues con la versión
-que tenías y se reintenta más tarde.
+que tenías y se reintenta más tarde. Si el servidor cambia de dirección, la aplicación encuentra
+la nueva sola y sigue actualizándose.
+
+**¿No te aparece el aviso de actualización?** Las versiones instaladas antes del 30 de octubre de
+2026 apuntan a una dirección del servidor que ya no existe, así que no pueden consultar ni
+descargar versiones nuevas. Descarga e instala una vez la
+[última versión](https://github.com/lariasca1994/PRPagos/releases/latest) (instalador
+`Simulador-de-pagos-<versión>.exe`): reemplaza la anterior sin perder nada (tus datos están en el
+servidor) y desde ahí se actualiza sola.
 
 ### 4.17 Llaves de acceso (Windows Hello)
 
