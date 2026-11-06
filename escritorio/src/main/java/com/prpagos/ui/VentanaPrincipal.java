@@ -71,7 +71,7 @@ public class VentanaPrincipal extends JFrame {
     private long anclarArribaHasta;
 
     public VentanaPrincipal(Sesion sesion) {
-        super("PRPagos — " + sesion.nombre());
+        super("Simulador de pagos — " + sesion.nombre());
         this.sesion = sesion;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 780);
@@ -291,7 +291,7 @@ public class VentanaPrincipal extends JFrame {
     private JPanel pie() {
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pie.setBorder(BorderFactory.createEmptyBorder(10, 0, 14, 0));
-        JLabel texto = new JLabel("PRPagos — proyecto de portafolio de Luis Felipe Arias.");
+        JLabel texto = new JLabel("Simulador de pagos — proyecto de portafolio de Luis Felipe Arias.");
         texto.setFont(texto.getFont().deriveFont(12.5f));
         Tema.alCambiar(() -> texto.setForeground(Tema.c().textoSuave()));
         pie.add(texto);

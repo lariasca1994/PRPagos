@@ -158,7 +158,7 @@ public final class SplashArranque extends JComponent {
         g2.setTransform(base);
 
         // Nombre y lema.
-        texto(g2, "PRPagos", new Font(Font.SANS_SERIF, Font.BOLD, 20), Color.WHITE, 262, avance(t, 0.60, 0.45));
+        texto(g2, "Simulador de pagos", new Font(Font.SANS_SERIF, Font.BOLD, 20), Color.WHITE, 262, avance(t, 0.60, 0.45));
         texto(g2, "Pagos y presupuesto", new Font(Font.SANS_SERIF, Font.PLAIN, 13), new Color(0xFF, 0xE1, 0xDC), 288,
                 avance(t, 0.75, 0.45));
         g2.dispose();

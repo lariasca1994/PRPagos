@@ -273,9 +273,9 @@ public final class Ui {
 
     // ───────────── Marca ─────────────
 
-    /** Ícono + "PRPagos", como el enlace .marca de la barra web. */
+    /** Ícono + "Simulador de pagos", como el enlace .marca de la barra web. */
     public static JLabel marca() {
-        JLabel l = new JLabel("PRPagos");
+        JLabel l = new JLabel("Simulador de pagos");
         l.setFont(l.getFont().deriveFont(Font.BOLD, 18f));
         l.setIconTextGap(8);
         Image icono = icono();

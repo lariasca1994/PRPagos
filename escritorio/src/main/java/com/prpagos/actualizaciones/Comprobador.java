@@ -66,7 +66,7 @@ public final class Comprobador {
         }
         Object[] opciones = {"Reiniciar ahora", "Al cerrar"};
         int eleccion = JOptionPane.showOptionDialog(ventana,
-                "Hay una versión nueva de PRPagos, ya descargada y verificada.\n"
+                "Hay una versión nueva del simulador de pagos, ya descargada y verificada.\n"
                         + "Puedes reiniciar ahora para instalarla (se cerrará la sesión) o se instalará\n"
                         + "automáticamente cuando cierres la aplicación.",
                 "Actualización disponible", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,

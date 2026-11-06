@@ -156,10 +156,10 @@ public final class Api {
         try {
             respuesta = HTTP.send(pedido.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            throw new ErrorApi("No se pudo conectar con PRPagos. Revisa tu conexión a internet e inténtalo de nuevo.");
+            throw new ErrorApi("No se pudo conectar con el simulador de pagos. Revisa tu conexión a internet e inténtalo de nuevo.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new ErrorApi("Se interrumpió la conexión con PRPagos.");
+            throw new ErrorApi("Se interrumpió la conexión con el simulador de pagos.");
         }
         respuesta.headers().firstValue("X-Sesion").ifPresent(nuevo -> {
             if (token != null) {
@@ -191,7 +191,7 @@ public final class Api {
         return switch (estado) {
             case 403 -> "No tienes permiso para esta acción.";
             case 404 -> "No se encontró lo que buscabas.";
-            case 503 -> "PRPagos no está disponible en este momento. Intenta de nuevo en unos minutos.";
+            case 503 -> "El simulador de pagos no está disponible en este momento. Intenta de nuevo en unos minutos.";
             default -> "Ocurrió un error inesperado. Intenta de nuevo.";
         };
     }

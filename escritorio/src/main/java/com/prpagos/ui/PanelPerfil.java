@@ -232,7 +232,7 @@ class PanelPerfil extends JPanel {
         nuevaLlave.add(botonLlave);
         agregar(llaves, Ui.titulo("Llaves de acceso", 17f), Ui.espacio(6),
                 ayuda("Ingresa sin contraseña ni código con Windows Hello, la huella, el rostro o el PIN de este "
-                        + "dispositivo. Tu huella nunca sale del dispositivo: PRPagos solo guarda una clave pública."),
+                        + "dispositivo. Tu huella nunca sale del dispositivo: el simulador solo guarda una clave pública."),
                 Ui.espacio(8), listaLlaves, Ui.espacio(8), avisoLlaves, Ui.espacio(4), nuevaLlave);
         p.add(llaves);
         p.add(Ui.espacio(16));

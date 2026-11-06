@@ -285,7 +285,7 @@ public final class WindowsHello {
 
     private static ErrorLlave error(int hr, boolean creando) {
         if (hr == YA_EXISTE && creando) {
-            return new ErrorLlave("Este dispositivo ya tiene una llave de acceso de PRPagos para tu cuenta.");
+            return new ErrorLlave("Este dispositivo ya tiene una llave de acceso para tu cuenta.");
         }
         if (hr == CANCELADO || hr == OPERACION_CANCELADA || hr == NO_ENCONTRADA || hr == TIEMPO_AGOTADO) {
             // Igual que la web (llaves.js): al ingresar se da la pista de agregar la llave en Perfil.

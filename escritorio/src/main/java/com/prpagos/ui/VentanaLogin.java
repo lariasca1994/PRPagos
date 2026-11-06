@@ -103,7 +103,7 @@ public class VentanaLogin extends JFrame {
     }
 
     public VentanaLogin() {
-        super("PRPagos");
+        super("Simulador de pagos");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 760);
         // Admite tablets de 10" de pie: por debajo de 1000 px de ancho, o si la ventana es más
@@ -134,7 +134,7 @@ public class VentanaLogin extends JFrame {
         JPanel centro = new JPanel(new GridBagLayout());
         centro.setOpaque(false);
         centro.add(formularios);
-        JTextArea pie = Ui.suave("PRPagos — proyecto de portafolio de Luis Felipe Arias.");
+        JTextArea pie = Ui.suave("Simulador de pagos — proyecto de portafolio de Luis Felipe Arias.");
         pie.setFont(pie.getFont().deriveFont(12f));
         lado.add(barra, BorderLayout.NORTH);
         lado.add(centro, BorderLayout.CENTER);
@@ -476,7 +476,7 @@ public class VentanaLogin extends JFrame {
             boolean ambos = Json.logico(metodos, "app") && Json.logico(metodos, "correo");
             subtituloCodigo.setText(porCorreo
                     ? "Escribe el código de 6 dígitos que te enviamos a " + Json.texto(paso, "correo") + "."
-                    : "Abre tu app autenticadora y escribe el código de 6 dígitos de PRPagos ("
+                    : "Abre tu app autenticadora y escribe el código de 6 dígitos ("
                             + Json.texto(paso, "correo") + ").");
             enlaceCambiar.setText(porCorreo ? "Usar la app autenticadora" : "Usar un código por correo");
             enlaceCambiar.setVisible(ambos);

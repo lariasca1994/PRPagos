@@ -42,7 +42,7 @@
 
     function mensajeError(error, creando) {
         if (error && error.name === "InvalidStateError" && creando) {
-            return "Este dispositivo ya tiene una llave de acceso de PRPagos para tu cuenta.";
+            return "Este dispositivo ya tiene una llave de acceso para tu cuenta.";
         }
         if (error && (error.name === "NotAllowedError" || error.name === "AbortError")) {
             // El navegador no distingue "cancelado" de "no hay llave": al ingresar se da la pista.

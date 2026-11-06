@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block titulo %}Presupuesto - PRPagos{% endblock %}
+{% block titulo %}Presupuesto - Simulador de pagos{% endblock %}
 {% macro enlace_registros(f) -%}
 /registros?tipo={{ f.tipo | urlencode }}&categoria={{ f.categoria | urlencode }}&fecha_desde={{ f.fecha_desde }}&fecha_hasta={{ f.fecha_hasta }}
 {%- endmacro %}
