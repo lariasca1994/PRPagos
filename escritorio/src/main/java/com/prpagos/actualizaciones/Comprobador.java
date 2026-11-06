@@ -12,10 +12,11 @@ import javax.swing.SwingUtilities;
 
 /**
  * Comprueba si hay versión nueva al abrir la aplicación y luego cada hora (como
- * el actualizador de SysPulse). Cuando una versión queda descargada y
- * verificada, avisa: "Reiniciar ahora" la instala y vuelve a abrir PRPagos;
- * "Al cerrar" la instala cuando se cierre la aplicación. Las comprobaciones
- * corren en segundo plano y nunca bloquean la interfaz.
+ * el actualizador de SysPulse). La actualización es OBLIGATORIA en todos los
+ * equipos: cuando una versión queda descargada y verificada, se avisa con una
+ * sola opción y la aplicación se instala y vuelve a abrir, aunque el aviso se
+ * cierre. Las comprobaciones corren en segundo plano y nunca bloquean la
+ * interfaz; si la aplicación se cierra antes del aviso, se instala al salir.
  */
 public final class Comprobador {
 
@@ -64,14 +65,15 @@ public final class Comprobador {
                 ventana = w;
             }
         }
-        Object[] opciones = {"Reiniciar ahora", "Al cerrar"};
-        int eleccion = JOptionPane.showOptionDialog(ventana,
+        // Actualizacion obligatoria: una sola opcion; cerrar el aviso tambien actualiza.
+        Object[] opciones = {"Actualizar ahora"};
+        JOptionPane.showOptionDialog(ventana,
                 "Hay una versión nueva del simulador de pagos, ya descargada y verificada.\n"
-                        + "Puedes reiniciar ahora para instalarla (se cerrará la sesión) o se instalará\n"
-                        + "automáticamente cuando cierres la aplicación.",
-                "Actualización disponible", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,
-                null, opciones, opciones[1]);
-        if (eleccion == 0 && programar(true)) {
+                        + "La actualización es obligatoria: la aplicación se cerrará, se instalará\n"
+                        + "la versión nueva y volverá a abrirse sola.",
+                "Actualización obligatoria", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,
+                null, opciones, opciones[0]);
+        if (programar(true)) {
             System.exit(0);
         }
     }

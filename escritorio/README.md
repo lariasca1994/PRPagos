@@ -98,8 +98,8 @@ La versión de escritorio se ejecuta en el equipo de cada usuario.
 - **PRPagos.exe** con Java incluido: instalador automático por usuario (sin
   preguntas ni permisos elevados de Windows, con desinstalador en Aplicaciones
   instaladas) o versión portable, con el ícono de la app; sin configuración
-- **Actualización automática**: comprueba al abrir y cada hora; instala al
-  reiniciar o al cerrar
+- **Actualización automática y obligatoria**: comprueba al abrir y cada hora;
+  cuando hay versión nueva, la instala y vuelve a abrir la aplicación
 - Misma portada animada, menú y colores que la web, en tema claro y oscuro
 
 ### Stack
@@ -156,7 +156,7 @@ claves: todo eso vive solo en el servidor (`../web/app/servicios/`).
 - **WindowsHello** muestra la ventana de Windows (PIN, huella o rostro) y arma la
   respuesta como un navegador; el servidor la verifica.
 - El **Actualizador** consulta la última versión publicada, la descarga de
-  **GitHub Releases**, la verifica y la instala al cerrar.
+  **GitHub Releases**, la verifica y obliga a instalarla: la aplicación se reinicia ya actualizada.
 
 ### Seguridad
 

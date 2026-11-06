@@ -316,10 +316,10 @@ autenticador.
 
 No tienes que volver a descargar nada: al abrir la aplicación, y luego cada hora, PRPagos revisa si
 hay una versión nueva. Si la hay, la descarga en segundo plano, comprueba que sea la publicada y te
-avisa:
-
-- **Reiniciar ahora:** instala la versión nueva y vuelve a abrir PRPagos (se cierra la sesión).
-- **Al cerrar:** la instala cuando cierres la aplicación; la próxima vez ya abre actualizada.
+avisa. **La actualización es obligatoria** en todos los equipos: al pulsar **Actualizar ahora** (o
+al cerrar el aviso), la aplicación se cierra, instala la versión nueva y vuelve a abrirse sola. Si
+cierras la aplicación antes de ver el aviso, se instala al salir y la próxima vez ya abre
+actualizada.
 
 Si algo falla (sin internet, descarga incompleta, archivo que no coincide), sigues con la versión
 que tenías y se reintenta más tarde.
