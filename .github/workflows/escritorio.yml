@@ -155,6 +155,8 @@ jobs:
           - **Simulador-de-pagos-escritorio-$env:VERSION.zip**: versión portable; descomprime y abre ``PRPagos.exe``.
 
           Se instala y se usa: no necesita configuración. Los datos son los mismos de la web (misma cuenta).
+
+          Firma de código: Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/). [Política de firma](https://github.com/lariasca1994/PRPagos/blob/main/docs/FIRMA-CODIGO.md).
           "@
           gh release create "escritorio-v$env:VERSION" `
             "$dist/Simulador-de-pagos-$env:VERSION.exe" "$dist/Simulador-de-pagos-escritorio-$env:VERSION.zip" `
