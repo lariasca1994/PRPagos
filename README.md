@@ -314,4 +314,8 @@ despliega a mano.
 **Luis Felipe Arias Carriazo**
 [GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1)
 
-Licencia: MIT.
+Licencia: [MIT](LICENSE).
+
+Firma de código del ejecutable de Windows: [política de firma](docs/FIRMA-CODIGO.md).
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/).
