@@ -68,3 +68,5 @@ indica que es una aplicación de escritorio Win32/Java empaquetada en MSIX.
   puede cumplir. Para exigir la versión nueva: sube el paquete, espera la publicación, actualiza la
   variable y vuelve a desplegar la web.
 - Las instalaciones desde GitHub (instalador o portable) siguen actualizándose solas como siempre.
+
+**Nombre visible:** la variable `STORE_DISPLAY_NAME` lleva el nombre reservado en Partner Center (debe coincidir exacto con el manifiesto). Si no existe, se usa "Simulador de pagos".

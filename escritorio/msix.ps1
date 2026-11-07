@@ -1,4 +1,4 @@
-﻿# Arma el paquete MSIX para Microsoft Store a partir de la aplicación ya empaquetada
+# Arma el paquete MSIX para Microsoft Store a partir de la aplicación ya empaquetada
 # (build\dist\PRPagos, ver empaquetar.ps1). El paquete sale SIN firmar: Microsoft lo
 # firma al publicarlo en la Store. Lo usa .github/workflows/escritorio.yml solo cuando
 # existen las variables del repositorio de la Store (ver docs/STORE.md).
@@ -13,6 +13,8 @@ param(
     [Parameter(Mandatory)] [string]$IdentityName,
     [Parameter(Mandatory)] [string]$Publisher,
     [Parameter(Mandatory)] [string]$PublisherDisplayName,
+    # Nombre reservado en Partner Center; el manifiesto debe usarlo exacto.
+    [string]$DisplayName = "Simulador de pagos",
     [string]$Origen = "build\dist\PRPagos",
     [string]$Destino = "build\dist"
 )
@@ -76,7 +78,7 @@ $manifiesto = @"
   IgnorableNamespaces="uap rescap">
   <Identity Name="$(Xml $IdentityName)" Publisher="$(Xml $Publisher)" Version="$Version.0" ProcessorArchitecture="x64" />
   <Properties>
-    <DisplayName>Simulador de pagos</DisplayName>
+    <DisplayName>$(Xml $DisplayName)</DisplayName>
     <PublisherDisplayName>$(Xml $PublisherDisplayName)</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -88,7 +90,7 @@ $manifiesto = @"
   </Resources>
   <Applications>
     <Application Id="SimuladorDePagos" Executable="PRPagos.exe" EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements DisplayName="Simulador de pagos"
+      <uap:VisualElements DisplayName="$(Xml $DisplayName)"
         Description="Control de ingresos y gastos con plan 50/30/20, dashboard y res&#250;menes por correo."
         BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png" />

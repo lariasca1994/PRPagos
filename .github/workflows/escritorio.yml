@@ -156,9 +156,11 @@ jobs:
           STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
           STORE_PUBLISHER: ${{ vars.STORE_PUBLISHER }}
           STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.STORE_PUBLISHER_DISPLAY_NAME }}
+          STORE_DISPLAY_NAME: ${{ vars.STORE_DISPLAY_NAME }}
         run: |
           ./msix.ps1 -Version $env:VERSION -IdentityName $env:STORE_IDENTITY_NAME `
-            -Publisher $env:STORE_PUBLISHER -PublisherDisplayName $env:STORE_PUBLISHER_DISPLAY_NAME
+            -Publisher $env:STORE_PUBLISHER -PublisherDisplayName $env:STORE_PUBLISHER_DISPLAY_NAME `
+            -DisplayName $(if ($env:STORE_DISPLAY_NAME) { $env:STORE_DISPLAY_NAME } else { "Simulador de pagos" })
 
       - name: Guardar paquete para Microsoft Store
         if: ${{ vars.STORE_IDENTITY_NAME != '' && vars.STORE_PUBLISHER != '' && vars.STORE_PUBLISHER_DISPLAY_NAME != '' }}
