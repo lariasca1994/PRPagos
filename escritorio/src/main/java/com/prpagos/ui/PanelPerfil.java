@@ -312,7 +312,7 @@ class PanelPerfil extends JPanel {
     }
 
     static final String TEXTO_RESPALDO = "Guárdalos en un lugar seguro (por ejemplo, impresos o en tu gestor de "
-            + "contraseñas). Cada uno sirve una sola vez para ingresar, recuperar la contraseña o cambiar de "
+            + "contraseñas). Cada uno sirve una sola vez para ingresar o cambiar de "
             + "autenticador si no tienes el teléfono. No se volverán a mostrar.";
 
     /** Llena una rejilla con los 10 códigos (también la usa la portada de acceso). */

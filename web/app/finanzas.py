@@ -232,5 +232,12 @@ def html_resumen(d: DatosResumen, enlace: str) -> str:
     })
 
 
-def html_codigo(nombre: str, codigo: str, minutos: int) -> str:
-    return rellenar(plantilla("codigo.html"), {"nombre": nombre, "codigo": codigo, "minutos": minutos})
+def html_codigo(nombre: str, codigo: str, minutos: int,
+                motivo: str = "Este es tu código de verificación.") -> str:
+    return rellenar(plantilla("codigo.html"),
+                    {"nombre": nombre, "codigo": codigo, "minutos": minutos, "motivo": motivo})
+
+
+def html_enlace(nombre: str, enlace: str, minutos: int) -> str:
+    """Correo de "Olvidé mi contraseña": el enlace de un solo uso para crear una nueva."""
+    return rellenar(plantilla("enlace.html"), {"nombre": nombre, "enlace": enlace, "minutos": minutos})

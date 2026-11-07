@@ -124,7 +124,7 @@ oscuro.
 | # | Campo | Qué escribir | Reglas |
 |:-:|---|---|---|
 | 1 | Correo | Tu correo real; es tu usuario | Forma `nombre@dominio.com` y único |
-| 2 | Nombre completo | Tu nombre | Se usa también para recuperar la contraseña |
+| 2 | Nombre completo | Tu nombre | Aparece en tu perfil y en los correos |
 | 3 | Contraseña | Tu contraseña | Mínimo 8 caracteres |
 | 4 | Repite la contraseña | La misma | Debe coincidir |
 | 5 | Crear cuenta | Botón | Crea la cuenta; sirve en el escritorio y en la web |
@@ -162,7 +162,7 @@ Si ya lo configuraste en la web, este paso no aparece.
 |:-:|---|---|
 | 1 | Código de 6 dígitos | El código actual de tu app (cambia cada 30 segundos) o un código de respaldo |
 | 2 | Ingresar | Abre el **Dashboard** |
-| 3 | Perdí mi teléfono | Te envía un código al correo (ver 4.14) |
+| 3 | Perdí mi autenticador | Siempre visible: te envía un código al correo para configurar un autenticador nuevo (ver 4.14) |
 
 La sesión se cierra sola tras un tiempo **sin uso** o al cumplir su **duración máxima**, con un mensaje que
 explica el motivo, igual que en la web.
@@ -283,32 +283,37 @@ en la auditoría.
 
 Aparecen al activar el autenticador y cada vez que generas nuevos en **Perfil**. Son 10, cada uno
 sirve **una sola vez** y no se vuelven a mostrar: guárdalos impresos o en tu gestor de contraseñas.
-Sirven en el escritorio y en la web para ingresar, recuperar la contraseña o cambiar de
-autenticador.
+Sirven en el escritorio y en la web para ingresar o cambiar de autenticador.
 
-### 4.14 Perdí mi teléfono
+### 4.14 Perdí mi autenticador
 
 ![Código enviado al correo](img/manual-escritorio/12-perdi-telefono.png)
 
 1. Inicia sesión con tu correo y contraseña.
-2. En el paso del código, si tienes un **código de respaldo**, escríbelo y entra.
-3. Si no, pulsa **Perdí mi teléfono**: llega a tu correo un código de 6 dígitos que vence en 15
-   minutos.
-4. Escríbelo en **Código del correo** y pulsa **Verificar y configurar autenticador**: configuras
-   la app en el teléfono nuevo y recibes códigos de respaldo nuevos.
+2. En el paso del código, si tienes un **código de respaldo**, escríbelo y entra directamente.
+3. Si no, pulsa **Perdí mi autenticador** (siempre está visible): llega al correo de tu cuenta un
+   código de 6 dígitos, aunque no hayas activado el código por correo. Vence en pocos minutos y
+   hay un límite de envíos.
+4. Escríbelo en **Código del correo** y pulsa **Verificar y configurar autenticador**: escaneas el
+   QR con la app del teléfono nuevo y recibes **códigos de respaldo nuevos** (los anteriores dejan
+   de servir).
 
-### 4.15 Recuperar la contraseña
+### 4.15 Olvidé mi contraseña
 
-![Formulario de recuperación de contraseña](img/manual-escritorio/13-recuperar.png)
+![Formulario de Olvidé mi contraseña](img/manual-escritorio/13-recuperar.png)
 
-| # | Campo | Qué escribir |
+| # | Campo | Qué hacer |
 |:-:|---|---|
-| 1 | Correo | Tu correo |
-| 2 | Nombre registrado | El nombre completo de tu cuenta (no distingue mayúsculas) |
-| 3 | Código del autenticador o de respaldo | El código actual de tu app o un código de respaldo |
-| 4 | Nueva contraseña | Mínimo 8 caracteres |
-| 5 | Repite la nueva contraseña | La misma |
-| 6 | Actualizar contraseña | Aplica el cambio |
+| 1 | Correo | El correo de tu cuenta |
+| 2 | Enviar enlace | Te envía un enlace de un solo uso que vence en poco tiempo |
+
+Por seguridad, la respuesta es la misma aunque el correo no tenga cuenta. Abre el enlace del
+correo y, en **Crear contraseña nueva**, escribe la nueva contraseña (mínimo 8 caracteres) y
+repítela. Al guardarla se cierran las sesiones abiertas en la web y en el escritorio, el enlace
+deja de servir y tu verificación en dos pasos sigue activa: el próximo ingreso pide el código.
+
+El enlace se abre en el navegador, en la página de la web: es la misma cuenta, así que la
+contraseña nueva sirve enseguida en el escritorio.
 
 ### 4.16 Actualizaciones automáticas
 

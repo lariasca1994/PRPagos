@@ -96,7 +96,8 @@ migración de escritorio a web.
   correo, a elección; en Perfil se agrega el otro método y se elige el preferido
 - **Llaves de acceso (passkeys):** ingreso con Windows Hello, huella, rostro o PIN, en la web
   (Windows, Android y iPhone) y en el escritorio; la misma llave sirve en Edge y en la app del mismo Windows
-- **Códigos de respaldo** y **código por correo** para recuperar el acceso si se pierde el teléfono
+- **Olvidé mi contraseña** con un enlace de un solo uso al correo, y **Perdí mi autenticador** con un
+  código al correo para configurar uno nuevo (los códigos de respaldo también sirven)
 - **Perfil** con datos, plan, categorías, autenticador, códigos de respaldo y contraseña
 - Bloqueo temporal ante intentos fallidos repetidos y registro de eventos de seguridad (ingresos,
   intentos fallidos, bloqueos y cambios de contraseña), depurado a los 15 días
@@ -181,8 +182,9 @@ Cada versión tiene su propio diagrama detallado en
   puede reutilizar y el secreto del autenticador se guarda cifrado.
 - Llaves de acceso (WebAuthn): solo se guarda la clave pública, exigen la verificación del
   dispositivo y solo valen para el sitio de PRPagos.
-- Recuperación sin el teléfono: códigos de respaldo de un solo uso o un código por
-  correo; cada uso queda en la auditoría.
+- Recuperación por correo: enlace de un solo uso para restablecer la contraseña (cierra las
+  sesiones abiertas) y código para configurar un autenticador nuevo; los códigos de respaldo
+  sirven una sola vez. Cada solicitud y cada uso quedan en la auditoría.
 - Bloqueo temporal ante intentos fallidos repetidos y registro de eventos de seguridad,
   depurado a los 15 días.
 - La visibilidad de los registros está limitada por usuario, y el procedimiento
@@ -201,7 +203,7 @@ Cada versión tiene su propio diagrama detallado en
 | ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Corre la versión web (FastAPI + Jinja2) en un contenedor Docker. |
 | ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda cuentas, registros, categorías, planes y versiones del escritorio, y ejecuta los procedimientos almacenados con las reglas de negocio y la auditoría. Conexión por TLS con Wallet. |
 | ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La versión de escritorio corre en el equipo de cada usuario como PRPagos.exe, con Java incluido; pide los datos a la API de la web. |
-| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes semanales y mensuales y los códigos de recuperación (plan gratuito). |
+| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes semanales y mensuales y los códigos y enlaces de recuperación. |
 | ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) | Despliega la web, programa los resúmenes diarios y publica el ejecutable de escritorio en GitHub Releases. |
 | ![qa-evidencia](https://img.shields.io/badge/qa--evidencia-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) | Prueba la versión web automáticamente dos veces al día y publica la evidencia. |
 
@@ -230,7 +232,8 @@ Resumen del flujo, igual en ambas:
 6. **Consultar registros:** filtra, revisa totales, **modifica** o **exporta** a CSV.
 7. **Perfil:** nombre, resúmenes por correo, porcentajes del plan, categorías,
    autenticador, códigos de respaldo y contraseña.
-8. **Perdí mi teléfono:** entra con un código de respaldo o pide un código al correo.
+8. **Perdí mi autenticador:** entra con un código de respaldo o pide un código al correo y
+   configura el autenticador nuevo. **Olvidé mi contraseña:** pide un enlace al correo.
 8. **Llave de acceso:** agrega tu dispositivo en Perfil y luego entra con **Ingresar con llave
    de acceso** (Windows Hello, huella, rostro o PIN), sin contraseña ni código.
 

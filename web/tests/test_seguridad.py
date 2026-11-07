@@ -174,6 +174,6 @@ def test_sesion_vigente_y_renovacion():
 
 
 def test_mensajes_de_cierre():
-    assert set(s.MENSAJES_CIERRE) == {"inactividad", "maximo", "suspendida", "salir"}
+    assert set(s.MENSAJES_CIERRE) == {"inactividad", "maximo", "suspendida", "clave", "salir"}
     assert s.motivo_cierre(None) is None
     assert s.motivo_cierre("no-es-un-token") is None

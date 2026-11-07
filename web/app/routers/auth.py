@@ -7,8 +7,10 @@ aquí solo se muestran las pantallas y se guardan las cookies.
   2a. /login/codigo     código TOTP de 6 dígitos (o uno de respaldo).
   2b. /login/configurar QR + primer código, si todavía no hay autenticador; al
                         activarlo se entregan 10 códigos de respaldo.
-  Perdí mi teléfono:    /login/perdi-telefono envía un código al correo y
+  Perdí mi autenticador: /login/perdi-autenticador envía un código al correo y
                         /login/correo lo verifica para configurar uno nuevo.
+  Olvidé mi contraseña: /recuperar envía un enlace de un solo uso al correo y
+                        /restablecer?token=... pide la contraseña nueva.
   Llave de acceso:      /login/llave (WebAuthn) reemplaza los dos pasos.
 Entre un paso y otro solo existe la cookie "acceso" (JWT de 10 minutos, tipo
 "parcial"); la cookie "sesion" se emite únicamente al final.
@@ -24,6 +26,7 @@ from .. import llaves
 from ..seguridad import (
     MENSAJES_CIERRE,
     MINUTOS_CODIGO_CORREO,
+    MINUTOS_ENLACE,
     crear_token,
     crear_token_parcial,
     descifrar_o_none,
@@ -38,6 +41,7 @@ templates = Jinja2Templates(directory="app/templates")
 COOKIE_SESION = "sesion"
 COOKIE_ACCESO = "acceso"
 COOKIE_RETO = "reto_llave"
+COOKIE_RESTABLECER = "restablecer"
 
 
 def _redirigir(ruta: str, mensaje: str | None = None, exito: bool = False) -> RedirectResponse:
@@ -227,16 +231,16 @@ def procesar_configurar(request: Request, codigo: str = Form(...)):
     return _abrir_sesion(cred, pantalla)
 
 
-# ─────────────────── Perdí mi teléfono (código por correo) ───────────────────
+# ─────────────────── Perdí mi autenticador (código por correo) ───────────────────
 
 
-@router.post("/login/perdi-telefono")
-def perdi_telefono(request: Request):
-    datos = _parcial(request, "codigo")
+@router.post("/login/perdi-autenticador")
+def perdi_autenticador(request: Request):
+    datos = _parcial(request, "codigo", "codigo_correo")
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
     try:
-        cred = acceso.perdi_telefono(datos["usuario_id"])
+        cred = acceso.perdi_autenticador(datos["usuario_id"])
     except ErrorServicio as e:
         destino = "/login" if e.mensaje == acceso.MENSAJE_BLOQUEO else "/login/codigo"
         return _redirigir(destino, e.mensaje)
@@ -305,10 +309,38 @@ def form_recuperar(request: Request):
 
 
 @router.post("/recuperar")
-def procesar_recuperar(correo: str = Form(...), nombre_registrado: str = Form(...), codigo: str = Form(""),
-                       nueva_contrasena: str = Form(...), confirmacion: str = Form(...)):
+def procesar_recuperar(correo: str = Form(...)):
+    """Paso 1: siempre el mismo mensaje, exista o no la cuenta."""
     try:
-        mensaje = acceso.recuperar(correo, nombre_registrado, codigo, nueva_contrasena, confirmacion)
+        return _redirigir("/recuperar", acceso.solicitar_restablecer(correo), exito=True)
     except ErrorServicio as e:
         return _redirigir("/recuperar", e.mensaje)
-    return _redirigir("/login", mensaje, exito=True)
+
+
+@router.get("/restablecer")
+def form_restablecer(request: Request, token: str | None = None):
+    """Paso 2 (desde el enlace del correo, también si se pidió en el escritorio). El
+    token pasa a una cookie y se quita de la dirección, para que no quede en el
+    historial del navegador."""
+    if token is not None:
+        respuesta = _redirigir("/restablecer")
+        respuesta.set_cookie(COOKIE_RESTABLECER, token[:100], httponly=True, secure=True, samesite="lax",
+                             max_age=MINUTOS_ENLACE * 60, path="/restablecer")
+        return respuesta
+    vigente = acceso.enlace_vigente(request.cookies.get(COOKIE_RESTABLECER, ""))
+    contexto = _contexto(request, vigente=vigente)
+    if not vigente and not contexto["error"]:
+        contexto["error"] = acceso.MENSAJE_ENLACE_INVALIDO
+    return templates.TemplateResponse(request, "restablecer.html", contexto)
+
+
+@router.post("/restablecer")
+def procesar_restablecer(request: Request, nueva_contrasena: str = Form(...), confirmacion: str = Form(...)):
+    try:
+        mensaje = acceso.restablecer(request.cookies.get(COOKIE_RESTABLECER, ""), nueva_contrasena, confirmacion)
+    except ErrorServicio as e:
+        return _redirigir("/restablecer", e.mensaje)
+    respuesta = _redirigir("/login", mensaje, exito=True)
+    respuesta.delete_cookie(COOKIE_RESTABLECER, path="/restablecer")
+    respuesta.delete_cookie(COOKIE_SESION)
+    return respuesta

@@ -53,7 +53,7 @@ public class VentanaLogin extends JFrame {
     private final JTextField codigo = Ui.campoCodigo();
     private final JTextArea subtituloCodigo = Ui.suave("");
     private final Ui.Aviso avisoCodigo = new Ui.Aviso();
-    private final JButton enlacePerdi = Ui.enlace("Perdí mi teléfono", e -> perdiTelefono());
+    private final JButton enlacePerdi = Ui.enlace("Perdí mi autenticador", e -> perdiAutenticador());
     private final JButton enlaceCambiar = Ui.enlace("Usar un código por correo", e -> cambiarMetodo());
     // Primer ingreso: elegir el método de la verificación en dos pasos
     private final JTextArea subtituloElegir = Ui.suave("");
@@ -73,14 +73,10 @@ public class VentanaLogin extends JFrame {
     private final JPasswordField regClave = Ui.clave();
     private final JPasswordField regConfirmacion = Ui.clave();
     private final Ui.Aviso avisoRegistro = new Ui.Aviso();
-    // Recuperación
+    // Olvidé mi contraseña (solo el correo: llega un enlace que abre la página web para crear la nueva)
     private final JTextField recCorreo = Ui.campo("nombre@dominio.com");
-    private final JTextField recNombre = Ui.campo(null);
-    private final JTextField recCodigo = Ui.campoCodigo();
-    private final JPasswordField recClave = Ui.clave();
-    private final JPasswordField recConfirmacion = Ui.clave();
     private final Ui.Aviso avisoRecuperar = new Ui.Aviso();
-    // Perdí mi teléfono (código por correo)
+    // Perdí mi autenticador (código por correo)
     private final JTextField codigoCorreo = Ui.campoCodigo();
     private final JTextArea subtituloCorreo = Ui.suave("");
     private final Ui.Aviso avisoCorreo = new Ui.Aviso();
@@ -143,7 +139,7 @@ public class VentanaLogin extends JFrame {
             lado.setBackground(Tema.c().accesoFondo());
             // En la portada los campos van sobre blanco (.formulario-acceso input).
             for (JTextField t : new JTextField[] {correo, contrasena, codigo, codigoConfig, regCorreo, regNombre,
-                regClave, regConfirmacion, recCorreo, recNombre, recCodigo, recClave, recConfirmacion,
+                regClave, regConfirmacion, recCorreo,
                 codigoCorreo, codigoActivar}) {
                 t.setBackground(Tema.c().superficie());
             }
@@ -321,7 +317,7 @@ public class VentanaLogin extends JFrame {
                 enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null)), enlacesCodigo()));
     }
 
-    /** "Perdí mi teléfono" (solo app) o "Usar el otro método" (con los dos activos), como en la web. */
+    /** "Usar el otro método" (con los dos activos) y "Perdí mi autenticador" (siempre), como en la web. */
     private JPanel enlacesCodigo() {
         JPanel p = Ui.fila(12);
         p.add(enlaceCambiar);
@@ -354,7 +350,7 @@ public class VentanaLogin extends JFrame {
         JButton verificar = botonAncho(Ui.primario("Verificar y configurar autenticador", e -> verificarCodigoCorreo()));
         codigoCorreo.addActionListener(e -> verificarCodigoCorreo());
         return formulario(
-                encabezado("Perdí mi teléfono", "Revisa tu correo", subtituloCorreo),
+                encabezado("Perdí mi autenticador", "Revisa tu correo", subtituloCorreo),
                 avisoCorreo,
                 Ui.etiqueta("Código del correo"), codigoCorreo,
                 (JComponent) Ui.espacio(20), verificar,
@@ -414,20 +410,14 @@ public class VentanaLogin extends JFrame {
     }
 
     private JPanel formRecuperar() {
-        JButton actualizar = botonAncho(Ui.primario("Actualizar contraseña", e -> recuperar()));
-        JTextArea ayuda = Ui.suave("Si todavía no configuraste tu autenticador, déjalo vacío.");
-        ayuda.setFont(ayuda.getFont().deriveFont(12f));
+        JButton enviar = botonAncho(Ui.primario("Enviar enlace", e -> recuperar()));
+        recCorreo.addActionListener(e -> recuperar());
         return formulario(
-                encabezado("Recuperar acceso", "Recuperar contraseña", Ui.suave(
-                        "Confirma tu correo, el nombre con el que te registraste y un código de tu "
-                        + "autenticador (o de respaldo) para definir una contraseña nueva.")),
+                encabezado("Recuperar acceso", "Olvidé mi contraseña", Ui.suave(
+                        "Escribe el correo de tu cuenta y te enviaremos un enlace para crear una contraseña nueva.")),
                 avisoRecuperar,
                 Ui.etiqueta("Correo"), recCorreo,
-                Ui.etiqueta("Nombre registrado"), recNombre,
-                Ui.etiqueta("Código del autenticador o de respaldo"), recCodigo, ayuda,
-                Ui.etiqueta("Nueva contraseña (mínimo 8 caracteres)"), recClave,
-                Ui.etiqueta("Repite la nueva contraseña"), recConfirmacion,
-                (JComponent) Ui.espacio(20), actualizar,
+                (JComponent) Ui.espacio(20), enviar,
                 enlaces(Ui.enlace("Volver a ingresar", e -> reiniciar(null))));
     }
 
@@ -480,7 +470,6 @@ public class VentanaLogin extends JFrame {
                             + Json.texto(paso, "correo") + ").");
             enlaceCambiar.setText(porCorreo ? "Usar la app autenticadora" : "Usar un código por correo");
             enlaceCambiar.setVisible(ambos);
-            enlacePerdi.setVisible(!porCorreo && !Json.logico(metodos, "correo"));
             codigo.setText("");
             mostrar("codigo");
             if (!mensaje.isEmpty()) {
@@ -609,12 +598,15 @@ public class VentanaLogin extends JFrame {
                 });
     }
 
-    // ─────────────────── Perdí mi teléfono (código por correo) ───────────────────
+    // ─────────────────── Perdí mi autenticador (código por correo) ───────────────────
 
-    /** Solo después de la contraseña: el servidor envía un código de 6 dígitos al correo. */
-    private void perdiTelefono() {
+    /**
+     * Solo después de la contraseña: el servidor envía un código de 6 dígitos al correo de la
+     * cuenta (aunque el método correo no esté activo); con él se configura un autenticador nuevo.
+     */
+    private void perdiAutenticador() {
         String token = tokenAcceso;
-        Tarea.ejecutar(this, () -> Api.post("/api/acceso/perdi-telefono", Json.de("token", token)), respuesta -> {
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/perdi-autenticador", Json.de("token", token)), respuesta -> {
             tokenAcceso = Json.texto(respuesta, "token");
             subtituloCorreo.setText(Json.texto(respuesta, "mensaje"));
             codigoCorreo.setText("");
@@ -678,21 +670,18 @@ public class VentanaLogin extends JFrame {
 
     // ───────────────────────── Recuperación ─────────────────────────
 
+    /**
+     * "Olvidé mi contraseña": el servidor envía un enlace de un solo uso al correo y responde
+     * siempre lo mismo. El enlace abre la página web para crear la contraseña nueva (la misma
+     * cuenta y la misma API, así web y escritorio quedan iguales).
+     */
     private void recuperar() {
         String email = recCorreo.getText().trim();
-        String nombre = recNombre.getText();
-        String textoCodigo = recCodigo.getText();
-        String clave = new String(recClave.getPassword());
-        String confirmacion = new String(recConfirmacion.getPassword());
-        Tarea.ejecutar(this, () -> Api.post("/api/acceso/recuperar", Json.de("correo", email,
-                "nombre_registrado", nombre, "codigo", textoCodigo, "nueva", clave, "confirmacion", confirmacion)),
+        Tarea.ejecutar(this, () -> Api.post("/api/acceso/recuperar", Json.de("correo", email)),
                 respuesta -> {
-                    for (JTextField t : new JTextField[] {recNombre, recCodigo, recClave, recConfirmacion}) {
-                        t.setText("");
-                    }
                     correo.setText(email);
-                    reiniciar(Json.texto(respuesta, "mensaje"));
-                }, e -> avisoRecuperar.error(Ui.mensajeError("actualizar la contraseña").apply(e)));
+                    avisoRecuperar.exito(Json.texto(respuesta, "mensaje"));
+                }, e -> avisoRecuperar.error(Ui.mensajeError("enviar el enlace").apply(e)));
     }
 
     public static void main(String[] args) {

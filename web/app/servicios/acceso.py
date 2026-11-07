@@ -1,6 +1,6 @@
 """
 Acceso a las cuentas: ingreso en dos pasos, configuración del autenticador,
-"perdí mi teléfono", llaves de acceso, registro y recuperación de contraseña.
+"perdí mi autenticador", llaves de acceso, registro y "olvidé mi contraseña".
 Los mismos pasos y mensajes para la web y el escritorio.
 
 La verificación en dos pasos es obligatoria y cada cuenta elige el método:
@@ -8,22 +8,27 @@ app autenticadora o código por correo (ver app/dos_pasos.py). Sin método
 configurado, después de la contraseña se elige; con los dos activos, se pide
 el preferido y se puede usar el otro.
 
-Cinco intentos fallidos seguidos (contraseña, código o datos de
-recuperación) bloquean la cuenta 15 minutos: lo decide la base.
+Cinco intentos fallidos seguidos (contraseña o código) bloquean la cuenta
+15 minutos: lo decide la base.
 """
+import logging
 from dataclasses import dataclass
 
 from .. import correo as servicio_correo
 from .. import dos_pasos, finanzas, llaves, repositorio
+from ..config import settings
 from ..qr import qr_svg
 from ..seguridad import (
     MINUTOS_CODIGO_CORREO,
+    MINUTOS_ENLACE,
     normalizar_respaldo,
     correo_valido,
     generar_codigo_correo,
     generar_codigos_respaldo,
     generar_secreto_totp,
+    generar_token_enlace,
     hash_corto,
+    hash_enlace,
     hash_password,
     cifrar_secreto,
     necesita_rehash,
@@ -42,6 +47,14 @@ MENSAJE_EXPIRADO = "Tu ingreso expiró; vuelve a escribir tu contraseña"
 MENSAJE_TOPE_CORREO = "Ya enviamos 3 códigos en los últimos 10 minutos. Usa el último o espera un momento."
 MAX_ENVIOS_CORREO = 3
 MINUTOS_TOPE_CORREO = 10
+# "Olvidé mi contraseña": siempre la misma respuesta, exista o no la cuenta.
+MENSAJE_ENLACE_ENVIADO = ("Si el correo corresponde a una cuenta, te enviamos un enlace para crear una "
+                          f"contraseña nueva. Vence en {MINUTOS_ENLACE} minutos y sirve una sola vez.")
+MENSAJE_ENLACE_INVALIDO = "El enlace no es válido o ya venció. Pide uno nuevo desde «Olvidé mi contraseña»."
+MENSAJE_CLAVE_RESTABLECIDA = ("Contraseña actualizada. Cerramos las sesiones abiertas: "
+                              "ingresa con tu contraseña nueva.")
+MOTIVO_PERDI_AUTENTICADOR = "Pediste configurar un autenticador nuevo porque perdiste el anterior."
+logger = logging.getLogger("prpagos.acceso")
 # Con un correo inexistente se verifica contra este hash igual, para que el
 # tiempo de respuesta no delate qué correos tienen cuenta.
 _HASH_RELLENO = hash_password("relleno-para-igualar-tiempos")
@@ -100,7 +113,7 @@ def ingresar(usuario: str, contrasena: str) -> PasoIngreso:
 
 def _paso_codigo(cred: dict, metodo: str) -> PasoIngreso:
     if metodo == dos_pasos.CORREO:
-        enviar_codigo(cred, "Tu código para ingresar a PRPagos")
+        enviar_codigo(cred, "Tu código para ingresar al Simulador de pagos")
         return PasoIngreso("codigo_correo", cred, mensaje=texto_codigo_enviado(cred["usuario"]))
     return PasoIngreso("codigo", cred)
 
@@ -117,7 +130,7 @@ def elegir_metodo(usuario_id: int, metodo: str) -> PasoIngreso:
     if metodo == dos_pasos.APP:
         return PasoIngreso("configurar", cred, generar_secreto_totp())
     if metodo == dos_pasos.CORREO:
-        enviar_codigo(cred, "Activa tu verificación en dos pasos de PRPagos")
+        enviar_codigo(cred, "Activa tu verificación en dos pasos del Simulador de pagos")
         return PasoIngreso("activar_correo", cred, mensaje=texto_codigo_enviado(cred["usuario"]))
     raise ErrorServicio("Elige la app autenticadora o el código por correo")
 
@@ -131,7 +144,7 @@ def cambiar_metodo(usuario_id: int, metodo: str) -> PasoIngreso:
     return _paso_codigo(cred, metodo)
 
 
-def enviar_codigo(cred: dict, asunto: str) -> None:
+def enviar_codigo(cred: dict, asunto: str, motivo: str | None = None) -> None:
     """Código de 6 dígitos al correo de la cuenta: vence en 15 minutos, sirve
     una vez y se envían como máximo 3 cada 10 minutos."""
     if repositorio.envios_codigo_recientes(cred["usuario_id"], MINUTOS_TOPE_CORREO) >= MAX_ENVIOS_CORREO:
@@ -139,11 +152,10 @@ def enviar_codigo(cred: dict, asunto: str) -> None:
     codigo = generar_codigo_correo()
     repositorio.guardar_codigo_correo(cred["usuario_id"], hash_corto(codigo), MINUTOS_CODIGO_CORREO)
     repositorio.registrar_envio_codigo(cred["usuario_id"], asunto)
+    html = (finanzas.html_codigo(cred["nombre"], codigo, MINUTOS_CODIGO_CORREO, motivo) if motivo
+            else finanzas.html_codigo(cred["nombre"], codigo, MINUTOS_CODIGO_CORREO))
     try:
-        servicio_correo.enviar(
-            cred["usuario"], cred["nombre"], asunto,
-            finanzas.html_codigo(cred["nombre"], codigo, MINUTOS_CODIGO_CORREO),
-        )
+        servicio_correo.enviar(cred["usuario"], cred["nombre"], asunto, html)
     except servicio_correo.ErrorCorreo as error:
         raise ErrorServicio(
             "No se pudo enviar el correo. Usa un código de respaldo o inténtalo más tarde.") from error
@@ -201,12 +213,14 @@ def nuevos_codigos_respaldo(usuario_id: int) -> list[str]:
     return codigos
 
 
-def perdi_telefono(usuario_id: int) -> dict:
-    """Envía un código de 6 dígitos al correo de la cuenta (solo tras la contraseña)."""
+def perdi_autenticador(usuario_id: int) -> dict:
+    """"Perdí mi autenticador" (solo tras la contraseña): envía un código de 6 dígitos
+    al correo de la cuenta aunque el método correo no esté activado. Con él se
+    configura un autenticador nuevo y se entregan códigos de respaldo nuevos."""
     cred = repositorio.obtener_credenciales(usuario_id=usuario_id)
     if cred is None or cred["bloqueada"]:
         raise ErrorServicio(MENSAJE_BLOQUEO)
-    enviar_codigo(cred, "Código para recuperar tu acceso a PRPagos")
+    enviar_codigo(cred, "Código para configurar un autenticador nuevo", MOTIVO_PERDI_AUTENTICADOR)
     return cred
 
 
@@ -266,25 +280,61 @@ def registrar(usuario: str, nombre: str, contrasena: str, confirmacion: str) -> 
     return "Cuenta creada. Al ingresar configurarás tu verificación en dos pasos."
 
 
-def recuperar(correo: str, nombre_registrado: str, codigo: str, nueva: str, confirmacion: str) -> str:
-    """Con el autenticador configurado se exige su código (o uno de respaldo):
-    sin él, saber el correo y el nombre bastaría para tomar la cuenta."""
+def solicitar_restablecer(correo: str) -> str:
+    """"Olvidé mi contraseña", paso 1: si el correo tiene una cuenta, le envía un enlace
+    de un solo uso que vence en 30 minutos (en la base solo queda su huella). La
+    respuesta es siempre la misma, exista o no la cuenta, y el tope de envíos es el
+    mismo de los códigos por correo."""
     correo = (correo or "").strip()
-    error_generico = "Los datos no coinciden con una cuenta"
-    cred = repositorio.obtener_credenciales(usuario=correo) if correo_valido(correo) else None
+    if not correo_valido(correo):
+        raise ErrorServicio("Escribe un correo válido (por ejemplo, nombre@dominio.com)")
+    cred = repositorio.obtener_credenciales(usuario=correo)
+    if cred is None or cred["bloqueada"]:
+        return MENSAJE_ENLACE_ENVIADO
+    if repositorio.envios_codigo_recientes(cred["usuario_id"], MINUTOS_TOPE_CORREO) >= MAX_ENVIOS_CORREO:
+        return MENSAJE_ENLACE_ENVIADO
+    token = generar_token_enlace()
+    repositorio.guardar_codigo_correo(cred["usuario_id"], hash_enlace(token), MINUTOS_ENLACE)
+    repositorio.registrar_evento(cred["usuario_id"], "RECUPERA_SOLICITA", "Enlace para restablecer la contraseña")
+    enlace = f"{settings.url_publica.rstrip('/')}/restablecer?token={token}"
+    try:
+        servicio_correo.enviar(cred["usuario"], cred["nombre"], "Restablece tu contraseña del Simulador de pagos",
+                               finanzas.html_enlace(cred["nombre"], enlace, MINUTOS_ENLACE))
+    except servicio_correo.ErrorCorreo:
+        # No se avisa a quien lo pidió: la respuesta no puede delatar si la cuenta existe.
+        logger.warning("No se pudo enviar el enlace para restablecer la contraseña")
+    return MENSAJE_ENLACE_ENVIADO
+
+
+def _cuenta_del_enlace(token: str) -> int | None:
+    token = (token or "").strip()
+    if not 32 <= len(token) <= 100:
+        return None
+    return repositorio.cuenta_por_enlace(hash_enlace(token))
+
+
+def enlace_vigente(token: str) -> bool:
+    """El enlace existe, no venció y no se ha usado (no lo gasta)."""
+    return _cuenta_del_enlace(token) is not None
+
+
+def restablecer(token: str, nueva: str, confirmacion: str) -> str:
+    """"Olvidé mi contraseña", paso 2: la contraseña nueva. Gasta el enlace, cierra las
+    sesiones abiertas (web y escritorio, ver dependencias.py) y deja intacta la
+    verificación en dos pasos."""
+    usuario_id = _cuenta_del_enlace(token)
+    cred = repositorio.obtener_credenciales(usuario_id=usuario_id) if usuario_id else None
     if cred is None:
-        raise ErrorServicio(error_generico)
+        raise ErrorServicio(MENSAJE_ENLACE_INVALIDO)
     if cred["bloqueada"]:
         raise ErrorServicio(MENSAJE_BLOQUEO)
-    if (cred["nombre"] or "").strip().lower() != (nombre_registrado or "").strip().lower():
-        repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_RECUPERAR")
-        raise ErrorServicio(error_generico)
-    if dos_pasos.de_cuenta(cred)["configurado"] and not verificar_segundo_factor(cred, codigo or "", "RECUPERAR_TOTP"):
-        raise ErrorServicio(error_generico)
-    motivo = problema_contrasena(nueva)
+    motivo = problema_contrasena(nueva or "")
     if motivo:
         raise ErrorServicio(motivo)
     if nueva != confirmacion:
         raise ErrorServicio("Las contraseñas no coinciden")
+    if not repositorio.usar_enlace(cred["usuario_id"], hash_enlace(token.strip())):
+        raise ErrorServicio(MENSAJE_ENLACE_INVALIDO)
     repositorio.cambiar_password(cred["usuario_id"], hash_password(nueva), "RECUPERAR_CLAVE")
-    return "Contraseña actualizada, ya puedes ingresar"
+    repositorio.reiniciar_intentos(cred["usuario_id"])
+    return MENSAJE_CLAVE_RESTABLECIDA

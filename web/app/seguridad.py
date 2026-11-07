@@ -221,6 +221,22 @@ def generar_codigo_correo() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
+# ─────────────── Olvidé mi contraseña (enlace por correo) ───────────────
+
+MINUTOS_ENLACE = 30
+
+
+def generar_token_enlace() -> str:
+    """Token aleatorio del enlace para restablecer la contraseña (va solo en el correo)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_enlace(token: str) -> str:
+    """Huella con la que se guarda el token del enlace: con prefijo propio, para que
+    nunca coincida con la de un código de 6 dígitos."""
+    return hash_corto("enlace:" + token)
+
+
 # ─────────────────── Cifrado del secreto TOTP ───────────────────
 
 _PREFIJO_CIFRADO = "v1:"
@@ -255,6 +271,7 @@ MENSAJES_CIERRE = {
     "inactividad": "Tu sesión se cerró tras 6 horas de inactividad. Ingresa de nuevo.",
     "maximo": "Tu sesión se cerró al cumplir 8 horas. Ingresa de nuevo.",
     "suspendida": "Tu sesión se cerró porque tu cuenta ya no está activa.",
+    "clave": "Tu sesión se cerró porque se restableció la contraseña de tu cuenta. Ingresa de nuevo.",
     "salir": "Cerraste sesión.",
 }
 # Entre la contraseña y el código TOTP (o la configuración del autenticador).

@@ -1,0 +1,23 @@
+{% extends "acceso_base.html" %}
+{% block titulo %}Crear contraseña nueva - Simulador de pagos{% endblock %}
+{% block paso %}Recuperar acceso{% endblock %}
+{% block titulo_form %}Crear contraseña nueva{% endblock %}
+{% block subtitulo %}Al guardarla se cierran las sesiones abiertas en la web y en el escritorio. Tu verificación en dos pasos sigue activa.{% endblock %}
+{% block formulario %}
+{% if vigente %}
+<form method="post" action="/restablecer">
+    <label for="nueva_contrasena">Nueva contraseña (mínimo 8 caracteres)</label>
+    <input type="password" id="nueva_contrasena" name="nueva_contrasena" autocomplete="new-password" minlength="8" required autofocus>
+
+    <label for="confirmacion">Repite la nueva contraseña</label>
+    <input type="password" id="confirmacion" name="confirmacion" autocomplete="new-password" minlength="8" required>
+
+    <button type="submit" class="boton">Guardar contraseña</button>
+</form>
+{% else %}
+<a class="boton boton-ancho" href="/recuperar">Pedir un enlace nuevo</a>
+{% endif %}
+{% endblock %}
+{% block enlaces %}
+<a href="/login">Volver a ingresar</a>
+{% endblock %}

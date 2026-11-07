@@ -143,7 +143,7 @@ def enviar_codigo_perfil(usuario_id: int) -> str:
     cred = _cuenta(usuario_id)
     if not dos_pasos.de_cuenta(cred)["correo"]:
         raise ErrorServicio("Tu cuenta no usa el código por correo")
-    enviar_codigo(cred, "Tu código para confirmar un cambio en PRPagos")
+    enviar_codigo(cred, "Tu código para confirmar un cambio en el Simulador de pagos")
     return texto_codigo_enviado(cred["usuario"])
 
 
@@ -152,7 +152,7 @@ def iniciar_agregar_correo(usuario_id: int) -> str:
     cred = _cuenta(usuario_id)
     if dos_pasos.de_cuenta(cred)["correo"]:
         raise ErrorServicio("El código por correo ya está activo")
-    enviar_codigo(cred, "Activa el código por correo en PRPagos")
+    enviar_codigo(cred, "Activa el código por correo en el Simulador de pagos")
     return texto_codigo_enviado(cred["usuario"])
 
 

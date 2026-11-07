@@ -219,7 +219,7 @@ del repositorio.
 |---|---|
 | ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Corre la app FastAPI en un contenedor Docker construido con el `Dockerfile` de la raíz. |
 | ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda cuentas, registros, categorías y planes, y ejecuta los procedimientos con las reglas y la auditoría. Conexión por TLS con el Wallet. |
-| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes y los códigos de recuperación (plan gratuito). |
+| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Envía los resúmenes y los códigos y enlaces de recuperación. |
 | ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) | Despliega la app en cada push a `main` y dispara cada día la tarea de los resúmenes. |
 | ![qa-evidencia](https://img.shields.io/badge/qa--evidencia-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) | Prueba la demo automáticamente dos veces al día y publica la evidencia. |
 
@@ -266,10 +266,11 @@ gastos presupuestados vs. reales de los 12 meses, distribución frente al plan
 
 - **Perfil:** nombre y resúmenes por correo, porcentajes del plan, categorías
   propias, cambio de autenticador, códigos de respaldo nuevos, llaves de acceso y contraseña.
-- **Perdí mi teléfono** (paso del código): usa un código de respaldo o pide un
-  código al correo para configurar un autenticador nuevo.
-- **Olvidé mi contraseña** (portada): correo, nombre registrado, un código del
-  autenticador o de respaldo y la nueva contraseña dos veces.
+- **Perdí mi autenticador** (paso del código, siempre visible): usa un código de respaldo o pide
+  un código al correo para configurar un autenticador nuevo y recibir códigos de respaldo nuevos.
+- **Olvidé mi contraseña** (portada): solo el correo; llega un enlace de un solo uso que abre
+  la página web para escribir la contraseña nueva. Al guardarla se cierran las sesiones abiertas
+  y la verificación en dos pasos sigue activa.
 
 ### 5.5 Instalar la app (PWA)
 

@@ -126,10 +126,10 @@ def configurar(datos: dict = Body(...)):
     return _sesion(cred, codigos=codigos)
 
 
-@router.post("/acceso/perdi-telefono")
-def perdi_telefono(datos: dict = Body(...)):
-    token = _parcial(datos, "codigo")
-    cred = acceso.perdi_telefono(token["usuario_id"])
+@router.post("/acceso/perdi-autenticador")
+def perdi_autenticador(datos: dict = Body(...)):
+    token = _parcial(datos, "codigo", "codigo_correo")
+    cred = acceso.perdi_autenticador(token["usuario_id"])
     return {"mensaje": acceso.texto_codigo_enviado(cred["usuario"]),
             "token": crear_token_parcial(cred["usuario_id"], cred["usuario"], cred["nombre"], "correo")}
 
@@ -153,9 +153,9 @@ def registro(datos: dict = Body(...)):
 
 @router.post("/acceso/recuperar")
 def recuperar(datos: dict = Body(...)):
-    return {"mensaje": acceso.recuperar(_texto(datos, "correo"), _texto(datos, "nombre_registrado"),
-                                        _texto(datos, "codigo"), _texto(datos, "nueva"),
-                                        _texto(datos, "confirmacion"))}
+    """"Olvidé mi contraseña": envía el enlace; la contraseña nueva se define en la
+    página web /restablecer que abre ese enlace (la misma para web y escritorio)."""
+    return {"mensaje": acceso.solicitar_restablecer(_texto(datos, "correo"))}
 
 
 def _identidad_sitio() -> dict:

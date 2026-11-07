@@ -18,9 +18,7 @@
     <button type="submit" class="enlace-boton">{% if metodo == "correo" %}Usar la app autenticadora{% else %}Usar un código por correo{% endif %}</button>
 </form>
 {% endif %}
-{% if metodo == "app" and not metodos.correo %}
-<form method="post" action="/login/perdi-telefono" class="en-linea">
-    <button type="submit" class="enlace-boton">Perdí mi teléfono</button>
+<form method="post" action="/login/perdi-autenticador" class="en-linea">
+    <button type="submit" class="enlace-boton">Perdí mi autenticador</button>
 </form>
-{% endif %}
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends "acceso_base.html" %}
 {% block titulo %}Código enviado a tu correo - Simulador de pagos{% endblock %}
-{% block paso %}{% if activar %}Acceso · Código por correo{% else %}Perdí mi teléfono{% endif %}{% endblock %}
+{% block paso %}{% if activar %}Acceso · Código por correo{% else %}Perdí mi autenticador{% endif %}{% endblock %}
 {% block titulo_form %}Revisa tu correo{% endblock %}
 {% block subtitulo %}Te enviamos un código de 6 dígitos a {{ correo }}. Vence en {{ minutos }} minutos.{% endblock %}
 {% block formulario %}

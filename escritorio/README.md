@@ -229,10 +229,11 @@ cambiar entre tema claro y oscuro.
 
 ### 5.4 Recuperar el acceso
 
-- **Perdí mi teléfono** (paso del código): un código de respaldo, o un código
-  al correo para configurar un autenticador nuevo.
-- **Olvidé mi contraseña** (portada): correo, nombre registrado, un código del
-  autenticador o de respaldo y la nueva contraseña dos veces.
+- **Perdí mi autenticador** (paso del código, siempre visible): un código de respaldo, o un código
+  al correo para configurar un autenticador nuevo y recibir códigos de respaldo nuevos.
+- **Olvidé mi contraseña** (portada): solo el correo; llega un enlace de un solo uso que abre
+  la página web para escribir la contraseña nueva. Al guardarla se cierran las sesiones abiertas
+  y la verificación en dos pasos sigue activa.
 
 ---
 

@@ -103,7 +103,7 @@ elección.
 | # | Campo | Qué escribir | Reglas |
 |:-:|---|---|---|
 | 1 | Correo | Tu correo real; es tu usuario | Forma `nombre@dominio.com` y único |
-| 2 | Nombre completo | Tu nombre | Se usa también para recuperar la contraseña |
+| 2 | Nombre completo | Tu nombre | Aparece en tu perfil y en los correos |
 | 3 | Contraseña | Tu contraseña | Mínimo 8 caracteres |
 | 4 | Repite la contraseña | La misma | Debe coincidir |
 | 5 | Crear cuenta | Botón | Crea la cuenta; sirve en la web y en el escritorio |
@@ -141,7 +141,7 @@ Si ya lo configuraste en la versión de escritorio, este paso no aparece.
 |:-:|---|---|
 | 1 | Código de 6 dígitos | El código actual de tu app (cambia cada 30 segundos) o un código de respaldo |
 | 2 | Ingresar | Abre el **Dashboard** |
-| 3 | Perdí mi teléfono | Te envía un código al correo (ver 4.13) |
+| 3 | Perdí mi autenticador | Siempre visible: te envía un código al correo para configurar un autenticador nuevo (ver 4.13) |
 
 La sesión se cierra sola tras un tiempo **sin uso** o al cumplir su **duración máxima**, con un mensaje que
 explica el motivo.
@@ -266,32 +266,34 @@ registros.
 
 Aparecen al activar el autenticador y cada vez que generas nuevos en **Perfil**. Son 10, cada uno
 sirve **una sola vez** y no se vuelven a mostrar: guárdalos impresos o en tu gestor de contraseñas.
-Sirven para ingresar (en lugar del código de 6 dígitos), recuperar la contraseña o cambiar de
-autenticador.
+Sirven para ingresar (en lugar del código de 6 dígitos) o cambiar de autenticador.
 
-### 4.13 Perdí mi teléfono
+### 4.13 Perdí mi autenticador
 
 ![Código enviado al correo](img/manual-web/12-perdi-telefono.png)
 
 1. Inicia sesión con tu correo y contraseña.
-2. En el paso del código, si tienes un **código de respaldo**, escríbelo y entra.
-3. Si no, pulsa **Perdí mi teléfono**: llega a tu correo un código de 6 dígitos que vence en 15
-   minutos.
-4. Escríbelo en **Código del correo** y pulsa **Verificar y configurar autenticador**: configuras
-   la app en el teléfono nuevo y recibes códigos de respaldo nuevos.
+2. En el paso del código, si tienes un **código de respaldo**, escríbelo y entra directamente.
+3. Si no, pulsa **Perdí mi autenticador** (siempre está visible): llega al correo de tu cuenta un
+   código de 6 dígitos, aunque no hayas activado el código por correo. Vence en pocos minutos y
+   hay un límite de envíos.
+4. Escríbelo en **Código del correo** y pulsa **Verificar y configurar autenticador**: escaneas el
+   QR con la app del teléfono nuevo y recibes **códigos de respaldo nuevos** (los anteriores dejan
+   de servir).
 
-### 4.14 Recuperar la contraseña
+### 4.14 Olvidé mi contraseña
 
-![Formulario de recuperación de contraseña](img/manual-web/13-recuperar.png)
+![Formulario de Olvidé mi contraseña](img/manual-web/13-recuperar.png)
 
-| # | Campo | Qué escribir |
+| # | Campo | Qué hacer |
 |:-:|---|---|
-| 1 | Correo | Tu correo |
-| 2 | Nombre registrado | El nombre completo de tu cuenta (no distingue mayúsculas) |
-| 3 | Código del autenticador o de respaldo | El código actual de tu app o un código de respaldo |
-| 4 | Nueva contraseña | Mínimo 8 caracteres |
-| 5 | Repite la nueva contraseña | La misma |
-| 6 | Actualizar contraseña | Aplica el cambio |
+| 1 | Correo | El correo de tu cuenta |
+| 2 | Enviar enlace | Te envía un enlace de un solo uso que vence en poco tiempo |
+
+Por seguridad, la respuesta es la misma aunque el correo no tenga cuenta. Abre el enlace del
+correo y, en **Crear contraseña nueva**, escribe la nueva contraseña (mínimo 8 caracteres) y
+repítela. Al guardarla se cierran las sesiones abiertas en la web y en el escritorio, el enlace
+deja de servir y tu verificación en dos pasos sigue activa: el próximo ingreso pide el código.
 
 ### 4.15 Llaves de acceso (Windows Hello, huella o PIN)
 
@@ -353,13 +355,14 @@ protege y no los comparte con terceros.
 - **Cada quien ve solo lo suyo:** dashboard, consulta, exportación, edición y correos filtran por la
   cuenta que inició sesión. Cambiar el número del registro en la URL no abre registros ajenos.
 - **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en pocos minutos y sirve una vez): sin el código de tu app o de tu correo (o uno de respaldo), la
-  contraseña sola no basta para entrar, recuperar la cuenta ni cambiar la contraseña. Un código no
+  contraseña sola no basta para entrar ni cambiar la contraseña. Un código no
   se puede usar dos veces.
 - **Llaves de acceso (WebAuthn):** exigen la verificación del dispositivo (huella, rostro o PIN),
   solo sirven en el sitio de PRPagos (no se pueden usar en una página falsa) y cada firma se
   comprueba en el servidor con la clave pública guardada. Agregar una pide un código vigente.
-- **Recuperación sin el teléfono controlada:** los códigos de respaldo sirven una sola vez y el
-  código por correo vence en pocos minutos; cada uso queda en la auditoría.
+- **Recuperación controlada:** el enlace de "Olvidé mi contraseña" y el código de "Perdí mi
+  autenticador" llegan solo al correo de la cuenta, vencen pronto y sirven una vez; los códigos de
+  respaldo también sirven una sola vez. Cada solicitud y cada uso quedan en la auditoría.
 - **Contraseñas protegidas:** solo se guarda su huella con sal, nunca la contraseña.
 - **Bloqueo temporal** ante intentos fallidos repetidos, en la web y en el escritorio a la vez.
 - **Registro de eventos de seguridad:** ingresos, intentos fallidos, bloqueos y cambios de

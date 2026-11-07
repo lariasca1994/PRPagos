@@ -1,3 +1,4 @@
+import time
 from urllib.parse import quote
 
 from fastapi import Request
@@ -22,6 +23,14 @@ class UsuarioActual:
         return self.rol == "admin"
 
 
+def sesion_anterior_a_restablecer(datos: dict, segundos: int | None) -> bool:
+    """True si la sesión se abrió antes de que se restableciera la contraseña
+    ("Olvidé mi contraseña" cierra todas las sesiones abiertas, web y escritorio)."""
+    if segundos is None:
+        return False
+    return int(datos.get("inicio") or 0) <= time.time() - segundos
+
+
 def obtener_usuario_opcional(request: Request) -> UsuarioActual | None:
     """Sesión de la web (cookie "sesion") o de la app de escritorio
     (cabecera "Authorization: Bearer ..."): el mismo token y las mismas reglas."""
@@ -43,6 +52,9 @@ def obtener_usuario_opcional(request: Request) -> UsuarioActual | None:
     estado = repositorio.obtener_estado_usuario(datos["usuario_id"])
     if estado is None or not estado["activo"]:
         request.state.motivo_cierre = "suspendida"
+        return None
+    if sesion_anterior_a_restablecer(datos, estado.get("clave_restablecida_hace")):
+        request.state.motivo_cierre = "clave"
         return None
     # Hubo actividad: se renueva el plazo de inactividad (main.py pone la
     # cookie nueva en la respuesta).

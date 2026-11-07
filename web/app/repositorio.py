@@ -98,15 +98,29 @@ def guardar_dos_pasos(usuario_id: int, valor: int, detalle: str) -> None:
 
 
 def envios_codigo_recientes(usuario_id: int, minutos: int) -> int:
-    """Códigos enviados por correo en los últimos minutos (tope de envíos)."""
+    """Correos de acceso (códigos y enlaces para restablecer la contraseña) enviados en
+    los últimos minutos (tope de envíos)."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT COUNT(*) FROM TBAuditoria WHERE usuario_id = :id AND accion = 'CODIGO_CORREO' "
+            "SELECT COUNT(*) FROM TBAuditoria WHERE usuario_id = :id "
+            "AND accion IN ('CODIGO_CORREO', 'RECUPERA_SOLICITA') "
             "AND fecha_hora > SYSTIMESTAMP - NUMTODSINTERVAL(:m, 'MINUTE')",
             id=usuario_id, m=minutos,
         )
         return int(cur.fetchone()[0])
+
+
+def registrar_evento(usuario_id: int, accion: str, detalle: str) -> None:
+    """Evento de seguridad de la cuenta (sin datos del código ni del enlace)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO TBAuditoria (id, usuario_id, id_pago, accion, detalle) "
+            "VALUES (tbauditoria_sequence.NEXTVAL, :id, NULL, :a, :d)",
+            id=usuario_id, a=accion[:20], d=detalle[:200],
+        )
+        conn.commit()
 
 
 # Acciones de TBAuditoria que son eventos de seguridad (ingresos, fallos, códigos y cambios
@@ -115,6 +129,7 @@ EVENTOS_SEGURIDAD = (
     "INGRESO", "VERIFICA_TOTP", "RECUPERAR_TOTP", "FALLO_CLAVE", "FALLO_TOTP", "FALLO_CORREO",
     "FALLO_LLAVE", "FALLO_RECUPERAR", "CODIGO_CORREO", "DOS_PASOS", "TOTP_ACTIVADO",
     "USO_RESPALDO", "RECUPERA_CORREO", "CAMBIO_CLAVE", "RECUPERAR_CLAVE", "MIGRAR_HASH",
+    "RECUPERA_SOLICITA",
 )
 RETENCION_EVENTOS_DIAS = 15
 
@@ -192,14 +207,26 @@ def obtener_estado_usuario(usuario_id: int) -> dict | None:
     cambia de firma -- ver sql/DBPagos.sql). Se re-consulta en cada
     request (dependencias.py), no alcanza con lo que dice el JWT, para que
     una suspension o un cambio de rol hecho por el admin tengan efecto
-    inmediato -- mismo patron que el resto del portafolio."""
+    inmediato -- mismo patron que el resto del portafolio.
+
+    También dice hace cuántos segundos se restableció la contraseña por última vez
+    (None si no hay registro reciente): las sesiones abiertas antes de eso se cierran.
+    Se calcula con el reloj de la base, el mismo con el que se guardó el evento."""
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT rol, activo FROM TBPLogin WHERE id = :id", id=usuario_id)
+        cur.execute(
+            "SELECT rol, activo, "
+            "(SELECT ROUND((CAST(SYSTIMESTAMP AS DATE) - CAST(MAX(a.fecha_hora) AS DATE)) * 86400) "
+            " FROM TBAuditoria a WHERE a.usuario_id = l.id AND a.id_pago IS NULL "
+            " AND a.accion = 'RECUPERAR_CLAVE') "
+            "FROM TBPLogin l WHERE id = :id",
+            id=usuario_id,
+        )
         fila = cur.fetchone()
         if not fila:
             return None
-        return {"rol": fila[0], "activo": bool(fila[1])}
+        return {"rol": fila[0], "activo": bool(fila[1]),
+                "clave_restablecida_hace": None if fila[2] is None else int(fila[2])}
 
 
 def listar_usuarios() -> list[dict]:
@@ -550,6 +577,32 @@ def usar_codigo_correo(usuario_id: int, codigo_hash: str) -> bool:
                 "VALUES (tbauditoria_sequence.NEXTVAL, :id, NULL, 'RECUPERA_CORREO', 'Código por correo usado')",
                 id=usuario_id,
             )
+        conn.commit()
+        return afectadas == 1
+
+
+def cuenta_por_enlace(enlace_hash: str) -> int | None:
+    """Cuenta activa con ese enlace para restablecer la contraseña, si no ha vencido."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id FROM TBPLogin WHERE recup_hash = :h AND recup_expira > SYSTIMESTAMP AND activo = 1",
+            h=enlace_hash,
+        )
+        fila = cur.fetchone()
+        return int(fila[0]) if fila else None
+
+
+def usar_enlace(usuario_id: int, enlace_hash: str) -> bool:
+    """Gasta el enlace (un solo uso): False si ya se usó, venció o fue reemplazado."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE TBPLogin SET recup_hash = NULL, recup_expira = NULL "
+            "WHERE id = :id AND recup_hash = :h AND recup_expira > SYSTIMESTAMP",
+            id=usuario_id, h=enlace_hash,
+        )
+        afectadas = cur.rowcount
         conn.commit()
         return afectadas == 1
 
