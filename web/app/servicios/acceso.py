@@ -247,7 +247,7 @@ def ingresar_con_llave(credencial: dict, reto: bytes) -> dict:
     """Ingreso con una llave (WebAuthn): reemplaza los dos pasos."""
     llave = repositorio.llave_por_credencial(str(credencial.get("id", "")))
     if llave is None:
-        raise ErrorServicio("Esta llave de acceso no está registrada en PRPagos.")
+        raise ErrorServicio("Esta llave de acceso no está registrada en el simulador de pagos.")
     cred = _cuenta(llave["usuario_id"])
     manejador = (credencial.get("response") or {}).get("userHandle")
     try:

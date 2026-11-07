@@ -10,7 +10,7 @@ import urllib.request
 from .config import settings
 
 URL_BREVO = "https://api.brevo.com/v3/smtp/email"
-NOMBRE_REMITENTE = "PRPagos"
+NOMBRE_REMITENTE = "Simulador de pagos"
 
 
 class ErrorCorreo(RuntimeError):

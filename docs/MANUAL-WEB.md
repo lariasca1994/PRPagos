@@ -128,8 +128,11 @@ por defecto; con los dos activos, la pantalla del código ofrece **Usar un códi
 |:-:|---|---|
 | 1 | Código QR | Escanéalo con tu app autenticadora |
 | 2 | Clave | La misma información, para escribirla a mano si no puedes escanear |
-| 3 | Código de 6 dígitos | El que muestra la app para **PRPagos** |
+| 3 | Código de 6 dígitos | El que muestra la app para **Simulador de pagos** |
 | 4 | Activar e ingresar | Guarda el autenticador y muestra tus **códigos de respaldo** (ver 4.12) |
+
+En la app autenticadora la cuenta aparece como **Simulador de pagos**. Si la configuraste antes
+con otro nombre, sigue funcionando igual: el nombre cambia solo si vuelves a configurarla.
 
 Si ya lo configuraste en la versión de escritorio, este paso no aparece.
 

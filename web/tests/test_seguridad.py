@@ -49,8 +49,8 @@ def test_secreto_generado_es_base32_de_160_bits():
 
 def test_uri_totp():
     uri = s.uri_totp("ABCD", "ana@correo.co")
-    assert uri.startswith("otpauth://totp/PRPagos%3Aana%40correo.co?secret=ABCD")
-    assert "issuer=PRPagos" in uri and "digits=6" in uri and "period=30" in uri
+    assert uri.startswith("otpauth://totp/Simulador%20de%20pagos%3Aana%40correo.co?secret=ABCD")
+    assert "issuer=Simulador%20de%20pagos" in uri and "digits=6" in uri and "period=30" in uri
 
 
 def test_pbkdf2_formato_y_verificacion():

@@ -126,7 +126,9 @@ def correo_valido(correo: str) -> bool:
 
 # ───────────────────────── TOTP ─────────────────────────
 
-EMISOR_TOTP = "PRPagos"
+# Nombre visible en la app autenticadora. Cambiarlo no invalida los autenticadores ya
+# configurados (el secreto es el mismo); solo se ve en los que se configuren desde ahora.
+EMISOR_TOTP = "Simulador de pagos"
 DIGITOS_TOTP = 6
 PERIODO_TOTP = 30
 VENTANA_TOTP = 1

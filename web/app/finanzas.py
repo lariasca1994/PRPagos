@@ -181,8 +181,8 @@ class DatosResumen:
 
 def asunto_resumen(p: Periodo) -> str:
     if p.tipo == "semanal":
-        return f"Tu resumen semanal de PRPagos · {texto_periodo(p)}"
-    return f"Tu resumen de {MESES[p.desde.month - 1]} en PRPagos"
+        return f"Tu resumen semanal del Simulador de pagos · {texto_periodo(p)}"
+    return f"Tu resumen de {MESES[p.desde.month - 1]} en el Simulador de pagos"
 
 
 def html_resumen(d: DatosResumen, enlace: str) -> str:

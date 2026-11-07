@@ -231,6 +231,7 @@ cambiar entre tema claro y oscuro.
 
 - **Perdí mi autenticador** (paso del código, siempre visible): un código de respaldo, o un código
   al correo para configurar un autenticador nuevo y recibir códigos de respaldo nuevos.
+- Los correos y la app autenticadora muestran el nombre **Simulador de pagos**.
 - **Olvidé mi contraseña** (portada): solo el correo; llega un enlace de un solo uso que abre
   la página web para escribir la contraseña nueva. Al guardarla se cierran las sesiones abiertas
   y la verificación en dos pasos sigue activa.

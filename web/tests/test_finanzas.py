@@ -88,12 +88,20 @@ def test_correo_semanal_sin_plan_y_escapado():
 def test_correo_mensual_con_plan():
     html = f.html_resumen(_datos("mensual"), "https://ejemplo.org")
     assert "Plan 50/30/20" in html and "Excedido" in html and "Tu resumen de octubre" in html
-    assert f.asunto_resumen(_datos("mensual").periodo) == "Tu resumen de octubre en PRPagos"
+    assert f.asunto_resumen(_datos("mensual").periodo) == "Tu resumen de octubre en el Simulador de pagos"
 
 
 def test_correo_de_codigo():
     html = f.html_codigo("Ana", "012345", 15)
     assert "012345" in html and "15 minutos" in html and "{{" not in html
+    assert "Simulador de pagos" in html and "PRPagos" not in html
+
+
+def test_correos_con_el_nombre_descriptivo():
+    for html in (f.html_enlace("Ana", "https://ejemplo.com/restablecer?token=x", 30),
+                 f.html_codigo("Ana", "012345", 15, "Motivo.")):
+        assert "Simulador de pagos" in html and "PRPagos" not in html
+    assert "Simulador de pagos" in f.asunto_resumen(_datos("semanal").periodo)
 
 
 def test_rellenar_exige_todas_las_claves():
