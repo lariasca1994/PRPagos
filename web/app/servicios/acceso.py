@@ -51,8 +51,11 @@ MINUTOS_TOPE_CORREO = 10
 MENSAJE_ENLACE_ENVIADO = ("Si el correo corresponde a una cuenta, te enviamos un enlace para crear una "
                           f"contraseña nueva. Vence en {MINUTOS_ENLACE} minutos y sirve una sola vez.")
 MENSAJE_ENLACE_INVALIDO = "El enlace no es válido o ya venció. Pide uno nuevo desde «Olvidé mi contraseña»."
-MENSAJE_CLAVE_RESTABLECIDA = ("Contraseña actualizada. Cerramos las sesiones abiertas: "
-                              "ingresa con tu contraseña nueva.")
+MENSAJE_CLAVE_RESTABLECIDA = ("Contraseña actualizada. Cerramos las sesiones abiertas y anulamos tus "
+                              "códigos de respaldo: ingresa con tu contraseña nueva y el código de tu "
+                              "verificación en dos pasos, y verás los códigos de respaldo nuevos.")
+MENSAJE_CODIGOS_NUEVOS = ("Tus códigos de respaldo anteriores ya no sirven (se anularon al restablecer "
+                          "la contraseña o ya los usaste todos): guarda estos nuevos.")
 MOTIVO_PERDI_AUTENTICADOR = "Pediste configurar un autenticador nuevo porque perdiste el anterior."
 logger = logging.getLogger("prpagos.acceso")
 # Con un correo inexistente se verifica contra este hash igual, para que el
@@ -207,6 +210,14 @@ def activar_autenticador(usuario_id: int, secreto: str, codigo: str) -> tuple[di
     return cred, nuevos_codigos_respaldo(cred["usuario_id"])
 
 
+def codigos_pendientes(usuario_id: int) -> list[str]:
+    """Tras el segundo factor: si la cuenta no tiene códigos de respaldo vigentes (se anularon
+    al restablecer la contraseña o se usaron todos), se generan y se muestran ahora."""
+    if repositorio.respaldo_restantes(usuario_id) > 0:
+        return []
+    return nuevos_codigos_respaldo(usuario_id)
+
+
 def nuevos_codigos_respaldo(usuario_id: int) -> list[str]:
     codigos = generar_codigos_respaldo()
     repositorio.reemplazar_codigos_respaldo(usuario_id, [hash_corto(c.replace("-", "")) for c in codigos])
@@ -336,5 +347,8 @@ def restablecer(token: str, nueva: str, confirmacion: str) -> str:
     if not repositorio.usar_enlace(cred["usuario_id"], hash_enlace(token.strip())):
         raise ErrorServicio(MENSAJE_ENLACE_INVALIDO)
     repositorio.cambiar_password(cred["usuario_id"], hash_password(nueva), "RECUPERAR_CLAVE")
+    # Los códigos de respaldo anteriores se anulan ya; los nuevos se muestran en el siguiente
+    # ingreso, después del segundo factor (nunca por correo ni en esta pantalla).
+    repositorio.reemplazar_codigos_respaldo(cred["usuario_id"], [])
     repositorio.reiniciar_intentos(cred["usuario_id"])
     return MENSAJE_CLAVE_RESTABLECIDA

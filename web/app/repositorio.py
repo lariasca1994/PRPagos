@@ -514,6 +514,10 @@ def reemplazar_codigos_respaldo(usuario_id: int, hashes: list[str]) -> None:
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM TBCodigosRespaldo WHERE usuario_id = :id", id=usuario_id)
+        if not hashes:
+            # Solo anularlos (al restablecer la contraseña): los nuevos llegan en el siguiente ingreso.
+            conn.commit()
+            return
         cur.executemany(
             "INSERT INTO TBCodigosRespaldo (id, usuario_id, codigo_hash) "
             "VALUES (tbrespaldo_sequence.NEXTVAL, :usuario_id, :codigo_hash)",
@@ -540,6 +544,15 @@ def usar_codigo_respaldo(usuario_id: int, codigo_hash: str) -> bool:
             )
         conn.commit()
         return afectadas == 1
+
+
+def respaldo_restantes(usuario_id: int) -> int:
+    """Códigos de respaldo vigentes (sin usar) de la cuenta."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM TBCodigosRespaldo WHERE usuario_id = :id AND usado_en IS NULL",
+                    id=usuario_id)
+        return int(cur.fetchone()[0])
 
 
 def reiniciar_intentos(usuario_id: int) -> None:

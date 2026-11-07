@@ -100,7 +100,11 @@ def ingresar(datos: dict = Body(...)):
 def codigo(datos: dict = Body(...)):
     token = _parcial(datos, "codigo", "codigo_correo")
     metodo = "correo" if token["etapa"] == "codigo_correo" else "app"
-    return _sesion(acceso.verificar_codigo(token["usuario_id"], _texto(datos, "codigo"), metodo))
+    cred = acceso.verificar_codigo(token["usuario_id"], _texto(datos, "codigo"), metodo)
+    codigos = acceso.codigos_pendientes(cred["usuario_id"])
+    if codigos:
+        return _sesion(cred, codigos=codigos, mensaje=acceso.MENSAJE_CODIGOS_NUEVOS)
+    return _sesion(cred)
 
 
 @router.post("/acceso/cambiar-metodo")
@@ -312,8 +316,9 @@ def eliminar_categoria(categoria_id: int, usuario: UsuarioActual = Depends(exigi
 
 @router.post("/perfil/contrasena")
 def cambiar_contrasena(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
-    return {"mensaje": perfil.cambiar_contrasena(usuario.usuario_id, _texto(datos, "actual"), _texto(datos, "nueva"),
-                                                 _texto(datos, "confirmacion"), _texto(datos, "codigo"))}
+    mensaje, codigos = perfil.cambiar_contrasena(usuario.usuario_id, _texto(datos, "actual"), _texto(datos, "nueva"),
+                                                 _texto(datos, "confirmacion"), _texto(datos, "codigo"))
+    return {"mensaje": mensaje, "codigos": codigos}
 
 
 @router.post("/perfil/respaldo")

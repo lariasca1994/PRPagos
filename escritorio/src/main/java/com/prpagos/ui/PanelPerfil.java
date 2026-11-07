@@ -87,6 +87,7 @@ class PanelPerfil extends JPanel {
     private final JTextField codigoNuevo = Ui.campoCodigo();
     private final Ui.Aviso avisoNuevo = new Ui.Aviso();
     private final JPanel codigos = new JPanel(new GridLayout(0, 2, 24, 6));
+    private final Ui.Aviso avisoCodigos = new Ui.Aviso();
     /** Token del cambio de autenticador (el secreto nuevo viaja cifrado en él). */
     private String tokenNuevo;
     private boolean totpActivo;
@@ -305,7 +306,8 @@ class PanelPerfil extends JPanel {
         JPanel tarjeta = Ui.tarjeta();
         tarjeta.setBorder(BorderFactory.createEmptyBorder(30, 32, 30, 32));
         codigos.setOpaque(false);
-        agregar(tarjeta, Ui.titulo("Tus códigos de respaldo", 26f), Ui.espacio(14), codigos, Ui.espacio(12),
+        agregar(tarjeta, Ui.titulo("Tus códigos de respaldo", 26f), Ui.espacio(10), avisoCodigos, Ui.espacio(4),
+                codigos, Ui.espacio(12),
                 ayuda(TEXTO_RESPALDO), Ui.espacio(16),
                 Ui.primario("Ya los guardé", e -> recargar()));
         return tarjetaCentrada(tarjeta);
@@ -516,6 +518,16 @@ class PanelPerfil extends JPanel {
     }
 
     private void mostrarCodigosNuevos(List<String> lista) {
+        mostrarCodigosNuevos(lista, null);
+    }
+
+    /** Con un mensaje (por ejemplo, al cambiar la contraseña), como perfil_respaldo.html en la web. */
+    private void mostrarCodigosNuevos(List<String> lista, String mensaje) {
+        if (mensaje == null || mensaje.isEmpty()) {
+            avisoCodigos.ocultar();
+        } else {
+            avisoCodigos.exito(mensaje);
+        }
         mostrarCodigos(codigos, lista);
         vistas.show(this, "codigos");
     }
@@ -567,11 +579,13 @@ class PanelPerfil extends JPanel {
         JsonObject datos = Json.de("actual", new String(actual.getPassword()), "nueva", new String(nueva.getPassword()),
                 "confirmacion", new String(confirmacion.getPassword()), "codigo", codigoClave.getText());
         codigoClave.setText("");
-        accion("cambiar la contraseña", () -> Api.post("/api/perfil/contrasena", datos), () -> {
+        // Con la contraseña nueva llegan códigos de respaldo nuevos (los anteriores se anulan): se muestran ya.
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/contrasena", datos), r -> {
             actual.setText("");
             nueva.setText("");
             confirmacion.setText("");
-        });
+            mostrarCodigosNuevos(Json.textos(r, "codigos"), Json.texto(r, "mensaje"));
+        }, e -> aviso.error(Ui.mensajeError("cambiar la contraseña").apply(e)));
     }
 
     // ───────────────────────── Llaves de acceso (Windows Hello) ─────────────────────────

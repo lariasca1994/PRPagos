@@ -3,6 +3,7 @@
 {% block contenido %}
 <section class="tarjeta-formulario">
     <h1>Tus códigos de respaldo</h1>
+    {% if ok %}<p class="aviso exito" role="status">{{ ok }}</p>{% endif %}
     {% include "fragmentos/lista_respaldo.html" %}
     <p><a class="boton" href="/perfil">Ya los guardé</a></p>
 </section>

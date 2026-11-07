@@ -50,6 +50,11 @@ def cuenta(monkeypatch):
                         lambda *a: estado.__setitem__("fallos", estado["fallos"] + 1))
     monkeypatch.setattr(repositorio, "cambiar_password", lambda uid, h, motivo: estado["claves"].append(motivo))
     monkeypatch.setattr(repositorio, "reiniciar_intentos", lambda *a: None)
+    estado["respaldo"] = ["viejo"] * 10
+    monkeypatch.setattr(repositorio, "reemplazar_codigos_respaldo",
+                        lambda uid, hashes: estado.__setitem__("respaldo", list(hashes)))
+    monkeypatch.setattr(repositorio, "respaldo_restantes", lambda uid: len(estado["respaldo"]))
+    monkeypatch.setattr(repositorio, "guardar_totp", lambda *a: None)
     monkeypatch.setattr(repositorio, "guardar_dos_pasos", lambda *a: pytest.fail("no debe tocar los métodos"))
     monkeypatch.setattr(servicio_correo, "enviar",
                         lambda destino, nombre, asunto, html: estado["enviados"].append((asunto, html)))
@@ -186,3 +191,37 @@ def test_codigo_errado_cuenta_como_intento_fallido(cuenta):
     with pytest.raises(ErrorServicio, match="incorrecto o vencido"):
         acceso.verificar_codigo_correo(7, "111111")
     assert cuenta["fallos"] == 1
+
+
+# ───────────────────────── Códigos de respaldo ─────────────────────────
+
+
+def test_olvide_mi_contrasena_anula_los_codigos_y_el_siguiente_ingreso_da_nuevos(cuenta):
+    acceso.solicitar_restablecer("ana@example.com")
+    token = _token_del_correo(cuenta["enviados"][0][1])
+    mensaje = acceso.restablecer(token, "Nueva-Clave-123", "Nueva-Clave-123")
+    assert cuenta["respaldo"] == []  # anulados en el mismo momento
+    assert "códigos de respaldo" in mensaje
+    # Nunca van en el correo: el único correo enviado es el del enlace.
+    assert len(cuenta["enviados"]) == 1
+    nuevos = acceso.codigos_pendientes(7)
+    assert len(nuevos) == 10 and len(cuenta["respaldo"]) == 10
+    # Ya con códigos vigentes, el siguiente ingreso no genera otros.
+    assert acceso.codigos_pendientes(7) == []
+
+
+def test_cambiar_la_contrasena_en_el_perfil_da_codigos_nuevos_y_anula_los_anteriores(cuenta, monkeypatch):
+    from app.servicios import perfil
+    monkeypatch.setattr(perfil, "verificar_segundo_factor", lambda *a: True)
+    mensaje, codigos = perfil.cambiar_contrasena(7, CLAVE, "Nueva-Clave-123", "Nueva-Clave-123", "123456")
+    assert len(codigos) == 10 and "viejo" not in cuenta["respaldo"] and len(cuenta["respaldo"]) == 10
+    assert "ya no sirven" in mensaje
+    assert cuenta["claves"] == ["CAMBIO_CLAVE"]
+
+
+def test_perdi_mi_autenticador_al_activar_la_app_nueva_anula_los_codigos_anteriores(cuenta):
+    from app.seguridad import codigo_totp, paso_actual
+    acceso.perdi_autenticador(7)
+    paso = acceso.verificar_codigo_correo(7, "246810")
+    cred, codigos = acceso.activar_autenticador(7, paso.secreto, codigo_totp(paso.secreto, paso_actual()))
+    assert len(codigos) == 10 and "viejo" not in cuenta["respaldo"]

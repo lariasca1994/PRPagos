@@ -133,7 +133,14 @@ def procesar_codigo(request: Request, codigo: str = Form(...)):
     if datos is None:
         return _redirigir("/login", acceso.MENSAJE_EXPIRADO)
     try:
-        return _abrir_sesion(acceso.verificar_codigo(datos["usuario_id"], codigo, _metodo(datos)))
+        cred = acceso.verificar_codigo(datos["usuario_id"], codigo, _metodo(datos))
+        codigos = acceso.codigos_pendientes(cred["usuario_id"])
+        if codigos:
+            # Se anularon al restablecer la contraseña (o se usaron todos): se muestran una vez.
+            pantalla = templates.TemplateResponse(request, "login_respaldo.html", {
+                **_contexto(request, codigos=codigos), "error": None, "ok": acceso.MENSAJE_CODIGOS_NUEVOS})
+            return _abrir_sesion(cred, pantalla)
+        return _abrir_sesion(cred)
     except ErrorServicio as e:
         destino = "/login" if e.mensaje in (acceso.MENSAJE_BLOQUEO, acceso.MENSAJE_EXPIRADO) else "/login/codigo"
         return _redirigir(destino, e.mensaje)

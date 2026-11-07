@@ -269,6 +269,9 @@ gastos presupuestados vs. reales de los 12 meses, distribución frente al plan
 - **Perdí mi autenticador** (paso del código, siempre visible): usa un código de respaldo o pide
   un código al correo para configurar un autenticador nuevo y recibir códigos de respaldo nuevos.
 - Los correos y la app autenticadora muestran el nombre **Simulador de pagos**.
+- **Códigos de respaldo:** al cambiar la contraseña en Perfil, al restablecerla con "Olvidé mi
+  contraseña" y al configurar un autenticador nuevo se generan 10 nuevos y se anulan los anteriores;
+  tras restablecerla se muestran en el siguiente ingreso, después del código.
 - **Olvidé mi contraseña** (portada): solo el correo; llega un enlace de un solo uso que abre
   la página web para escribir la contraseña nueva. Al guardarla se cierran las sesiones abiertas
   y la verificación en dos pasos sigue activa.

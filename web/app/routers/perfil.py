@@ -72,14 +72,20 @@ def eliminar_categoria(categoria_id: int, usuario: UsuarioActual = Depends(exigi
 
 
 @router.post("/perfil/contrasena")
-def cambiar_contrasena(actual: str = Form(...), nueva: str = Form(...), confirmacion: str = Form(...),
-                       codigo: str = Form(...), usuario: UsuarioActual = Depends(exigir_login)):
-    return _accion(servicio.cambiar_contrasena, usuario.usuario_id, actual, nueva, confirmacion, codigo)
+def cambiar_contrasena(request: Request, actual: str = Form(...), nueva: str = Form(...),
+                       confirmacion: str = Form(...), codigo: str = Form(...),
+                       usuario: UsuarioActual = Depends(exigir_login)):
+    """Con la contraseña nueva llegan códigos de respaldo nuevos: se muestran al guardar."""
+    try:
+        mensaje, codigos = servicio.cambiar_contrasena(usuario.usuario_id, actual, nueva, confirmacion, codigo)
+    except ErrorServicio as e:
+        return _redirigir(e.mensaje)
+    return _pantalla_codigos(request, usuario, codigos, mensaje)
 
 
-def _pantalla_codigos(request: Request, usuario: UsuarioActual, codigos: list[str]):
+def _pantalla_codigos(request: Request, usuario: UsuarioActual, codigos: list[str], ok: str | None = None):
     return templates.TemplateResponse(request, "perfil_respaldo.html",
-                                      {"request": request, "usuario": usuario, "codigos": codigos})
+                                      {"request": request, "usuario": usuario, "codigos": codigos, "ok": ok})
 
 
 @router.post("/perfil/respaldo")

@@ -251,7 +251,7 @@ registros.
 | 4 | Verificación en dos pasos | Muestra tus métodos; **Agregar código por correo** (escribe el código que llega y pulsa **Activar código por correo**), **Agregar app autenticadora** o **Cambiar autenticador** (con un código vigente: de la app, del correo o de respaldo), **Pedir … por defecto** y **Enviarme un código por correo** para confirmar cambios |
 | 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
 | 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.15) |
-| 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo |
+| 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo. Al guardar ves tus **códigos de respaldo nuevos**; los anteriores dejan de servir |
 
 ### 4.11 Resúmenes por correo
 
@@ -270,6 +270,14 @@ registros.
 Aparecen al activar el autenticador y cada vez que generas nuevos en **Perfil**. Son 10, cada uno
 sirve **una sola vez** y no se vuelven a mostrar: guárdalos impresos o en tu gestor de contraseñas.
 Sirven para ingresar (en lugar del código de 6 dígitos) o cambiar de autenticador.
+
+**Códigos nuevos que anulan los anteriores.** En estos casos se generan 10 códigos nuevos y todos
+los anteriores dejan de servir en ese mismo momento:
+
+- Cambias la contraseña en **Perfil**: los nuevos se muestran al guardar.
+- Restableces la contraseña con **Olvidé mi contraseña**: se muestran en tu siguiente ingreso, después
+  del código de tu app o de tu correo (nunca llegan por correo).
+- Configuras un autenticador nuevo con **Perdí mi autenticador**: se muestran al activarlo.
 
 ### 4.13 Perdí mi autenticador
 
@@ -297,6 +305,7 @@ Por seguridad, la respuesta es la misma aunque el correo no tenga cuenta. Abre e
 correo y, en **Crear contraseña nueva**, escribe la nueva contraseña (mínimo 8 caracteres) y
 repítela. Al guardarla se cierran las sesiones abiertas en la web y en el escritorio, el enlace
 deja de servir y tu verificación en dos pasos sigue activa: el próximo ingreso pide el código.
+Tus códigos de respaldo anteriores también se anulan: después de ese código verás los nuevos.
 
 ### 4.15 Llaves de acceso (Windows Hello, huella o PIN)
 

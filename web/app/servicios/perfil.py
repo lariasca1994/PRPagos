@@ -22,6 +22,8 @@ from .acceso import enviar_codigo, nuevos_codigos_respaldo, texto_codigo_enviado
 from .registros import GRUPOS
 
 MENSAJE_BLOQUEO = "Cuenta bloqueada temporalmente; espera unos minutos"
+MENSAJE_CLAVE_CAMBIADA = ("Contraseña actualizada. Tus códigos de respaldo anteriores ya no sirven: "
+                          "guarda estos nuevos.")
 
 
 def datos(usuario_id: int) -> dict:
@@ -87,7 +89,10 @@ def _cuenta_con_codigo(usuario_id: int, codigo: str) -> dict:
     return cred
 
 
-def cambiar_contrasena(usuario_id: int, actual: str, nueva: str, confirmacion: str, codigo: str) -> str:
+def cambiar_contrasena(usuario_id: int, actual: str, nueva: str, confirmacion: str,
+                       codigo: str) -> tuple[str, list[str]]:
+    """Con la contraseña nueva se generan códigos de respaldo nuevos y se anulan todos
+    los anteriores en ese mismo momento; se muestran una sola vez."""
     cred = repositorio.obtener_credenciales(usuario_id=usuario_id)
     if cred is None or cred["bloqueada"]:
         raise ErrorServicio(MENSAJE_BLOQUEO)
@@ -102,7 +107,7 @@ def cambiar_contrasena(usuario_id: int, actual: str, nueva: str, confirmacion: s
     if not verificar_segundo_factor(cred, codigo or "", "VERIFICA_TOTP"):
         raise ErrorServicio("Código incorrecto o ya usado")
     repositorio.cambiar_password(cred["usuario_id"], hash_password(nueva), "CAMBIO_CLAVE")
-    return "Contraseña actualizada"
+    return MENSAJE_CLAVE_CAMBIADA, nuevos_codigos_respaldo(cred["usuario_id"])
 
 
 def regenerar_codigos(usuario_id: int, codigo: str) -> list[str]:

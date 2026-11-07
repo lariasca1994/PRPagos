@@ -6,6 +6,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -82,6 +83,7 @@ public class VentanaLogin extends JFrame {
     private final Ui.Aviso avisoCorreo = new Ui.Aviso();
     // Códigos de respaldo al activar el autenticador
     private final JPanel rejillaRespaldo = new JPanel(new java.awt.GridLayout(0, 2, 24, 6));
+    private final Ui.Aviso avisoRespaldo = new Ui.Aviso();
 
     /** Token del paso a medio camino (lo entrega la API y vence en 10 minutos). */
     private String tokenAcceso;
@@ -365,7 +367,7 @@ public class VentanaLogin extends JFrame {
                 encabezado("Verificación activada", "Guarda tus códigos de respaldo", Ui.suave(
                         "Si pierdes el teléfono, con uno de estos códigos podrás ingresar y configurar un "
                         + "autenticador nuevo.")),
-                rejillaRespaldo, (JComponent) Ui.espacio(12), texto, (JComponent) Ui.espacio(20),
+                avisoRespaldo, rejillaRespaldo, (JComponent) Ui.espacio(12), texto, (JComponent) Ui.espacio(20),
                 botonAncho(Ui.primario("Ya los guardé, continuar", e -> abrirPrincipal())));
     }
 
@@ -423,7 +425,7 @@ public class VentanaLogin extends JFrame {
 
     private void mostrar(String tarjeta) {
         for (Ui.Aviso a : new Ui.Aviso[] {avisoIngreso, avisoCodigo, avisoConfig, avisoRegistro, avisoRecuperar,
-            avisoCorreo, avisoLlave, avisoElegir, avisoActivar}) {
+            avisoCorreo, avisoLlave, avisoElegir, avisoActivar, avisoRespaldo}) {
             a.ocultar();
         }
         tarjetas.show(formularios, tarjeta);
@@ -514,7 +516,7 @@ public class VentanaLogin extends JFrame {
         String texto = codigo.getText();
         String token = tokenAcceso;
         Tarea.ejecutar(this, () -> Api.post("/api/acceso/codigo", Json.de("token", token, "codigo", texto)),
-                this::sesionAbierta, e -> {
+                this::sesionConCodigos, e -> {
                     codigo.setText("");
                     if (!volverAlInicio(e)) {
                         avisoCodigo.error(Ui.mensajeError("verificar el código").apply(e));
@@ -636,6 +638,22 @@ public class VentanaLogin extends JFrame {
     private static Sesion guardarSesion(JsonObject respuesta) {
         Api.usarSesion(Json.texto(respuesta, "sesion"));
         return Sesion.de(Json.objeto(respuesta, "usuario"));
+    }
+
+    /**
+     * Tras el código: si la cuenta no tenía códigos de respaldo vigentes (se anularon al restablecer
+     * la contraseña o se usaron todos), llegan nuevos y se muestran antes de entrar, como en la web.
+     */
+    private void sesionConCodigos(JsonObject respuesta) {
+        List<String> nuevos = Json.textos(respuesta, "codigos");
+        if (nuevos.isEmpty()) {
+            sesionAbierta(respuesta);
+            return;
+        }
+        sesionLista = guardarSesion(respuesta);
+        PanelPerfil.mostrarCodigos(rejillaRespaldo, nuevos);
+        mostrar("respaldo");
+        avisoRespaldo.exito(Json.texto(respuesta, "mensaje"));
     }
 
     private void sesionAbierta(JsonObject respuesta) {
