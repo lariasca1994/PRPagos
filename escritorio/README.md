@@ -171,8 +171,6 @@ claves: todo eso vive solo en el servidor (`../web/app/servicios/`).
   servidor, igual que para la web.
 - **Sesión:** la misma de la web; nunca se guarda en disco.
 - **Llaves de acceso:** Windows Hello, verificadas en el servidor.
-- **Ejecutable firmado:** el instalador y `PRPagos.exe` se firman en GitHub Actions
-  con SignPath ([política de firma](../docs/FIRMA-CODIGO.md)).
 - **Actualizaciones verificadas:** solo se instalan desde GitHub y después de
   comprobar que son las publicadas. Si algo falla, se conserva la versión instalada.
 

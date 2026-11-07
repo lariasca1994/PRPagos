@@ -61,9 +61,9 @@ jobs:
         working-directory: escritorio
         run: ./empaquetar.ps1 -Version $env:VERSION
 
-      # Firma de código (SignPath Foundation, gratuita para código abierto): se
-      # activa sola cuando existen la variable SIGNPATH_ORGANIZATION_ID y el
-      # secreto SIGNPATH_API_TOKEN (ver docs/FIRMA-CODIGO.md). Sin ellos, todo
+      # Firma de código con SignPath: desactivada (la firma gratuita de SignPath
+      # Foundation no se aprobó y la de pago tiene costo). Solo correría si existieran
+      # la variable SIGNPATH_ORGANIZATION_ID y el secreto SIGNPATH_API_TOKEN. Sin ellos, todo
       # se publica igual que antes, sin firmar. Se firma primero la aplicación
       # (para que el ejecutable instalado quede firmado) y después el instalador.
       - name: Subir aplicación para firmar
@@ -155,8 +155,6 @@ jobs:
           - **Simulador-de-pagos-escritorio-$env:VERSION.zip**: versión portable; descomprime y abre ``PRPagos.exe``.
 
           Se instala y se usa: no necesita configuración. Los datos son los mismos de la web (misma cuenta).
-
-          Firma de código: Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/). [Política de firma](https://github.com/lariasca1994/PRPagos/blob/main/docs/FIRMA-CODIGO.md).
           "@
           gh release create "escritorio-v$env:VERSION" `
             "$dist/Simulador-de-pagos-$env:VERSION.exe" "$dist/Simulador-de-pagos-escritorio-$env:VERSION.zip" `
