@@ -36,6 +36,13 @@ public final class Comprobador {
             hilo.setDaemon(true);
             return hilo;
         });
+        if (Actualizador.canalStore()) {
+            // Instalada desde Microsoft Store: la Store descarga e instala las versiones nuevas.
+            // La actualización sigue siendo obligatoria cuando la web fija una versión mínima.
+            tareas.scheduleWithFixedDelay(Comprobador::comprobarStore, 5, HORAS_ENTRE_COMPROBACIONES * 3600,
+                    TimeUnit.SECONDS);
+            return;
+        }
         tareas.scheduleWithFixedDelay(Comprobador::comprobar, 5, HORAS_ENTRE_COMPROBACIONES * 3600,
                 TimeUnit.SECONDS);
         // Si se descargó una versión y el aviso quedó en "Al cerrar", se instala al salir.
@@ -76,6 +83,48 @@ public final class Comprobador {
         if (programar(true)) {
             System.exit(0);
         }
+    }
+
+    // ───────────────────────── Canal Microsoft Store ─────────────────────────
+
+    private static boolean avisoStore;
+
+    private static void comprobarStore() {
+        try {
+            String enlace = Actualizador.enlaceStoreSiHayQueActualizar();
+            synchronized (Comprobador.class) {
+                if (enlace == null || avisoStore) {
+                    return;
+                }
+                avisoStore = true;
+            }
+            SwingUtilities.invokeLater(() -> avisarStore(enlace));
+        } catch (Exception e) {
+            Actualizador.registrar("No se pudo comprobar la versión mínima de la Store: " + e.getMessage());
+        }
+    }
+
+    /** Obligatoria: una sola opción; cerrar el aviso también abre la Store y cierra la aplicación. */
+    private static void avisarStore(String enlace) {
+        Window ventana = null;
+        for (Window w : Window.getWindows()) {
+            if (w.isShowing()) {
+                ventana = w;
+            }
+        }
+        Object[] opciones = {"Actualizar en Microsoft Store"};
+        JOptionPane.showOptionDialog(ventana,
+                "Hay una versión nueva del simulador de pagos en Microsoft Store.\n"
+                        + "La actualización es obligatoria: se abrirá Microsoft Store para instalarla\n"
+                        + "y la aplicación se cerrará.",
+                "Actualización obligatoria", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,
+                null, opciones, opciones[0]);
+        try {
+            new ProcessBuilder("explorer.exe", enlace).start();
+        } catch (IOException e) {
+            Actualizador.registrar("No se pudo abrir Microsoft Store: " + e.getMessage());
+        }
+        System.exit(0);
     }
 
     /** Lanza el instalador una sola vez; con {@code abrir}, la aplicación vuelve a abrirse al terminar. */

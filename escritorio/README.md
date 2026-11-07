@@ -61,6 +61,8 @@ detalle de la migración.
 
 La versión de escritorio se ejecuta en el equipo de cada usuario.
 **Descarga:** [última versión](https://github.com/lariasca1994/PRPagos/releases/latest).
+**Instalar desde Microsoft Store:** próximamente (paquete MSIX listo; ver
+[docs/STORE.md](../docs/STORE.md) y la [política de privacidad](../docs/PRIVACIDAD.md)).
 
 **Versión web (los mismos datos):** [abrir la demo en vivo](https://prpagos-web-1087929107584.us-east4.run.app)
 

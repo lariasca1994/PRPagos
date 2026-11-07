@@ -125,6 +125,41 @@ public final class Actualizador {
         return Files.isRegularFile(carpeta.resolve(EXE)) ? carpeta : null;
     }
 
+    // ───────────────────────── Canal Microsoft Store ─────────────────────────
+
+    /** Marcador del paquete de Microsoft Store (lo agrega escritorio/msix.ps1). */
+    static final String MARCADOR_STORE = "canal-store.txt";
+
+    /** ¿Se instaló desde Microsoft Store? Entonces es la Store la que instala las versiones nuevas. */
+    public static boolean canalStore() {
+        Path carpeta = carpetaInstalada();
+        return carpeta != null && Files.isRegularFile(carpeta.resolve(MARCADOR_STORE));
+    }
+
+    /** La ficha del producto en Microsoft Store; null si el identificador no tiene la forma esperada. */
+    public static String enlaceStore(String productId) {
+        if (productId == null || !productId.strip().matches("[A-Za-z0-9]{8,20}")) {
+            return null;
+        }
+        return "ms-windows-store://pdp/?productid=" + productId.strip();
+    }
+
+    /**
+     * Canal Store: si la web exige una versión mínima (version_store_minima) mayor que la
+     * instalada, devuelve el enlace a la ficha para actualizar; si no, null.
+     */
+    public static String enlaceStoreSiHayQueActualizar() throws Api.ErrorApi {
+        JsonObject v = Api.get("/api/version-escritorio");
+        return storeExige(Json.texto(v, "version_store_minima"), Json.texto(v, "store_product_id"),
+                versionInstalada());
+    }
+
+    /** Regla pura (sin red) de {@link #enlaceStoreSiHayQueActualizar()}. */
+    public static String storeExige(String minima, String productId, String instalada) {
+        String enlace = enlaceStore(productId);
+        return enlace != null && esMasNueva(minima, instalada) ? enlace : null;
+    }
+
     private static Path carpetaTrabajo() {
         return Path.of(System.getProperty("java.io.tmpdir"), "PRPagos-actualizacion");
     }
@@ -142,7 +177,8 @@ public final class Actualizador {
      * lista para instalar (con PRPagos.exe). Null si no hay nada que hacer.
      */
     public static Path prepararSiHayNueva() {
-        if (carpetaInstalada() == null) {
+        // Desde el código no hay nada que actualizar; en el canal Store actualiza Microsoft Store.
+        if (carpetaInstalada() == null || canalStore()) {
             return null;
         }
         String instalada = versionInstalada();

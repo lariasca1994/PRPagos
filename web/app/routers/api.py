@@ -10,12 +10,14 @@ Sesión: el mismo token de la web (6 h sin uso, máximo 8 h), en la cabecera
 Errores de negocio: 400 {"error": "mensaje para la persona"}.
 """
 import json
+import re
 from datetime import date
 
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
 from .. import dos_pasos, llaves, repositorio
+from ..config import settings
 from ..dependencias import UsuarioActual, exigir_admin, exigir_login
 from ..seguridad import (
     MENSAJES_CIERRE,
@@ -84,8 +86,20 @@ def _parcial(datos: dict, *etapas: str) -> dict:
 
 @router.get("/version-escritorio")
 def version_escritorio():
-    """Para la actualización automática: versión, URL del Release y huella SHA-256."""
-    return repositorio.ultima_version_escritorio() or {}
+    """Para la actualización automática: versión, URL del Release y huella SHA-256. Con la
+    app publicada en Microsoft Store, además version_store_minima y store_product_id (solo
+    si están configurados): las instalaciones de la Store más viejas deben actualizarse allí."""
+    return {**(repositorio.ultima_version_escritorio() or {}), **datos_store()}
+
+
+def datos_store() -> dict:
+    """Campos del canal Microsoft Store, solo si tienen la forma esperada."""
+    datos = {}
+    if re.fullmatch(r"\d{1,6}\.\d{1,6}\.\d{1,6}", settings.store_version_minima):
+        datos["version_store_minima"] = settings.store_version_minima
+    if re.fullmatch(r"[A-Za-z0-9]{8,20}", settings.store_product_id):
+        datos["store_product_id"] = settings.store_product_id
+    return datos
 
 
 # ───────────────────────── Acceso ─────────────────────────

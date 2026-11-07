@@ -89,6 +89,11 @@ En las tablas, `#` es el orden en que aparece cada campo en la pantalla, de arri
 No hay nada más que copiar ni configurar, en este equipo ni en otro (por ejemplo, una tablet con
 Windows): basta instalarla. Las versiones nuevas se instalan solas (ver 4.16).
 
+**Instalar desde Microsoft Store (próximamente):** la aplicación también estará en Microsoft
+Store, firmada por Microsoft, para Windows 10 (1809) o superior. Es la misma aplicación y la misma
+cuenta; desde la Store se instala con un clic y Windows no muestra avisos de seguridad. Este
+manual se actualizará con el enlace cuando esté publicada.
+
 **Desinstalar:** en **Configuración → Aplicaciones → Aplicaciones instaladas → Simulador de pagos →
 Desinstalar**, o con **Desinstalar Simulador de pagos** en el menú Inicio. Se borran la aplicación, sus
 registros de uso y sus preferencias; tu cuenta y tus datos siguen en la web.
@@ -337,6 +342,11 @@ avisa. **La actualización es obligatoria** en todos los equipos: al pulsar **Ac
 al cerrar el aviso), la aplicación se cierra, instala la versión nueva y vuelve a abrirse sola. Si
 cierras la aplicación antes de ver el aviso, se instala al salir y la próxima vez ya abre
 actualizada.
+
+**Instalada desde Microsoft Store (próximamente):** la Store descarga e instala las versiones
+nuevas. Cuando una versión es obligatoria, la aplicación muestra un aviso con una sola opción,
+**Actualizar en Microsoft Store**: abre la ficha de la aplicación en la Store para instalarla y se
+cierra.
 
 Si algo falla (sin internet, descarga incompleta, archivo que no coincide), sigues con la versión
 que tenías y se reintenta más tarde. Si el servidor cambia de dirección, la aplicación encuentra

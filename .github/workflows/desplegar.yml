@@ -69,9 +69,21 @@ jobs:
           docker build -t "$IMAGEN:${{ github.sha }}" .
           docker push "$IMAGEN:${{ github.sha }}"
 
+      # Microsoft Store (opcional): la versión mínima obligatoria y el id de la ficha llegan
+      # desde las variables del repositorio STORE_VERSION_MINIMA y STORE_PRODUCT_ID. Si no
+      # existen (o no tienen la forma esperada), se quitan del servicio y la API no las envía.
       - name: Actualizar el servicio
+        env:
+          STORE_VERSION_MINIMA: ${{ vars.STORE_VERSION_MINIMA }}
+          STORE_PRODUCT_ID: ${{ vars.STORE_PRODUCT_ID }}
         run: |
+          if [[ "$STORE_VERSION_MINIMA" =~ ^[0-9]{1,6}\.[0-9]{1,6}\.[0-9]{1,6}$ && "$STORE_PRODUCT_ID" =~ ^[A-Za-z0-9]{8,20}$ ]]; then
+            STORE="--update-env-vars=STORE_VERSION_MINIMA=$STORE_VERSION_MINIMA,STORE_PRODUCT_ID=$STORE_PRODUCT_ID"
+          else
+            STORE="--remove-env-vars=STORE_VERSION_MINIMA,STORE_PRODUCT_ID"
+          fi
           gcloud run deploy "$SERVICIO" \
             --image "$IMAGEN:${{ github.sha }}" \
             --region "$REGION" --project "$PROYECTO" --quiet \
+            "$STORE" \
             --format "value(status.url)"

@@ -44,6 +44,10 @@ class Settings:
     )
     # Token con el que GitHub Actions llama a /tareas/resumenes cada día.
     tareas_token: str = os.getenv("TAREAS_TOKEN", "")
+    # Microsoft Store (opcionales; vienen de las variables del repositorio vía desplegar.yml):
+    # versión mínima obligatoria para las instalaciones de la Store y el id de su ficha.
+    store_version_minima: str = os.getenv("STORE_VERSION_MINIMA", "").strip()
+    store_product_id: str = os.getenv("STORE_PRODUCT_ID", "").strip()
 
     def validar(self) -> None:
         faltantes = [

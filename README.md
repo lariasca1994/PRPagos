@@ -68,6 +68,7 @@ migración de escritorio a web.
 
 **Aplicación de escritorio:** [descargar la última versión](https://github.com/lariasca1994/PRPagos/releases/latest)
 (instalador o portable para Windows; se instala y se usa, sin configuración).
+**Instalar desde Microsoft Store:** próximamente.
 
 ### Funcionalidades
 
@@ -110,6 +111,9 @@ migración de escritorio a web.
 - **PRPagos.exe** con Java incluido: instalador por usuario o versión portable,
   sin configuración ni claves dentro
 - **Actualización automática** desde GitHub Releases, verificada antes de instalarse
+- **Microsoft Store (próximamente):** paquete MSIX listo para publicarse (ver
+  [docs/STORE.md](docs/STORE.md)); desde la Store se actualiza con la Store y la versión mínima
+  sigue siendo obligatoria. [Política de privacidad](docs/PRIVACIDAD.md)
 
 **Interfaz**
 - Web y escritorio con la misma estructura, menú, ícono, portada animada y
