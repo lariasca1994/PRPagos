@@ -165,7 +165,24 @@
             <button type="submit" class="boton">Guardar contraseña</button>
         </form>
     </section>
-</div>
+    <section class="tarjeta tarjeta-ancha" id="eliminar-cuenta">
+        <h2>Eliminar mi cuenta</h2>
+        <p class="texto-ayuda">Se borran <strong>de forma definitiva</strong> tu cuenta y todos tus datos: registros, categorías, plan, presupuestos, llaves de acceso y códigos de respaldo. <strong>No se puede deshacer.</strong> Se cierra la sesión y te llega un correo de confirmación.</p>
+        <form method="post" action="/perfil/eliminar" class="formulario-dos-columnas"
+              onsubmit="return confirm('¿Eliminar tu cuenta y todos tus datos? Esta acción es irreversible.');">
+            <div>
+                <label for="eliminar-contrasena">Contraseña actual</label>
+                <input type="password" id="eliminar-contrasena" name="contrasena" autocomplete="current-password" required>
+                <label for="eliminar-codigo">Código de la app, del correo o de respaldo</label>
+                <input type="text" id="eliminar-codigo" name="codigo" class="campo-codigo" maxlength="10" autocomplete="one-time-code" placeholder="123 456" required>
+            </div>
+            <div>
+                <label for="eliminar-confirmacion">Escribe ELIMINAR para confirmar</label>
+                <input type="text" id="eliminar-confirmacion" name="confirmacion" autocomplete="off" placeholder="ELIMINAR" pattern="ELIMINAR" required>
+            </div>
+            <button type="submit" class="boton">Eliminar mi cuenta</button>
+        </form>
+    </section></div>
 
 <p class="nota-permiso">Tu contraseña y tu autenticador se guardan protegidos. Tras varios intentos fallidos seguidos la cuenta se bloquea unos minutos.</p>
 {% endblock %}

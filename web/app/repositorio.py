@@ -259,6 +259,55 @@ def reactivar_usuario(usuario_id: int) -> bool:
         return afectadas == 1
 
 
+# "Eliminar mi cuenta": las mismas sentencias, en el mismo orden, que el procedimiento
+# eliminar_cuenta de sql/DBPagos.sql. Se usan aquí mientras ese procedimiento no esté
+# aplicado en la base (lo aplica el dueño del esquema).
+SENTENCIAS_ELIMINAR_CUENTA = (
+    "DELETE FROM TBAuditoria WHERE usuario_id = :id "
+    "OR id_pago IN (SELECT id_pago FROM TBPagos WHERE usuario_id = :id)",
+    "UPDATE TBPagos SET categoria_id = NULL "
+    "WHERE categoria_id IN (SELECT id FROM TBCategorias WHERE usuario_id = :id)",
+    "DELETE FROM TBPagos WHERE usuario_id = :id",
+    "DELETE FROM TBPresupuestoMensual WHERE usuario_id = :id "
+    "OR categoria_id IN (SELECT id FROM TBCategorias WHERE usuario_id = :id)",
+    "DELETE FROM TBPresupuestos WHERE usuario_id = :id",
+    "DELETE FROM TBEnviosResumen WHERE usuario_id = :id",
+    "DELETE FROM TBCodigosRespaldo WHERE usuario_id = :id",
+    "DELETE FROM TBLlavesAcceso WHERE usuario_id = :id",
+    "DELETE FROM TBCategorias WHERE usuario_id = :id",
+    "DELETE FROM TBPLogin WHERE id = :id",
+)
+# ORA-06550 con PLS-00201: el procedimiento todavía no existe en la base.
+_SIN_PROCEDIMIENTO = 6550
+
+
+def borrar_cuenta_con_sentencias(conn, usuario_id: int) -> bool:
+    """Borra la cuenta y todo lo suyo en una sola transacción. True si la cuenta existía."""
+    cur = conn.cursor()
+    eliminadas = 0
+    for sql in SENTENCIAS_ELIMINAR_CUENTA:
+        cur.execute(sql, {"id": usuario_id})
+        eliminadas = cur.rowcount
+    conn.commit()
+    return eliminadas == 1
+
+
+def eliminar_cuenta(usuario_id: int) -> bool:
+    """Borrado DEFINITIVO de la cuenta y de todos sus datos (procedimiento eliminar_cuenta)."""
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        v_eliminada = cur.var(int)
+        try:
+            cur.callproc("eliminar_cuenta", [usuario_id, v_eliminada])
+            return bool(v_eliminada.getvalue())
+        except oracledb.DatabaseError as error:
+            (detalle,) = error.args
+            if getattr(detalle, "code", None) != _SIN_PROCEDIMIENTO:
+                raise
+            conn.rollback()
+            return borrar_cuenta_con_sentencias(conn, usuario_id)
+
+
 def eliminar_usuario(usuario_id: int) -> tuple[bool, str]:
     """No elimina si la cuenta tiene pagos o auditoria de pagos asociados
     (choca con el FK de TBPagos/TBAuditoria hacia TBPLogin) -- en ese caso

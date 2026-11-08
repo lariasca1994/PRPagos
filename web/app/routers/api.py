@@ -335,6 +335,13 @@ def cambiar_contrasena(datos: dict = Body(...), usuario: UsuarioActual = Depends
     return {"mensaje": mensaje, "codigos": codigos}
 
 
+@router.post("/perfil/eliminar")
+def eliminar_cuenta(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
+    """Borrado definitivo de la cuenta; el escritorio vuelve al ingreso con el mensaje."""
+    return {"mensaje": perfil.eliminar_cuenta(usuario.usuario_id, _texto(datos, "contrasena"),
+                                              _texto(datos, "codigo"), _texto(datos, "confirmacion"))}
+
+
 @router.post("/perfil/respaldo")
 def regenerar_codigos(datos: dict = Body(...), usuario: UsuarioActual = Depends(exigir_login)):
     return {"codigos": perfil.regenerar_codigos(usuario.usuario_id, _texto(datos, "codigo"))}

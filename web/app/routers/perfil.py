@@ -35,6 +35,20 @@ def _accion(funcion, *args, ancla: str = ""):
         return _redirigir(e.mensaje, ancla=ancla)
 
 
+@router.post("/perfil/eliminar")
+def eliminar_cuenta(contrasena: str = Form(""), codigo: str = Form(""), confirmacion: str = Form(""),
+                    usuario: UsuarioActual = Depends(exigir_login)):
+    """Borrado definitivo: al terminar se cierra la sesión y se vuelve al ingreso."""
+    try:
+        mensaje = servicio.eliminar_cuenta(usuario.usuario_id, contrasena, codigo, confirmacion)
+    except ErrorServicio as e:
+        return _redirigir(e.mensaje, ancla="#eliminar-cuenta")
+    respuesta = RedirectResponse(url=f"/login?ok={quote(mensaje)}", status_code=303)
+    respuesta.delete_cookie("sesion")
+    respuesta.delete_cookie("acceso")
+    return respuesta
+
+
 @router.get("/seguridad")
 def seguridad_antigua():
     return RedirectResponse(url="/perfil", status_code=303)

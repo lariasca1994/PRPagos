@@ -81,6 +81,10 @@ class PanelPerfil extends JPanel {
     private final JPasswordField nueva = Ui.clave();
     private final JPasswordField confirmacion = Ui.clave();
     private final JTextField codigoClave = Ui.campoCodigo();
+    // Eliminar mi cuenta
+    private final JPasswordField eliminarClave = Ui.clave();
+    private final JTextField eliminarCodigo = Ui.campoCodigo();
+    private final JTextField eliminarConfirmacion = Ui.campo("ELIMINAR");
     // Nuevo autenticador y códigos
     private final PanelQr qr = new PanelQr();
     private final JLabel claveManual = new JLabel();
@@ -252,10 +256,48 @@ class PanelPerfil extends JPanel {
                 Ui.primario("Guardar contraseña", e -> cambiarContrasena()));
         p.add(clave);
         p.add(Ui.espacio(16));
+        p.add(tarjetaEliminar());
+        p.add(Ui.espacio(16));
         JTextArea nota = ayuda("Tu contraseña y tu autenticador se guardan protegidos. Tras varios intentos fallidos seguidos la cuenta se bloquea unos minutos.");
         nota.setFont(nota.getFont().deriveFont(12f));
         p.add(nota);
         return p;
+    }
+
+    /** "Eliminar mi cuenta": la misma tarjeta, textos y confirmación fuerte que perfil.html. */
+    private JPanel tarjetaEliminar() {
+        JPanel tarjeta = Ui.tarjeta();
+        JPanel columnas = Ui.adaptable(new JPanel(new GridLayout(1, 2, 16, 0)), 2, 260);
+        columnas.setOpaque(false);
+        JPanel izq = Ui.columna();
+        agregar(izq, Ui.etiqueta("Contraseña actual"), eliminarClave,
+                Ui.etiqueta("Código de la app, del correo o de respaldo"), eliminarCodigo);
+        JPanel der = Ui.columna();
+        agregar(der, Ui.etiqueta("Escribe ELIMINAR para confirmar"), eliminarConfirmacion);
+        columnas.add(arriba(izq));
+        columnas.add(arriba(der));
+        agregar(tarjeta, Ui.titulo("Eliminar mi cuenta", 17f),
+                ayuda("Se borran de forma definitiva tu cuenta y todos tus datos: registros, categorías, plan, "
+                        + "presupuestos, llaves de acceso y códigos de respaldo. No se puede deshacer. Se cierra la "
+                        + "sesión y te llega un correo de confirmación."),
+                columnas, Ui.espacio(16), Ui.primario("Eliminar mi cuenta", e -> eliminarCuenta()));
+        return tarjeta;
+    }
+
+    private void eliminarCuenta() {
+        int respuesta = javax.swing.JOptionPane.showConfirmDialog(this,
+                "¿Eliminar tu cuenta y todos tus datos? Esta acción es irreversible.", "Eliminar mi cuenta",
+                javax.swing.JOptionPane.YES_NO_OPTION, javax.swing.JOptionPane.WARNING_MESSAGE);
+        if (respuesta != javax.swing.JOptionPane.YES_OPTION) {
+            return;
+        }
+        JsonObject datos = Json.de("contrasena", new String(eliminarClave.getPassword()),
+                "codigo", eliminarCodigo.getText(), "confirmacion", eliminarConfirmacion.getText());
+        eliminarClave.setText("");
+        eliminarCodigo.setText("");
+        Tarea.ejecutar(this, () -> Api.post("/api/perfil/eliminar", datos),
+                r -> ventana.cerrarSesion(Json.texto(r, "mensaje"), true),
+                e -> aviso.error(Ui.mensajeError("eliminar la cuenta").apply(e)));
     }
 
     private static JPanel conEtiqueta(String texto, JComponent campo) {

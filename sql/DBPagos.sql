@@ -194,3 +194,39 @@ BEGIN
       AND (p_monto_max IS NULL OR monto <= p_monto_max)
     ORDER BY fecha DESC;
 END buscar_tbpagos;
+/
+
+-- Borrado DEFINITIVO de una cuenta y de todos sus datos ("Eliminar mi cuenta" en Perfil,
+-- web y escritorio). No deja nada que identifique a la persona: se borran sus registros, la
+-- auditoría ligada a la cuenta o a sus registros (también la que hizo un admin sobre ellos),
+-- categorías, planes, presupuestos, envíos de resúmenes, códigos de respaldo, llaves de
+-- acceso y la fila de la cuenta (con sus tokens de recuperación). Los ids salen de
+-- secuencias y no se reutilizan. Las mismas sentencias, en el mismo orden, están en
+-- web/app/repositorio.py (SENTENCIAS_ELIMINAR_CUENTA) para mientras el procedimiento no
+-- esté aplicado. p_eliminada = 1 si la cuenta existía.
+-- Aplicarlo con el usuario dueño del esquema y dar EXECUTE al usuario de la aplicación.
+CREATE OR REPLACE PROCEDURE eliminar_cuenta(
+    p_usuario_id IN NUMBER,
+    p_eliminada OUT NUMBER
+)
+IS
+BEGIN
+    DELETE FROM TBAuditoria
+    WHERE usuario_id = p_usuario_id
+       OR id_pago IN (SELECT id_pago FROM TBPagos WHERE usuario_id = p_usuario_id);
+    UPDATE TBPagos SET categoria_id = NULL
+    WHERE categoria_id IN (SELECT id FROM TBCategorias WHERE usuario_id = p_usuario_id);
+    DELETE FROM TBPagos WHERE usuario_id = p_usuario_id;
+    DELETE FROM TBPresupuestoMensual
+    WHERE usuario_id = p_usuario_id
+       OR categoria_id IN (SELECT id FROM TBCategorias WHERE usuario_id = p_usuario_id);
+    DELETE FROM TBPresupuestos WHERE usuario_id = p_usuario_id;
+    DELETE FROM TBEnviosResumen WHERE usuario_id = p_usuario_id;
+    DELETE FROM TBCodigosRespaldo WHERE usuario_id = p_usuario_id;
+    DELETE FROM TBLlavesAcceso WHERE usuario_id = p_usuario_id;
+    DELETE FROM TBCategorias WHERE usuario_id = p_usuario_id;
+    DELETE FROM TBPLogin WHERE id = p_usuario_id;
+    p_eliminada := SQL%ROWCOUNT;
+    COMMIT;
+END eliminar_cuenta;
+/

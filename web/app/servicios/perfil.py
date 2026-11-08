@@ -4,8 +4,11 @@ categorías, la contraseña, el autenticador, los códigos de respaldo y las
 llaves de acceso. Las acciones de seguridad piden un código vigente (de la
 app o de respaldo), así que una sesión robada no alcanza para tomar la cuenta.
 """
+import logging
+
 import oracledb
 
+from .. import correo as servicio_correo
 from .. import dos_pasos, finanzas, llaves, repositorio
 from ..seguridad import (
     cifrar_secreto,
@@ -24,6 +27,38 @@ from .registros import GRUPOS
 MENSAJE_BLOQUEO = "Cuenta bloqueada temporalmente; espera unos minutos"
 MENSAJE_CLAVE_CAMBIADA = ("Contraseña actualizada. Tus códigos de respaldo anteriores ya no sirven: "
                           "guarda estos nuevos.")
+PALABRA_ELIMINAR = "ELIMINAR"
+MENSAJE_CUENTA_ELIMINADA = ("Tu cuenta y todos sus datos se eliminaron de forma definitiva. "
+                            "Te enviamos una confirmación por correo.")
+logger = logging.getLogger("prpagos.perfil")
+
+
+def eliminar_cuenta(usuario_id: int, contrasena: str, codigo: str, confirmacion: str) -> str:
+    """"Eliminar mi cuenta": borrado DEFINITIVO de la cuenta y de todos sus datos. Exige
+    escribir ELIMINAR, la contraseña actual y un código del segundo factor (app, correo o
+    respaldo); los fallos cuentan para el bloqueo. Las cuentas de administración no se
+    eliminan desde el perfil."""
+    if (confirmacion or "").strip() != PALABRA_ELIMINAR:
+        raise ErrorServicio("Para confirmar, escribe ELIMINAR en mayúsculas")
+    cred = repositorio.obtener_credenciales(usuario_id=usuario_id)
+    if cred is None or cred["bloqueada"]:
+        raise ErrorServicio(MENSAJE_BLOQUEO)
+    estado = repositorio.obtener_estado_usuario(usuario_id) or {}
+    if estado.get("rol") == "admin":
+        raise ErrorServicio("Las cuentas de administración no se eliminan desde el perfil")
+    if not verificar_password(contrasena or "", cred["password"]):
+        repositorio.registrar_fallo_acceso(cred["usuario_id"], "FALLO_CLAVE")
+        raise ErrorServicio("La contraseña actual no es correcta")
+    if not verificar_segundo_factor(cred, codigo or "", "VERIFICA_TOTP"):
+        raise ErrorServicio("Código incorrecto o ya usado")
+    if not repositorio.eliminar_cuenta(cred["usuario_id"]):
+        raise ErrorServicio("No se pudo eliminar la cuenta; inténtalo de nuevo")
+    try:
+        servicio_correo.enviar(cred["usuario"], cred["nombre"], "Tu cuenta del Simulador de pagos fue eliminada",
+                               finanzas.html_cuenta_eliminada(cred["nombre"]))
+    except servicio_correo.ErrorCorreo:
+        logger.warning("No se pudo enviar la confirmación de cuenta eliminada")
+    return MENSAJE_CUENTA_ELIMINADA
 
 
 def datos(usuario_id: int) -> dict:
