@@ -232,6 +232,8 @@ cambiar entre tema claro y oscuro.
 - **Perdí mi autenticador** (paso del código, siempre visible): un código de respaldo, o un código
   al correo para configurar un autenticador nuevo y recibir códigos de respaldo nuevos.
 - Los correos y la app autenticadora muestran el nombre **Simulador de pagos**.
+- **Eliminar mi cuenta** (Perfil): borra para siempre la cuenta y todos sus datos tras la
+  contraseña, un código del segundo factor y escribir ELIMINAR; cierra la sesión y avisa por correo.
 - **Códigos de respaldo:** al cambiar la contraseña en Perfil, al restablecerla con "Olvidé mi
   contraseña" y al configurar un autenticador nuevo se generan 10 nuevos y se anulan los anteriores;
   tras restablecerla se muestran en el siguiente ingreso, después del código.

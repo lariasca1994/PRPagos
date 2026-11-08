@@ -98,6 +98,8 @@ migración de escritorio a web.
 - **Llaves de acceso (passkeys):** ingreso con Windows Hello, huella, rostro o PIN, en la web
   (Windows, Android y iPhone) y en el escritorio; la misma llave sirve en Edge y en la app del mismo Windows
 - Correos (códigos, enlaces y resúmenes) y app autenticadora con el nombre **Simulador de pagos**
+- **Eliminar mi cuenta** en Perfil: borrado definitivo de la cuenta y de todos sus datos, con
+  contraseña, segundo factor y la palabra ELIMINAR; llega un correo de confirmación
 - Códigos de respaldo nuevos (y los anteriores anulados) al cambiar o restablecer la contraseña y al
   configurar un autenticador nuevo
 - **Olvidé mi contraseña** con un enlace de un solo uso al correo, y **Perdí mi autenticador** con un

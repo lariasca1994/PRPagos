@@ -252,6 +252,27 @@ registros.
 | 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
 | 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.15) |
 | 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo. Al guardar ves tus **códigos de respaldo nuevos**; los anteriores dejan de servir |
+| 8 | Eliminar mi cuenta | Borra la cuenta y todos sus datos para siempre (ver abajo) |
+
+#### Eliminar mi cuenta
+
+![Tarjeta Eliminar mi cuenta en Perfil](img/manual-web/18-eliminar-cuenta.png)
+
+Al final de **Perfil** está la tarjeta **Eliminar mi cuenta**. Borra **de forma definitiva** tu
+cuenta y todos tus datos: registros, categorías, plan, presupuestos, envíos de resúmenes, llaves de
+acceso, códigos de respaldo y eventos de seguridad. **No se puede deshacer.**
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Contraseña actual | Tu contraseña |
+| 2 | Código de la app, del correo o de respaldo | Un código vigente de tu verificación en dos pasos (si usas el correo, pídelo con **Enviarme un código por correo**) |
+| 3 | Escribe ELIMINAR para confirmar | La palabra `ELIMINAR`, en mayúsculas |
+| 4 | Eliminar mi cuenta | Pide una última confirmación y borra todo |
+
+Al terminar se cierra la sesión (también en la aplicación de escritorio), vuelves al ingreso con el aviso y te
+llega el correo **Tu cuenta fue eliminada**. Si te equivocas en la contraseña o en el código, no
+se borra nada (y cuenta como intento fallido). Las cuentas de administración no se eliminan desde
+el perfil.
 
 ### 4.11 Resúmenes por correo
 

@@ -49,12 +49,12 @@ automáticamente.
   categorías y tus métodos de verificación; tus registros los editas en **Consultar registros**.
 - **Dejar de recibir correos:** desactiva los resúmenes en **Perfil**. Los códigos de acceso y los
   enlaces de recuperación solo llegan cuando tú los pides.
-- **Borrar tu cuenta y tus datos:** pídelo abriendo una solicitud en la página
-  [Issues del proyecto](https://github.com/lariasca1994/PRPagos/issues) con el título "Borrar mi
-  cuenta", **sin escribir tu correo ni otros datos personales**. Se te pedirá confirmar desde el
-  correo de tu cuenta y, una vez confirmado, se borran tus registros, categorías, planes,
-  presupuestos, llaves de acceso y eventos de seguridad, y tu cuenta se elimina (o, si el historial
-  de auditoría de los registros no permite borrarla, queda desactivada y sin acceso).
+- **Borrar tu cuenta y tus datos:** tú mismo, en **Perfil → Eliminar mi cuenta** (en la web o en
+  la aplicación de escritorio), con tu contraseña, un código de tu verificación en dos pasos y la
+  palabra `ELIMINAR`. Se eliminan **de forma definitiva e inmediata** la cuenta y todos sus datos:
+  registros, categorías, plan, presupuestos, envíos de resúmenes, llaves de acceso, códigos de
+  respaldo, enlaces de recuperación y eventos de seguridad. No queda ningún dato que te
+  identifique. Se cierran las sesiones y recibes un último correo de confirmación.
 - **Desinstalar la aplicación de escritorio:** desde **Configuración → Aplicaciones → Aplicaciones
   instaladas**. Se borran la aplicación y sus preferencias del equipo; tu cuenta sigue en la web
   hasta que pidas borrarla.
