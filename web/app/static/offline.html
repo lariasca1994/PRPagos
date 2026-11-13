@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sin conexión · Simulador de pagos</title>
-    <link rel="icon" href="/static/iconos/icono.svg" type="image/svg+xml">
     <meta name="theme-color" content="#C74634">
     <script>
         (function () {
@@ -16,19 +15,97 @@
             document.documentElement.setAttribute("data-tema", tema);
         })();
     </script>
-    <link rel="stylesheet" href="/static/estilos.css">
+    <!-- Todo va dentro de este archivo: sin conexión no se puede pedir nada más.
+         Los colores son copia de los tokens de estilos.css. -->
     <style>
-        .sin-conexion { max-width: 28rem; margin: 18vh auto 0; padding: 0 1rem; text-align: center; }
-        .sin-conexion img { width: 64px; height: 64px; }
-        .sin-conexion button { margin-top: 1rem; }
+        :root { --fondo: #f5f6fa; --superficie: #ffffff; --texto: #1f2430; --texto-suave: #5a6072; --borde: #dde1ea;
+                --acento: #c74634; --acento-texto: #c74634; --acento-suave: #fbe7e4; color-scheme: light; }
+        [data-tema="oscuro"] { --fondo: #14161f; --superficie: #1d2130; --texto: #e9ebf3; --texto-suave: #a3a9bd; --borde: #2c3145;
+                --acento-texto: #f08a7a; --acento-suave: #3a1f1c; color-scheme: dark; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: safe center; padding: 1.5rem max(1rem, env(safe-area-inset-right)) 1.5rem max(1rem, env(safe-area-inset-left));
+               background: radial-gradient(560px 320px at 50% -6%, var(--acento-suave), transparent 72%), var(--fondo); color: var(--texto);
+               font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+        main { display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: 2.25rem; align-items: center; width: 100%; max-width: 44rem; }
+        main > * { animation: entrar .5s cubic-bezier(.2, .8, .2, 1) both; }
+        main > :nth-child(2) { animation-delay: 90ms; }
+        @keyframes entrar { from { opacity: 0; transform: translate(22px, 8px); filter: blur(7px); } }
+        .recibo { position: relative; padding: 1rem 1.1rem 1.3rem; border: 1px solid var(--borde); border-radius: 12px; background: var(--superficie);
+                  font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .8rem; transform: rotate(-1.5deg);
+                  box-shadow: 0 22px 44px -26px rgba(120, 30, 20, .45); }
+        .cab { display: flex; justify-content: space-between; gap: .5rem; padding-bottom: .55rem; border-bottom: 1px dashed var(--borde); color: var(--texto-suave); font-size: .7rem; letter-spacing: .08em; }
+        .cab b { color: var(--acento-texto); }
+        ol { list-style: none; margin: .4rem 0 0; padding: 0; }
+        li { display: flex; justify-content: space-between; gap: .75rem; padding: .35rem 0; border-bottom: 1px dotted var(--borde); animation: imprimir .35s both; animation-delay: calc(.25s + var(--i) * 190ms); }
+        li span:first-child { color: var(--texto-suave); }
+        .total { display: flex; justify-content: space-between; padding-top: .6rem; font-weight: 700; }
+        .sello { position: absolute; right: .9rem; bottom: -1rem; padding: .15rem .6rem; border: 2px solid var(--acento-texto); border-radius: 4px; background: var(--superficie);
+                 color: var(--acento-texto); font-weight: 800; letter-spacing: .12em; font-size: .72rem; white-space: nowrap; transform: rotate(-9deg);
+                 animation: sellar .32s 1s cubic-bezier(.3, 1.6, .5, 1) both; }
+        @keyframes imprimir { from { opacity: 0; transform: translateY(-6px); } }
+        @keyframes sellar { from { opacity: 0; transform: rotate(-9deg) scale(2); } }
+        h1 { margin: 0 0 .6rem; font-size: 1.6rem; letter-spacing: -.02em; }
+        p { margin: 0 0 1rem; color: var(--texto-suave); line-height: 1.55; }
+        .reintento { display: flex; align-items: center; gap: .55rem; font-size: .85rem; color: var(--texto-suave); margin-bottom: 1rem; }
+        .cuenta { width: 1.4rem; height: 1.4rem; transform: rotate(-90deg); }
+        .cuenta circle { fill: none; stroke-width: 3; }
+        .cuenta .f { stroke: var(--borde); }
+        .cuenta .v { stroke: var(--acento-texto); stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; }
+        button { position: relative; overflow: hidden; min-height: 44px; padding: 0 1.3rem; border: 0; border-radius: 8px; background: var(--acento); color: #fff;
+                 font: inherit; font-weight: 600; cursor: pointer; transition: transform .18s, filter .2s; }
+        button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+        button:active { transform: scale(.97); }
+        button:focus-visible { outline: 2px solid var(--acento-texto); outline-offset: 2px; }
+        @media (max-width: 640px) { main { grid-template-columns: 1fr; gap: 1.75rem; } .recibo { max-width: 18rem; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
     </style>
 </head>
 <body>
-    <main class="sin-conexion">
-        <img src="/static/iconos/icono.svg" alt="">
-        <h1>Sin conexión</h1>
-        <p>El simulador de pagos necesita internet para consultar y guardar pagos. Revisa tu conexión e intenta de nuevo.</p>
-        <button type="button" onclick="location.reload()">Reintentar</button>
+    <main>
+        <div class="recibo" aria-hidden="true">
+            <div class="cab"><span>SIMULADOR DE PAGOS</span><b>EN PAUSA</b></div>
+            <ol>
+                <li style="--i:0"><span>Conexión</span><span>sin red</span></li>
+                <li style="--i:1"><span>Tus registros</span><span>en la nube</span></li>
+                <li style="--i:2"><span>Reintento</span><span>automático</span></li>
+            </ol>
+            <div class="total"><span>TOTAL</span><span>—</span></div>
+            <span class="sello">SIN CONEXIÓN</span>
+        </div>
+        <div role="status" aria-live="polite">
+            <h1>Sin conexión</h1>
+            <p>Tus registros están guardados en la nube. Cuando vuelva internet podrás seguir donde ibas.</p>
+            <div class="reintento">
+                <svg class="cuenta" viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="12" cy="12" r="9"/><circle class="v" cx="12" cy="12" r="9" pathLength="1"/></svg>
+                <span id="texto">Reintento automático en 8 s</span>
+            </div>
+            <button type="button" id="reintentar">Reintentar ahora</button>
+        </div>
     </main>
+    <script>
+        // Reintento automático cada 8 s. HEAD no pasa por el service worker
+        // (solo atiende GET), así que solo responde si de verdad hay red.
+        (function () {
+            var TOTAL = 8, resto = TOTAL, revisando = false;
+            var texto = document.getElementById("texto"), arco = document.querySelector(".cuenta .v");
+            function pintar(t) { texto.textContent = t; arco.style.strokeDashoffset = String(revisando ? 0 : 1 - resto / TOTAL); }
+            function revisar() {
+                if (revisando) return;
+                revisando = true;
+                pintar("Comprobando…");
+                fetch("/", { method: "HEAD", cache: "no-store" })
+                    .then(function () { location.reload(); })
+                    .catch(function () { revisando = false; resto = TOTAL; pintar("Seguimos sin red. Reintento en " + TOTAL + " s"); });
+            }
+            document.getElementById("reintentar").addEventListener("click", revisar);
+            window.addEventListener("online", revisar);
+            setInterval(function () {
+                if (revisando) return;
+                resto -= 1;
+                if (resto <= 0) { revisar(); return; }
+                pintar("Reintento automático en " + resto + " s");
+            }, 1000);
+        })();
+    </script>
 </body>
 </html>

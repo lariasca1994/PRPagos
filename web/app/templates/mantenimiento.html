@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{# Pantalla propia cuando Oracle no responde (503). Distinta del 404: es una
+   espera tranquila, centrada y sin códigos. Consulta solo /health y vuelve
+   sola a la página con GET: nunca repite la acción que falló. #}
+{% block titulo %}En mantenimiento - Simulador de pagos{% endblock %}
+{% block cabeza %}<link rel="stylesheet" href="/static/estados.css">{% endblock %}
+{% block clase_body %}pantalla-estado{% endblock %}
+{% block cuerpo %}
+<main class="mnt" role="status" aria-live="polite">
+    <div class="mnt-caja">
+        <div class="orbe" aria-hidden="true"><span></span><span></span><span></span><b><img src="/static/iconos/icono.svg" alt=""></b></div>
+        <p class="mnt-etiqueta">Servicio en pausa</p>
+        <h1>Estamos en mantenimiento</h1>
+        <p class="mnt-texto">La base de datos no está disponible en este momento, así que no se pueden consultar ni registrar ingresos y gastos.</p>
+        <div class="mnt-barra" role="progressbar" aria-label="Esperando a que la base de datos responda"><i></i></div>
+        <p class="mnt-nota">Si la base de datos estaba dormida, suele volver en menos de un minuto.</p>
+        <ul class="promesas">
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Tus registros y tu presupuesto siguen guardados.</span></li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Ninguna acción quedó a medias: si no viste la confirmación, no se guardó.</span></li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Esta pantalla se quita sola cuando la base de datos responda.</span></li>
+        </ul>
+        <div class="mnt-pie">
+            <span class="reintento" data-reintento="15">
+                <svg class="cuenta" viewBox="0 0 24 24" aria-hidden="true"><circle class="cuenta-fondo" cx="12" cy="12" r="9"/><circle class="cuenta-valor" cx="12" cy="12" r="9" pathLength="1"/></svg>
+                <span data-reintento-texto>Reintento automático en 15 s</span>
+            </span>
+            <button type="button" class="boton" data-reintentar>Reintentar ahora</button>
+        </div>
+    </div>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/static/estados.js" defer></script>{% endblock %}

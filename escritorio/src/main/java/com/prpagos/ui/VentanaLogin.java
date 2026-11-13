@@ -29,7 +29,10 @@ import com.prpagos.seguridad.WindowsHello;
  * Portada de acceso: ingresar (contraseña y luego código), configurar el
  * autenticador, crear cuenta y recuperar contraseña. Misma estructura,
  * textos y reglas que la web (web/app/routers/auth.py y acceso_base.html):
- * formulario a la izquierda y panel de marca a la derecha.
+ * formulario a la izquierda y panel de marca a la derecha. Los pasos cambian
+ * con las mismas animaciones de la web (acceso.js): el panel cruza al otro lado
+ * en Registro, los formularios se deslizan y el paso del código lleva seis
+ * casillas, el candado y el anillo del tiempo.
  *
  * Toda la lógica está en el servidor, la misma de la web: cada paso llama a la
  * API y muestra su respuesta. La verificación en dos pasos es obligatoria y
@@ -51,7 +54,7 @@ public class VentanaLogin extends JFrame {
     private final Ui.Aviso avisoIngreso = new Ui.Aviso();
     private final Ui.Aviso avisoLlave = new Ui.Aviso();
     // Código
-    private final JTextField codigo = Ui.campoCodigo();
+    private final CampoCasillas codigo = new CampoCasillas(true);
     private final JTextArea subtituloCodigo = Ui.suave("");
     private final Ui.Aviso avisoCodigo = new Ui.Aviso();
     private final JButton enlacePerdi = Ui.enlace("Perdí mi autenticador", e -> perdiAutenticador());
@@ -60,13 +63,13 @@ public class VentanaLogin extends JFrame {
     private final JTextArea subtituloElegir = Ui.suave("");
     private final Ui.Aviso avisoElegir = new Ui.Aviso();
     // Activar el código por correo (primer ingreso)
-    private final JTextField codigoActivar = Ui.campoCodigo();
+    private final CampoCasillas codigoActivar = new CampoCasillas(false);
     private final JTextArea subtituloActivar = Ui.suave("");
     private final Ui.Aviso avisoActivar = new Ui.Aviso();
     // Configurar autenticador
     private final PanelQr qr = new PanelQr();
     private final JLabel claveManual = new JLabel();
-    private final JTextField codigoConfig = Ui.campoCodigo();
+    private final CampoCasillas codigoConfig = new CampoCasillas(false);
     private final Ui.Aviso avisoConfig = new Ui.Aviso();
     // Registro
     private final JTextField regCorreo = Ui.campo("nombre@dominio.com");
@@ -78,12 +81,31 @@ public class VentanaLogin extends JFrame {
     private final JTextField recCorreo = Ui.campo("nombre@dominio.com");
     private final Ui.Aviso avisoRecuperar = new Ui.Aviso();
     // Perdí mi autenticador (código por correo)
-    private final JTextField codigoCorreo = Ui.campoCodigo();
+    private final CampoCasillas codigoCorreo = new CampoCasillas(false);
     private final JTextArea subtituloCorreo = Ui.suave("");
     private final Ui.Aviso avisoCorreo = new Ui.Aviso();
     // Códigos de respaldo al activar el autenticador
     private final JPanel rejillaRespaldo = new JPanel(new java.awt.GridLayout(0, 2, 24, 6));
     private final Ui.Aviso avisoRespaldo = new Ui.Aviso();
+
+    // Efectos de la portada (como acceso.js en la web): candado y anillo en cada paso del código.
+    private final java.util.Map<String, Candado> candados = new java.util.HashMap<>();
+    private final AnilloCodigo anilloCodigo = new AnilloCodigo();
+    private final AnilloCodigo anilloConfig = new AnilloCodigo();
+    private final AnilloCodigo anilloActivar = new AnilloCodigo();
+    private final AnilloCodigo anilloCorreo = new AnilloCodigo();
+    private final JButton enlaceRespaldo = Ui.enlace("Usar un código de respaldo", e -> codigo.setRespaldo(!codigo.enRespaldo()));
+    private JButton botonCodigo;
+    private JButton botonConfig;
+    private JButton botonActivar;
+    private JButton botonCorreo;
+    private JPanel centro;
+    private JPanel portada;
+    private JPanel lado;
+    private PanelMarca panelMarca;
+    /** En Registro el panel de marca pasa al lado izquierdo (como .portada.invertida). */
+    private boolean invertida;
+    private String tarjetaActual = "ingreso";
 
     /** Token del paso a medio camino (lo entrega la API y vence en 10 minutos). */
     private String tokenAcceso;
@@ -121,7 +143,7 @@ public class VentanaLogin extends JFrame {
         formularios.add(formActivarCorreo(), "activar");
         formularios.add(formRespaldo(), "respaldo");
 
-        JPanel lado = new JPanel(new BorderLayout());
+        lado = new JPanel(new BorderLayout());
         lado.setBorder(BorderFactory.createEmptyBorder(26, 48, 22, 48));
         JPanel barra = new JPanel(new BorderLayout());
         barra.setOpaque(false);
@@ -129,7 +151,7 @@ public class VentanaLogin extends JFrame {
         marca.add(Ui.marca());
         marca.add(Ui.botonTema());
         barra.add(marca, BorderLayout.WEST);
-        JPanel centro = new JPanel(new GridBagLayout());
+        centro = new JPanel(new GridBagLayout());
         centro.setOpaque(false);
         centro.add(formularios);
         JTextArea pie = Ui.suave("Simulador de pagos — proyecto de portafolio de Luis Felipe Arias.");
@@ -147,8 +169,8 @@ public class VentanaLogin extends JFrame {
             }
         });
 
-        PanelMarca panelMarca = new PanelMarca();
-        JPanel portada = new JPanel();
+        panelMarca = new PanelMarca();
+        portada = new JPanel();
         acomodarPortada(portada, lado, panelMarca, true);
         portada.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
@@ -187,8 +209,8 @@ public class VentanaLogin extends JFrame {
             portada.add(desplazable, BorderLayout.CENTER);
         } else {
             portada.setLayout(new GridLayout(1, 2));
-            portada.add(lado);
-            portada.add(marca);
+            portada.add(invertida ? marca : lado);
+            portada.add(invertida ? lado : marca);
         }
         portada.revalidate();
         portada.repaint();
@@ -311,10 +333,15 @@ public class VentanaLogin extends JFrame {
     private JPanel formCodigo() {
         JButton ingresar = botonAncho(Ui.primario("Ingresar", e -> verificarCodigo()));
         codigo.addActionListener(e -> verificarCodigo());
+        botonCodigo = ingresar;
+        codigo.alCambiarModo(() -> enlaceRespaldo.setText(
+                codigo.enRespaldo() ? "Usar el código de 6 dígitos" : "Usar un código de respaldo"));
         return formulario(
+                candado("codigo"),
                 encabezado("Acceso · Paso 2 de 2", "Código de verificación", subtituloCodigo),
                 avisoCodigo,
                 Ui.etiqueta("Código de 6 dígitos (o un código de respaldo)"), codigo,
+                enlaceRespaldo, anilloCodigo,
                 (JComponent) Ui.espacio(20), ingresar,
                 enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null)), enlacesCodigo()));
     }
@@ -340,10 +367,12 @@ public class VentanaLogin extends JFrame {
     private JPanel formActivarCorreo() {
         JButton activar = botonAncho(Ui.primario("Activar e ingresar", e -> activarCorreo()));
         codigoActivar.addActionListener(e -> activarCorreo());
+        botonActivar = activar;
         return formulario(
+                candado("activar"),
                 encabezado("Acceso · Código por correo", "Revisa tu correo", subtituloActivar),
                 avisoActivar,
-                Ui.etiqueta("Código del correo"), codigoActivar,
+                Ui.etiqueta("Código del correo"), codigoActivar, anilloActivar,
                 (JComponent) Ui.espacio(20), activar,
                 enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null))));
     }
@@ -351,10 +380,12 @@ public class VentanaLogin extends JFrame {
     private JPanel formCorreo() {
         JButton verificar = botonAncho(Ui.primario("Verificar y configurar autenticador", e -> verificarCodigoCorreo()));
         codigoCorreo.addActionListener(e -> verificarCodigoCorreo());
+        botonCorreo = verificar;
         return formulario(
+                candado("correo"),
                 encabezado("Perdí mi autenticador", "Revisa tu correo", subtituloCorreo),
                 avisoCorreo,
-                Ui.etiqueta("Código del correo"), codigoCorreo,
+                Ui.etiqueta("Código del correo"), codigoCorreo, anilloCorreo,
                 (JComponent) Ui.espacio(20), verificar,
                 enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null))));
     }
@@ -374,6 +405,7 @@ public class VentanaLogin extends JFrame {
     private JPanel formConfigurar() {
         JButton activar = botonAncho(Ui.primario("Activar e ingresar", e -> activarAutenticador()));
         codigoConfig.addActionListener(e -> activarAutenticador());
+        botonConfig = activar;
         JTextArea pasos = Ui.suave(
                 "1. Instala una app autenticadora (Google Authenticator, Microsoft Authenticator, Authy…).\n"
                 + "2. Escanea este código QR, o escribe la clave a mano.\n"
@@ -387,12 +419,13 @@ public class VentanaLogin extends JFrame {
         filaClave.setOpaque(false);
         filaClave.add(claveManual);
         return formulario(
+                candado("configurar"),
                 encabezado("Acceso · Paso 2 de 2", "Verificación en dos pasos", Ui.suave(
                         "Es obligatoria para todas las cuentas. Configúrala una sola vez y sirve en la "
                         + "versión de escritorio y en la web.")),
                 avisoConfig, pasos, (JComponent) Ui.espacio(12), cajaQr, (JComponent) Ui.espacio(6),
                 filaClave,
-                Ui.etiqueta("Código de 6 dígitos"), codigoConfig,
+                Ui.etiqueta("Código de 6 dígitos"), codigoConfig, anilloConfig,
                 (JComponent) Ui.espacio(20), activar,
                 enlaces(Ui.enlace("Usar otra cuenta", e -> reiniciar(null))));
     }
@@ -428,7 +461,148 @@ public class VentanaLogin extends JFrame {
             avisoCorreo, avisoLlave, avisoElegir, avisoActivar, avisoRespaldo}) {
             a.ocultar();
         }
-        tarjetas.show(formularios, tarjeta);
+        Candado c = candados.get(tarjeta);
+        if (c != null) {
+            c.reiniciar();
+        }
+        String anterior = tarjetaActual;
+        tarjetaActual = tarjeta;
+        boolean cruce = "registro".equals(anterior) != "registro".equals(tarjeta);
+        if (anterior.equals(tarjeta) || !isShowing()) {
+            tarjetas.show(formularios, tarjeta);
+            return;
+        }
+        boolean arriba = "recuperar".equals(anterior) || "recuperar".equals(tarjeta);
+        if (cruce && portada.getLayout() instanceof GridLayout) {
+            cruzar("registro".equals(tarjeta), () -> tarjetas.show(formularios, tarjeta));
+            return;
+        }
+        if (cruce) {
+            invertida = "registro".equals(tarjeta);
+        }
+        int dir = cruce ? ("registro".equals(tarjeta) ? 1 : -1)
+                : arriba ? ("recuperar".equals(tarjeta) ? 1 : -1)
+                : rango(tarjeta) >= rango(anterior) ? 1 : -1;
+        Efectos.transicion(centro, dir, arriba && !cruce ? Efectos.Modo.ARRIBA : Efectos.Modo.AVANZA,
+                () -> tarjetas.show(formularios, tarjeta));
+    }
+
+    private static int rango(String tarjeta) {
+        return switch (tarjeta) {
+            case "ingreso", "recuperar" -> 0;
+            case "respaldo" -> 2;
+            default -> 1;
+        };
+    }
+
+    /**
+     * Registro: el panel de marca cruza al otro lado y el formulario nuevo llega
+     * desde el lado contrario, como en la web (.portada.invertida, 650 ms).
+     */
+    private void cruzar(boolean haciaRegistro, Runnable cambiar) {
+        javax.swing.JLayeredPane capas = getRootPane().getLayeredPane();
+        java.awt.image.BufferedImage fotoMarca = Efectos.foto(panelMarca);
+        java.awt.image.BufferedImage fotoLadoViejo = Efectos.foto(lado);
+        java.awt.Point marcaAntes = javax.swing.SwingUtilities.convertPoint(panelMarca, 0, 0, capas);
+        java.awt.Point ladoAntes = javax.swing.SwingUtilities.convertPoint(lado, 0, 0, capas);
+        cambiar.run();
+        invertida = haciaRegistro;
+        acomodarPortada(portada, lado, panelMarca, true);
+        portada.validate();
+        if (Efectos.reducir()) {
+            return;
+        }
+        Cruce capa = new Cruce(fotoMarca, fotoLadoViejo, Efectos.foto(lado), marcaAntes, ladoAntes,
+                javax.swing.SwingUtilities.convertPoint(panelMarca, 0, 0, capas),
+                javax.swing.SwingUtilities.convertPoint(lado, 0, 0, capas));
+        capa.setBounds(0, 0, capas.getWidth(), capas.getHeight());
+        capas.add(capa, javax.swing.JLayeredPane.DRAG_LAYER);
+        Efectos.animar(650, Efectos.CRUCE, v -> {
+            capa.t = v;
+            capa.repaint();
+        }, () -> {
+            capas.remove(capa);
+            capas.repaint();
+        });
+    }
+
+    /** Capa temporal del cruce: los dos paneles se deslizan cada uno hacia su lado nuevo. */
+    private static final class Cruce extends JComponent {
+        private final java.awt.image.BufferedImage marca;
+        private final java.awt.image.BufferedImage ladoViejo;
+        private final java.awt.image.BufferedImage ladoNuevo;
+        private final java.awt.Point marcaAntes;
+        private final java.awt.Point ladoAntes;
+        private final java.awt.Point marcaDespues;
+        private final java.awt.Point ladoDespues;
+        double t;
+
+        Cruce(java.awt.image.BufferedImage marca, java.awt.image.BufferedImage ladoViejo,
+              java.awt.image.BufferedImage ladoNuevo, java.awt.Point marcaAntes, java.awt.Point ladoAntes,
+              java.awt.Point marcaDespues, java.awt.Point ladoDespues) {
+            this.marca = marca;
+            this.ladoViejo = ladoViejo;
+            this.ladoNuevo = ladoNuevo;
+            this.marcaAntes = marcaAntes;
+            this.ladoAntes = ladoAntes;
+            this.marcaDespues = marcaDespues;
+            this.ladoDespues = ladoDespues;
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g) {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            double xl = Efectos.entre(ladoAntes.x, ladoDespues.x, t);
+            // El formulario viejo se desvanece y el nuevo aparece mientras cruzan.
+            float a = (float) Math.max(0, Math.min(1, (t - 0.35) / 0.4));
+            g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 1 - a));
+            g2.drawImage(ladoViejo, (int) Math.round(xl), ladoDespues.y, null);
+            g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, a));
+            g2.drawImage(ladoNuevo, (int) Math.round(xl), ladoDespues.y, null);
+            g2.setComposite(java.awt.AlphaComposite.SrcOver);
+            g2.drawImage(marca, (int) Math.round(Efectos.entre(marcaAntes.x, marcaDespues.x, t)), marcaDespues.y, null);
+            g2.dispose();
+        }
+    }
+
+    private JPanel candado(String tarjeta) {
+        Candado c = new Candado();
+        candados.put(tarjeta, c);
+        JPanel p = new JPanel(new BorderLayout());
+        p.setOpaque(false);
+        p.add(c, BorderLayout.WEST);
+        p.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
+        return p;
+    }
+
+    /** Código correcto: el candado se abre y el botón pasa a ✓; luego sigue. */
+    private void codigoBien(JButton boton, Runnable despues) {
+        Candado c = candados.get(tarjetaActual);
+        if (c != null) {
+            c.abrir();
+        }
+        if (boton instanceof BotonAnimado b) {
+            b.setListo(true);
+        }
+        javax.swing.Timer espera = new javax.swing.Timer(Efectos.reducir() ? 0 : 650, e -> {
+            despues.run();
+            if (boton instanceof BotonAnimado b) {
+                b.setListo(false);
+            }
+        });
+        espera.setRepeats(false);
+        espera.start();
+    }
+
+    /** Código equivocado: las casillas tiemblan y se vacían, y el candado se sacude. */
+    private void codigoMal(CampoCasillas campo) {
+        Candado c = candados.get(tarjetaActual);
+        if (c != null) {
+            c.sacudir();
+        }
+        campo.temblar();
+        campo.limpiar();
     }
 
     /** Vuelve al paso 1 olvidando el ingreso a medio camino (como "Usar otra cuenta"). */
@@ -472,6 +646,9 @@ public class VentanaLogin extends JFrame {
                             + Json.texto(paso, "correo") + ").");
             enlaceCambiar.setText(porCorreo ? "Usar la app autenticadora" : "Usar un código por correo");
             enlaceCambiar.setVisible(ambos);
+            anilloCodigo.setVisible(!porCorreo);
+            anilloCodigo.modoApp();
+            codigo.setRespaldo(false);
             codigo.setText("");
             mostrar("codigo");
             if (!mensaje.isEmpty()) {
@@ -484,12 +661,14 @@ public class VentanaLogin extends JFrame {
             mostrar("elegir");
         } else if ("activar_correo".equals(etapa)) {
             subtituloActivar.setText(mensaje);
+            anilloActivar.modoCorreo(AnilloCodigo.minutosDe(mensaje));
             codigoActivar.setText("");
             mostrar("activar");
             codigoActivar.requestFocusInWindow();
         } else {
             qr.mostrar(Json.texto(paso, "uri"));
             claveManual.setText("Clave:  " + Json.texto(paso, "clave"));
+            anilloConfig.modoApp();
             codigoConfig.setText("");
             mostrar("configurar");
             if (!mensaje.isEmpty()) {
@@ -515,9 +694,10 @@ public class VentanaLogin extends JFrame {
     private void verificarCodigo() {
         String texto = codigo.getText();
         String token = tokenAcceso;
+        candados.get("codigo").verificando(true);
         Tarea.ejecutar(this, () -> Api.post("/api/acceso/codigo", Json.de("token", token, "codigo", texto)),
-                this::sesionConCodigos, e -> {
-                    codigo.setText("");
+                r -> codigoBien(botonCodigo, () -> sesionConCodigos(r)), e -> {
+                    codigoMal(codigo);
                     if (!volverAlInicio(e)) {
                         avisoCodigo.error(Ui.mensajeError("verificar el código").apply(e));
                     }
@@ -551,13 +731,13 @@ public class VentanaLogin extends JFrame {
         String texto = codigoActivar.getText();
         String token = tokenAcceso;
         Tarea.ejecutar(this, () -> Api.post("/api/acceso/correo", Json.de("token", token, "codigo", texto)),
-                respuesta -> {
+                respuesta -> codigoBien(botonActivar, () -> {
                     sesionLista = guardarSesion(respuesta);
                     // Con el primer método llegan los 10 códigos de respaldo (se muestran una sola vez).
                     PanelPerfil.mostrarCodigos(rejillaRespaldo, Json.textos(respuesta, "codigos"));
                     mostrar("respaldo");
-                }, e -> {
-                    codigoActivar.setText("");
+                }), e -> {
+                    codigoMal(codigoActivar);
                     if (!volverAlInicio(e)) {
                         avisoActivar.error(Ui.mensajeError("verificar el código").apply(e));
                     }
@@ -587,13 +767,13 @@ public class VentanaLogin extends JFrame {
         String texto = codigoConfig.getText();
         String token = tokenAcceso;
         Tarea.ejecutar(this, () -> Api.post("/api/acceso/configurar", Json.de("token", token, "codigo", texto)),
-                respuesta -> {
+                respuesta -> codigoBien(botonConfig, () -> {
                     sesionLista = guardarSesion(respuesta);
                     // Con el autenticador llegan los 10 códigos de respaldo (se muestran una sola vez).
                     PanelPerfil.mostrarCodigos(rejillaRespaldo, Json.textos(respuesta, "codigos"));
                     mostrar("respaldo");
-                }, e -> {
-                    codigoConfig.setText("");
+                }), e -> {
+                    codigoMal(codigoConfig);
                     if (!volverAlInicio(e)) {
                         avisoConfig.error(Ui.mensajeError("guardar el autenticador").apply(e));
                     }
@@ -611,6 +791,7 @@ public class VentanaLogin extends JFrame {
         Tarea.ejecutar(this, () -> Api.post("/api/acceso/perdi-autenticador", Json.de("token", token)), respuesta -> {
             tokenAcceso = Json.texto(respuesta, "token");
             subtituloCorreo.setText(Json.texto(respuesta, "mensaje"));
+            anilloCorreo.modoCorreo(AnilloCodigo.minutosDe(Json.texto(respuesta, "mensaje")));
             codigoCorreo.setText("");
             mostrar("correo");
             codigoCorreo.requestFocusInWindow();
@@ -625,8 +806,8 @@ public class VentanaLogin extends JFrame {
         String texto = codigoCorreo.getText();
         String token = tokenAcceso;
         Tarea.ejecutar(this, () -> Api.post("/api/acceso/correo", Json.de("token", token, "codigo", texto)),
-                this::siguientePaso, e -> {
-                    codigoCorreo.setText("");
+                r -> codigoBien(botonCorreo, () -> siguientePaso(r)), e -> {
+                    codigoMal(codigoCorreo);
                     if (!volverAlInicio(e)) {
                         avisoCorreo.error(Ui.mensajeError("verificar el código").apply(e));
                     }

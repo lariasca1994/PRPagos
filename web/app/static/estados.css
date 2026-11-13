@@ -1,0 +1,88 @@
+/* Pantallas de estado de PRPagos: mantenimiento (espera tranquila, centrada,
+   sin códigos) y 404 (el recibo con el sello "NO ENCONTRADA"). Solo tokens
+   de estilos.css; offline.html repite lo necesario dentro de su propio
+   archivo porque no puede pedir nada a la red. */
+
+/* ───────── Mantenimiento ───────── */
+body.pantalla-estado { display: block; }
+.mnt {
+    display: grid;
+    place-items: safe center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-width: none;
+    padding: calc(1.5rem + env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left));
+    text-align: center;
+    background: radial-gradient(560px 320px at 50% -6%, var(--acento-suave), transparent 72%), var(--fondo);
+}
+.mnt-caja { display: grid; gap: .7rem; justify-items: center; width: 100%; max-width: 38rem; }
+.mnt-caja > * { animation: entrar .5s cubic-bezier(.2, .8, .2, 1) both; }
+.mnt-caja > :nth-child(2) { animation-delay: 45ms; }
+.mnt-caja > :nth-child(3) { animation-delay: 90ms; }
+.mnt-caja > :nth-child(4) { animation-delay: 135ms; }
+.mnt-caja > :nth-child(5) { animation-delay: 180ms; }
+.mnt-caja > :nth-child(6) { animation-delay: 225ms; }
+.mnt-caja > :nth-child(n+7) { animation-delay: 270ms; }
+.mnt h1 { margin: 0; font-size: 1.6rem; letter-spacing: -.02em; }
+.mnt-etiqueta { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--acento-texto); }
+.mnt-texto { margin: 0; color: var(--texto-suave); max-width: 46ch; line-height: 1.55; }
+.mnt-nota { margin: 0; font-size: .82rem; color: var(--texto-suave); }
+
+/* El ícono del proyecto flota despacio entre ondas que respiran. */
+.orbe { position: relative; display: grid; place-items: center; width: 7rem; height: 7rem; }
+.orbe span { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--acento-texto); opacity: 0; animation: respirar 3.6s ease-out infinite; }
+.orbe span:nth-child(2) { animation-delay: 1.2s; }
+.orbe span:nth-child(3) { animation-delay: 2.4s; }
+.orbe b { display: grid; place-items: center; width: 3.75rem; height: 3.75rem; border-radius: 50%; background: var(--superficie); box-shadow: 0 10px 24px -12px var(--acento); animation: flotar 3.6s ease-in-out infinite; }
+.orbe img { width: 2.4rem; height: 2.4rem; }
+@keyframes respirar { 0% { transform: scale(.5); opacity: 0; } 25% { opacity: .55; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes flotar { 50% { transform: translateY(-4px); } }
+
+/* Barra de espera que va y viene: sin porcentaje, no se sabe cuánto falta. */
+.mnt-barra { position: relative; width: min(100%, 300px); height: 6px; margin-top: .35rem; border-radius: 999px; background: var(--acento-suave); overflow: hidden; }
+.mnt-barra i { position: absolute; inset: 0 auto 0 0; width: 38%; border-radius: 999px; background: var(--acento-texto); animation: vaiven 1.8s ease-in-out infinite alternate; }
+@keyframes vaiven { to { left: 62%; } }
+
+/* Las tres promesas en fichas: en fila en escritorio, apiladas en el teléfono. */
+.promesas { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; width: 100%; text-align: left; }
+.promesas li { display: flex; flex-direction: column; gap: .4rem; padding: .8rem .9rem; border: 1px solid var(--borde); border-radius: 12px; background: var(--superficie); font-size: .85rem; line-height: 1.45; }
+.promesas svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: var(--exito); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.mnt-pie { display: flex; flex-wrap: wrap; gap: .75rem 1rem; align-items: center; justify-content: center; margin-top: .5rem; }
+.reintento { display: flex; align-items: center; gap: .55rem; color: var(--texto-suave); font-size: .85rem; }
+.cuenta { width: 1.4rem; height: 1.4rem; transform: rotate(-90deg); }
+.cuenta circle { fill: none; stroke-width: 3; }
+.cuenta-fondo { stroke: var(--borde); }
+.cuenta-valor { stroke: var(--acento-texto); stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; }
+@media (max-width: 640px) {
+    .promesas { grid-template-columns: 1fr; }
+    .promesas li { flex-direction: row; align-items: flex-start; }
+    .promesas svg { flex: none; }
+}
+
+/* ───────── 404 ───────── */
+.nf { display: grid; grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: 2.5rem; align-items: center; min-height: 60vh; }
+.nf-texto { display: grid; gap: .8rem; justify-items: start; }
+.nf-texto h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.02em; line-height: 1.2; }
+.nf-texto p { margin: 0; color: var(--texto-suave); line-height: 1.55; }
+.nf-texto code { padding: .05rem .4rem; border-radius: 5px; background: var(--acento-suave); color: var(--texto); font-size: .88em; overflow-wrap: anywhere; }
+.nf-acciones { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .35rem; }
+.recibo-estado { position: relative; padding: 1rem 1.1rem 1.5rem; border: 1px solid var(--borde); border-radius: 12px; background: var(--superficie); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .8rem; transform: rotate(-1.5deg); box-shadow: 0 22px 44px -26px rgba(120, 30, 20, .45); }
+.re-cabecera { display: flex; justify-content: space-between; gap: .5rem; padding-bottom: .55rem; border-bottom: 1px dashed var(--borde); color: var(--texto-suave); font-size: .7rem; letter-spacing: .08em; }
+.re-cabecera b { color: var(--acento-texto); font-size: .95rem; }
+.recibo-estado ol { list-style: none; margin: .4rem 0 0; padding: 0; }
+.recibo-estado li { display: flex; justify-content: space-between; gap: .75rem; padding: .35rem 0; border-bottom: 1px dotted var(--borde); animation: imprimir-r .35s both; animation-delay: calc(.25s + var(--i) * 190ms); }
+.recibo-estado li span:first-child { color: var(--texto-suave); white-space: nowrap; }
+.recibo-estado li span:last-child { text-align: right; overflow-wrap: anywhere; }
+.re-total { display: flex; justify-content: space-between; padding-top: .6rem; font-weight: 700; font-size: .95rem; }
+.re-sello { position: absolute; right: .9rem; bottom: -1rem; padding: .15rem .6rem; border: 2px solid var(--acento-texto); border-radius: 4px; background: var(--superficie); color: var(--acento-texto); font-weight: 800; letter-spacing: .12em; font-size: .72rem; white-space: nowrap; transform: rotate(-9deg); animation: sellar-r .32s 1s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes imprimir-r { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes sellar-r { from { opacity: 0; transform: rotate(-9deg) scale(2); } }
+@media (max-width: 760px) {
+    .nf { grid-template-columns: 1fr; gap: 1.75rem; min-height: 0; }
+    .nf-arte { max-width: 20rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orbe span { animation: none; opacity: .3; }
+    .orbe b, .mnt-barra i, .recibo-estado li, .re-sello, .mnt-caja > * { animation: none !important; }
+}

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Nuevo autenticador - Simulador de pagos{% endblock %}
+{% block cabeza %}<link rel="stylesheet" href="/static/acceso.css">{% endblock %}
+{% block scripts %}<script src="/static/acceso.js" defer></script>{% endblock %}
 {% block contenido %}
 <section class="tarjeta-formulario">
     <h1>Nuevo autenticador</h1>
@@ -15,7 +17,7 @@
 
     <form method="post" action="/perfil/autenticador/confirmar">
         <label for="codigo">Código de 6 dígitos</label>
-        <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus>
+        <input type="text" id="codigo" name="codigo" class="campo-codigo" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" placeholder="123 456" required autofocus data-casillas>
         <button type="submit" class="boton">Confirmar autenticador</button>
     </form>
     <p class="texto-ayuda">Hasta que confirmes, el autenticador anterior sigue siendo el válido. Al confirmar recibirás códigos de respaldo nuevos.</p>

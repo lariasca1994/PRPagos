@@ -6,7 +6,7 @@
 {% block cabeza %}<link rel="stylesheet" href="/static/acceso.css">{% endblock %}
 {% block clase_body %}acceso{% endblock %}
 {% block cuerpo %}
-<div class="portada">
+<div class="portada{% block portada_clase %}{% endblock %}">
     <main class="lado">
         <div class="lado-barra">
             {% include "fragmentos/cabecera.html" %}
@@ -14,6 +14,7 @@
 
         <div class="lado-centro">
             <section class="formulario-acceso" aria-labelledby="titulo-acceso">
+                {% block candado %}{% endblock %}
                 <p class="acceso-paso">{% block paso %}{% endblock %}</p>
                 <h1 id="titulo-acceso" class="acceso-titulo">{% block titulo_form %}{% endblock %}</h1>
                 <p class="acceso-subtitulo">{% block subtitulo %}{% endblock %}</p>
@@ -64,3 +65,4 @@
     </aside>
 </div>
 {% endblock %}
+{% block scripts %}<script src="/static/acceso.js" defer></script>{% endblock %}

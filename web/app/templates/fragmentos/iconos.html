@@ -1,0 +1,17 @@
+{# Íconos del menú (SVG propios, sin librerías). Los mismos trazos dibuja
+   Iconos.java en la app de escritorio. #}
+{% macro icono(nombre) -%}
+{%- set trazos = {
+    "dashboard": "M4 13h6V4H4zM14 20h6v-9h-6zM14 4h6v4h-6zM4 20h6v-3H4z",
+    "presupuesto": "M12 3v9h9M20.5 15A9 9 0 1 1 9 3.5",
+    "registros": "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01",
+    "nuevo": "M12 8v8M8 12h8M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+    "perfil": "M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+    "usuarios": "M17 21a6 6 0 0 0-12 0M11 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM21 21a5 5 0 0 0-4-4.9M16 3.2a4 4 0 0 1 0 7.6",
+    "salir": "M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11",
+    "alternar": "M11 17l-5-5 5-5M18 17l-5-5 5-5",
+    "mas": "M5 12h.01M12 12h.01M19 12h.01",
+    "tema": "M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z",
+} -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="{{ 3 if nombre == 'mas' else 1.8 }}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ trazos[nombre] }}"/></svg>
+{%- endmacro %}

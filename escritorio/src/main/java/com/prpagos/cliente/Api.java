@@ -166,10 +166,10 @@ public final class Api {
                 try {
                     return enviar(nueva, metodo, ruta, cuerpo);
                 } catch (SinServidor otra) {
-                    throw new ErrorApi(otra.getMessage());
+                    throw new SinConexion(otra.getMessage());
                 }
             }
-            throw new ErrorApi(e.getMessage());
+            throw new SinConexion(e.getMessage());
         }
     }
 
@@ -215,6 +215,9 @@ public final class Api {
             alCerrarSesion.accept(mensaje);
             throw new SesionCerrada(mensaje);
         }
+        if (estado == 503) {
+            throw new ServicioEnPausa(mensaje);
+        }
         throw new ErrorApi(mensaje);
     }
 
@@ -222,6 +225,23 @@ public final class Api {
         try {
             return JsonParser.parseString(cuerpo).isJsonObject();
         } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /**
+     * La pantalla de mantenimiento consulta solo /health (nunca repite la acción que
+     * falló): true cuando el servidor y la base de datos responden.
+     */
+    public static boolean salud() {
+        try {
+            HttpRequest pedido = HttpRequest.newBuilder(URI.create(base() + "/health"))
+                    .timeout(Duration.ofSeconds(15)).header("Cache-Control", "no-store").GET().build();
+            return HTTP.send(pedido, HttpResponse.BodyHandlers.discarding()).statusCode() == 200;
+        } catch (IOException | RuntimeException e) {
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return false;
         }
     }
@@ -323,6 +343,24 @@ public final class Api {
         private static final long serialVersionUID = 1L;
 
         public ErrorApi(String mensaje) {
+            super(mensaje);
+        }
+    }
+
+    /** El servidor responde 503 (la base de datos no está disponible): pantalla de mantenimiento. */
+    public static final class ServicioEnPausa extends ErrorApi {
+        private static final long serialVersionUID = 1L;
+
+        ServicioEnPausa(String mensaje) {
+            super(mensaje);
+        }
+    }
+
+    /** Sin red o sin servidor, ni en la dirección vigente: pantalla sin conexión. */
+    public static final class SinConexion extends ErrorApi {
+        private static final long serialVersionUID = 1L;
+
+        SinConexion(String mensaje) {
             super(mensaje);
         }
     }

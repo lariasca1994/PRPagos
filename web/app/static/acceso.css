@@ -492,6 +492,232 @@ body.acceso {
   }
 }
 
+/* ───── Una sola pantalla: los formularios se deslizan (acceso.js) ───── */
+/* Registro: el panel de marca pasa al lado izquierdo y el formulario al derecho. */
+.portada.invertida {
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 1fr);
+}
+.portada.invertida .marca-panel {
+  order: -1;
+}
+.portada .marca-panel {
+  z-index: 2;
+}
+.portada .lado {
+  position: relative;
+  z-index: 1;
+}
+
+/* Entrada por bloques, uno tras otro. */
+.formulario-acceso > * {
+  animation: acceso-entra .5s cubic-bezier(.2, .8, .2, 1) both;
+}
+.formulario-acceso > :nth-child(2) { animation-delay: 45ms; }
+.formulario-acceso > :nth-child(3) { animation-delay: 90ms; }
+.formulario-acceso > :nth-child(4) { animation-delay: 135ms; }
+.formulario-acceso > :nth-child(5) { animation-delay: 180ms; }
+.formulario-acceso > :nth-child(n+6) { animation-delay: 225ms; }
+.formulario-acceso.entra[data-modo="lado"] > * { animation-delay: calc(260ms + var(--n, 0) * 45ms); }
+@keyframes acceso-entra {
+  from { opacity: 0; transform: translate(calc(var(--dir, 1) * 22px), 8px); filter: blur(7px); }
+}
+.formulario-acceso[data-modo="arriba"] > * { animation-name: acceso-entra-arriba; }
+@keyframes acceso-entra-arriba {
+  from { opacity: 0; transform: translateY(calc(var(--dir, 1) * 22px)); filter: blur(7px); }
+}
+.formulario-acceso.sale { animation: acceso-sale .18s ease-in forwards; pointer-events: none; }
+.formulario-acceso.sale > * { animation: none; }
+.formulario-acceso.sale[data-modo="arriba"] { animation-name: acceso-sale-arriba; }
+@keyframes acceso-sale { to { opacity: 0; transform: translateX(calc(var(--dir, 1) * -18px)); filter: blur(5px); } }
+@keyframes acceso-sale-arriba { to { opacity: 0; transform: translateY(calc(var(--dir, 1) * -18px)); filter: blur(5px); } }
+
+/* Reimpresión corta del recibo al cambiar de lado. */
+.recibo.rapido li:nth-child(1) { animation-delay: .35s; }
+.recibo.rapido li:nth-child(2) { animation-delay: .5s; }
+.recibo.rapido li:nth-child(3) { animation-delay: .65s; }
+.recibo.rapido li:nth-child(4) { animation-delay: .8s; }
+.recibo.rapido .sello { animation-delay: 1s; }
+
+/* Botón principal de la portada: mismo efecto de luz que el resto, con su rojo. */
+@media (hover: hover) and (pointer: fine) {
+  .formulario-acceso .boton:not([aria-busy="true"]):hover {
+    box-shadow: 0 10px 22px -12px var(--a-acento);
+  }
+}
+
+/* ───── Candado del paso del código ───── */
+.candado {
+  --relieve-claro: color-mix(in srgb, var(--a-superficie) 55%, #fff);
+  --relieve-oscuro: color-mix(in srgb, var(--a-fondo) 80%, #000);
+  display: grid;
+  place-items: center;
+  width: 3.75rem;
+  height: 3.75rem;
+  margin: 0 0 1rem;
+  border-radius: 1.1rem;
+  background: var(--a-superficie);
+  color: var(--a-acento);
+  box-shadow: 6px 6px 14px -4px var(--relieve-oscuro), -6px -6px 14px -4px var(--relieve-claro), inset 0 0 0 1px var(--a-borde);
+  animation: candado-flota 3.6s ease-in-out infinite;
+}
+[data-tema="oscuro"] .candado {
+  --relieve-claro: color-mix(in srgb, var(--a-superficie) 75%, #fff);
+  color: var(--a-enlace);
+}
+.candado svg { width: 2.2rem; height: 2.2rem; overflow: visible; }
+.candado .arco {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  transform-box: view-box;
+  transform-origin: 33px 21px;
+  transition: transform .5s cubic-bezier(.3, 1.4, .5, 1);
+}
+.candado .cuerpo { fill: currentColor; }
+.candado .ojo { fill: var(--a-superficie); transition: transform .4s ease; transform-box: fill-box; transform-origin: center; }
+.candado.verificando .ojo { animation: candado-gira 1s linear infinite; }
+.candado.abierto { color: var(--a-exito-texto); animation: none; }
+.candado.abierto .arco { transform: translateY(-6px) rotate(28deg); }
+.candado.abierto .ojo { transform: scale(.6); }
+.candado.sacudir { animation: candado-sacude .45s ease both; color: var(--a-error-texto); }
+.candado.bloqueado { color: var(--a-error-texto); animation: none; }
+@keyframes candado-flota { 50% { transform: translateY(-3px); } }
+@keyframes candado-gira { 50% { transform: scale(.6); } }
+@keyframes candado-sacude {
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-7deg); }
+  80% { transform: rotate(4deg); }
+}
+
+/* ───── Seis casillas sobre el mismo campo "codigo" ───── */
+.casillas {
+  position: relative;
+  margin-top: .25rem;
+}
+.casillas > input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  letter-spacing: 0;
+  box-shadow: none;
+  outline: none;
+}
+.formulario-acceso .casillas > input:focus { box-shadow: none; }
+.casillas-vista {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: .55rem;
+}
+.casillas-vista span {
+  display: grid;
+  place-items: center;
+  height: 3.4rem;
+  border: 1.5px solid color-mix(in srgb, var(--a-suave) 70%, var(--a-borde));
+  border-radius: .8rem;
+  background: var(--a-fondo);
+  color: var(--a-texto);
+  font-size: 1.45rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 3px 3px 7px -3px color-mix(in srgb, var(--a-fondo) 70%, #000), inset -3px -3px 7px -3px color-mix(in srgb, var(--a-superficie) 60%, #fff);
+  transition: border-color .2s, box-shadow .25s, transform .2s, background-color .2s;
+}
+.casillas-vista span.llena {
+  background: var(--a-superficie);
+  border-color: var(--a-acento);
+  box-shadow: 0 6px 14px -8px var(--a-acento);
+}
+.casillas-vista span.pulso { animation: casilla-pulso .28s cubic-bezier(.3, 1.6, .5, 1); }
+.casillas-vista span.activa {
+  border-color: var(--a-plataforma);
+  box-shadow: 0 0 0 3px var(--a-plataforma-suave), inset 3px 3px 7px -3px color-mix(in srgb, var(--a-fondo) 70%, #000);
+}
+.casillas-vista span.activa:empty::after {
+  content: "";
+  width: 2px;
+  height: 1.4rem;
+  background: var(--a-plataforma);
+  animation: cursor-parpadea 1s steps(1) infinite;
+}
+.casillas.completa .casillas-vista span { border-color: var(--a-acento); }
+@keyframes casilla-pulso { 40% { transform: scale(1.12) translateY(-2px); } }
+@keyframes cursor-parpadea { 50% { opacity: 0; } }
+/* Código de respaldo: vuelve al campo normal. */
+.casillas.modo-respaldo > input {
+  position: static;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--a-borde);
+  border-radius: 0.6rem;
+  background: var(--a-superficie);
+  color: var(--a-texto);
+  caret-color: auto;
+  font-size: 1.2rem;
+  letter-spacing: .15em;
+  text-align: center;
+}
+.formulario-acceso .casillas.modo-respaldo > input:focus {
+  border-color: var(--a-plataforma);
+  box-shadow: 0 0 0 3px var(--a-plataforma-suave);
+}
+.casillas.modo-respaldo .casillas-vista { display: none; }
+.cambio-respaldo {
+  align-self: flex-start;
+  margin-top: .5rem;
+  color: var(--a-plataforma);
+  font-weight: 600;
+  font-size: .88rem;
+  text-decoration: none;
+}
+@media (max-width: 380px) {
+  .casillas-vista { gap: .35rem; }
+  .casillas-vista span { height: 3rem; font-size: 1.25rem; }
+}
+
+/* Anillo: tiempo que le queda al código. */
+.anillo {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin: .6rem 0 0;
+  color: var(--a-suave);
+  font-size: .85rem;
+}
+.anillo svg { width: 1.35rem; height: 1.35rem; flex: none; transform: rotate(-90deg); }
+.anillo circle { fill: none; stroke-width: 3; }
+.anillo .anillo-fondo { stroke: var(--a-borde); }
+.anillo .anillo-valor {
+  stroke: var(--a-plataforma);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke .3s;
+}
+.anillo.urgente .anillo-valor { stroke: var(--a-acento); }
+
+@media (max-width: 760px) {
+  .portada.invertida { grid-template-columns: none; }
+  /* En el teléfono no hay cruce de paneles: la barra del logo vuelve a
+     ubicarse sobre el panel de marca, como antes. */
+  .portada .lado { position: static; }
+  .portada .marca-panel { z-index: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formulario-acceso > *, .formulario-acceso.sale, .candado, .candado .ojo, .casillas-vista span.pulso {
+    animation: none !important;
+  }
+  .candado .arco, .casillas-vista span, .anillo .anillo-valor { transition: none; }
+}
+
 /* Ingresar con llave de acceso (Windows Hello, huella, rostro o PIN). */
 .separador-acceso {
   display: flex;

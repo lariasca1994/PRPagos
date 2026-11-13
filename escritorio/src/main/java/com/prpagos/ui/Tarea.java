@@ -27,6 +27,11 @@ public final class Tarea {
             ventana.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             ventana.setEnabled(false);
         }
+        // El botón que lanzó la tarea muestra "enviando", como en la web.
+        BotonAnimado boton = BotonAnimado.reciente();
+        if (boton != null) {
+            boton.setOcupado(true);
+        }
         new SwingWorker<T, Void>() {
             @Override
             protected T doInBackground() throws Exception {
@@ -40,10 +45,21 @@ public final class Tarea {
                     ventana.setCursor(Cursor.getDefaultCursor());
                     ventana.toFront();
                 }
+                if (boton != null) {
+                    boton.setOcupado(false);
+                }
                 try {
                     alTerminar.accept(get());
                 } catch (ExecutionException e) {
                     Throwable causa = e.getCause();
+                    if (boton != null) {
+                        boton.temblar();
+                    }
+                    // Servidor en pausa (503) o sin conexión: pantalla propia, como la web.
+                    if (causa instanceof com.prpagos.cliente.Api.ServicioEnPausa
+                            || causa instanceof com.prpagos.cliente.Api.SinConexion) {
+                        PantallaEstado.mostrar(ventana, causa instanceof com.prpagos.cliente.Api.SinConexion);
+                    }
                     alFallar.accept(causa instanceof Exception ex ? ex : new Exception(causa));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

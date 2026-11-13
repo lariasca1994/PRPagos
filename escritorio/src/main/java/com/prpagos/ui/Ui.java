@@ -129,7 +129,8 @@ public final class Ui {
     }
 
     private static JButton boton(String texto, String clase, ActionListener accion) {
-        JButton b = new JButton(texto);
+        // Primario y secundario llevan los efectos de .boton de la web (BotonAnimado).
+        JButton b = new BotonAnimado(texto, "primario".equals(clase) || "secundario".equals(clase));
         b.putClientProperty(FlatClientProperties.STYLE_CLASS, clase);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         b.setAlignmentX(Component.LEFT_ALIGNMENT);
