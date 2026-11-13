@@ -15,14 +15,17 @@
 
 {% if error %}<p class="aviso error" role="alert">{{ error }}</p>{% elif ok %}<p class="aviso exito" role="status">{{ ok }}</p>{% endif %}
 
-<div class="tarjetas-resumen">
-    <div class="tarjeta tarjeta-cifra"><span>Ingresos</span><strong class="cifra-ingreso">{{ v.tarjetas.ingresos }}</strong></div>
-    <div class="tarjeta tarjeta-cifra"><span>Gastos</span><strong class="cifra-gasto">{{ v.tarjetas.gastos }}</strong></div>
-    <div class="tarjeta tarjeta-cifra"><span>Balance</span><strong class="{{ 'cifra-bien' if v.tarjetas.balance_positivo else 'cifra-mal' }}">{{ v.tarjetas.balance }}</strong></div>
-    <div class="tarjeta tarjeta-cifra"><span>Ahorro del mes</span><strong>{{ v.tarjetas.ahorro }}</strong><small>{{ v.tarjetas.movimientos }}</small></div>
+{# Franja de cifras: Ingresos destacada; cada cifra cuenta desde cero y lleva su
+   variación frente al mes anterior (flecha + texto, nunca solo color). La
+   variación sale de la serie de 6 meses que ya calcula el servidor. #}
+<div class="tarjetas-resumen franja escalonado">
+    <div class="tarjeta tarjeta-cifra cifra-destacada"><span>Ingresos</span><strong data-contar>{{ v.tarjetas.ingresos }}</strong><small class="variacion" data-variacion="ingresos"></small></div>
+    <div class="tarjeta tarjeta-cifra"><span>Gastos</span><strong class="cifra-gasto" data-contar>{{ v.tarjetas.gastos }}</strong><small class="variacion" data-variacion="gastos"></small></div>
+    <div class="tarjeta tarjeta-cifra"><span>Balance</span><strong class="{{ 'cifra-bien' if v.tarjetas.balance_positivo else 'cifra-mal' }}" data-contar>{{ v.tarjetas.balance }}</strong><small class="variacion" data-variacion="balance"></small></div>
+    <div class="tarjeta tarjeta-cifra"><span>Ahorro del mes</span><strong data-contar>{{ v.tarjetas.ahorro }}</strong><small>{{ v.tarjetas.movimientos }}</small></div>
 </div>
 
-<div class="rejilla-graficas">
+<div class="rejilla-graficas escalonado">
     <section class="tarjeta grafica grafica-ancha">
         <h2>Ingresos vs. gastos · últimos 6 meses</h2>
         <p class="texto-ayuda">Toca un mes para verlo.</p>
@@ -39,7 +42,8 @@
     </section>
     <section class="tarjeta grafica">
         <h2>{{ v.titulo_plan_mes }}</h2>
-        <div class="lienzo"><canvas id="grafica-plan" aria-label="Presupuesto frente a gasto real por grupo" role="img"></canvas></div>
+        {# Medidores por segmentos: % del presupuesto usado y el estado que calcula el servidor. #}
+        <div class="medidores" id="medidores-plan" role="img" aria-label="{% for f in v.plan %}{{ f.grupo }}: {{ f.usado }} usado, {{ f.estado }}. {% endfor %}"></div>
     </section>
 </div>
 

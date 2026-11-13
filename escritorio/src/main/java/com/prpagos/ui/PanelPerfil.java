@@ -88,7 +88,8 @@ class PanelPerfil extends JPanel {
     // Nuevo autenticador y códigos
     private final PanelQr qr = new PanelQr();
     private final JLabel claveManual = new JLabel();
-    private final JTextField codigoNuevo = Ui.campoCodigo();
+    /** Seis casillas, como el campo del nuevo autenticador en la web (perfil_autenticador.html). */
+    private final CampoCasillas codigoNuevo = new CampoCasillas(false);
     private final Ui.Aviso avisoNuevo = new Ui.Aviso();
     private final JPanel codigos = new JPanel(new GridLayout(0, 2, 24, 6));
     private final Ui.Aviso avisoCodigos = new Ui.Aviso();

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{# 404 propio: el recibo se imprime renglón a renglón, suma 404 y recibe el
+   sello "NO ENCONTRADA". Con sesión abierta se ve dentro del menú. #}
+{% block titulo %}Página no encontrada - Simulador de pagos{% endblock %}
+{% block cabeza %}<link rel="stylesheet" href="/static/estados.css">{% endblock %}
+{% block contenido %}
+<section class="nf">
+    <div class="nf-arte">
+        <div class="recibo-estado" aria-hidden="true">
+            <div class="re-cabecera"><span>SIMULADOR DE PAGOS</span><b>404</b></div>
+            <ol>
+                <li style="--i:0"><span>Página pedida</span><span>{{ ruta }}</span></li>
+                <li style="--i:1"><span>Encontrada</span><span>0,00</span></li>
+                <li style="--i:2"><span>Sesión</span><span>{{ "abierta" if usuario else "sin iniciar" }}</span></li>
+            </ol>
+            <div class="re-total"><span>TOTAL</span><span>404</span></div>
+            <span class="re-sello">NO ENCONTRADA</span>
+        </div>
+    </div>
+    <div class="nf-texto">
+        <h1>Este registro no está en tus cuentas</h1>
+        <p>No hay nada en <code>{{ ruta }}</code>. Puede que el enlace sea viejo o que el registro se haya borrado.{% if usuario %} Tu sesión sigue abierta.{% endif %}</p>
+        <div class="nf-acciones">
+            {% if usuario %}
+            <a class="boton" href="/registros">Ver registros</a>
+            <a class="boton boton-secundario" href="/dashboard">Volver al inicio</a>
+            {% else %}
+            <a class="boton" href="/login">Ingresar</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,6 @@
+{# Candado pequeño sobre el título del paso del código: se abre con el código
+   correcto y se sacude con uno equivocado (acceso.js). Decorativo: el
+   resultado siempre va también en texto. #}
+<div class="candado{% if bloqueado %} bloqueado{% endif %}" aria-hidden="true">
+    <svg viewBox="0 0 48 48"><path class="arco" d="M15 22v-7a9 9 0 0 1 18 0v7"/><rect class="cuerpo" x="9" y="21" width="30" height="21" rx="6"/><circle class="ojo" cx="24" cy="31.5" r="3.4"/></svg>
+</div>

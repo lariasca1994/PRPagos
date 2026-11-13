@@ -7,11 +7,14 @@ import logging
 
 import oracledb
 from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
+from .database import obtener_conexion
 from .dependencias import (
     RedireccionLogin,
     RedireccionSinPermiso,
@@ -105,15 +108,30 @@ def manejar_error_oracle(request: Request, exc: oracledb.Error):
                "Intenta de nuevo en unos minutos.")
     if _es_api(request):
         return JSONResponse({"error": mensaje}, status_code=503)
+    # Pantalla propia de mantenimiento: consulta /health y vuelve sola a la
+    # página (con GET, para no repetir nunca la acción que falló).
     return templates.TemplateResponse(
-        request, "error.html",
-        {
-            "request": request,
-            "usuario": obtener_usuario_opcional(request),
-            "mensaje": "No se pudo completar la operación por un problema con la base de datos. Intenta de nuevo en unos minutos.",
-        },
-        status_code=503,
+        request, "mantenimiento.html", {"request": request}, status_code=503,
+        headers={"Cache-Control": "no-store", "Retry-After": "15"},
     )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def manejar_http(request: Request, exc: StarletteHTTPException):
+    # Las páginas que no existen muestran el 404 propio del proyecto (el
+    # recibo con el sello "NO ENCONTRADA"); la API y los demás códigos siguen
+    # con la respuesta normal de FastAPI.
+    if exc.status_code == 404 and not _es_api(request):
+        try:
+            usuario = obtener_usuario_opcional(request)
+        except oracledb.Error:
+            usuario = None  # sin base de datos el 404 se muestra igual, sin menú
+        return templates.TemplateResponse(
+            request, "404.html",
+            {"request": request, "usuario": usuario, "ruta": request.url.path},
+            status_code=404,
+        )
+    return await http_exception_handler(request, exc)
 
 
 @app.exception_handler(Exception)
@@ -130,6 +148,21 @@ def manejar_error_generico(request: Request, exc: Exception):
         },
         status_code=500,
     )
+
+
+@app.get("/health", include_in_schema=False)
+def salud():
+    # Lo consulta la pantalla de mantenimiento cada 15 s: responde 200 solo
+    # cuando la base de datos contesta. Nunca se guarda en caché.
+    sin_cache = {"Cache-Control": "no-store"}
+    try:
+        with obtener_conexion() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM DUAL")
+                cur.fetchone()
+    except oracledb.Error:
+        return JSONResponse({"estado": "sin_base"}, status_code=503, headers=sin_cache)
+    return JSONResponse({"estado": "ok"}, headers=sin_cache)
 
 
 @app.get("/favicon.ico", include_in_schema=False)

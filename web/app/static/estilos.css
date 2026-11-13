@@ -363,3 +363,50 @@ input:focus, textarea:focus, select:focus {
 .mayor-monto { display: flex; flex-direction: column; align-items: flex-end; color: var(--acento); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mayor-monto small { color: var(--texto-suave); font-weight: 400; font-size: 0.75rem; }
 .tarjeta .estado-plan { font-size: 0.8rem; }
+/* ── Dashboard: franja de cifras, variación y medidores del plan ── */
+.franja .tarjeta-cifra { position: relative; overflow: hidden; transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+@media (hover: hover) and (pointer: fine) {
+    .franja .tarjeta-cifra:hover, .rejilla-graficas > .tarjeta:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -20px rgba(31, 36, 48, .55); }
+}
+.rejilla-graficas > .tarjeta { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+.cifra-destacada { background: var(--acento); border-color: var(--acento); color: #fff; }
+/* Sobre el rojo de la tarjeta destacada todo va en blanco (la flecha y el texto dicen si sube o baja). */
+.franja .cifra-destacada span, .franja .cifra-destacada small, [data-tema] .franja .cifra-destacada .variacion { color: #fff; }
+.cifra-destacada::after {
+    content: "";
+    position: absolute;
+    right: -2.5rem;
+    top: -2.5rem;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    border: 1.5rem solid rgba(255, 255, 255, .08);
+    pointer-events: none;
+}
+.tarjeta-cifra strong { font-size: 1.45rem; letter-spacing: -.01em; }
+.variacion { font-weight: 600; font-variant-numeric: tabular-nums; }
+.variacion-bien { color: #067647; }
+.variacion-mal { color: #a8221a; }
+.variacion-igual { color: var(--texto-suave); }
+[data-tema="oscuro"] .variacion-bien { color: #75e0a7; }
+[data-tema="oscuro"] .variacion-mal { color: #fda29b; }
+
+.medidores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; padding-top: .25rem; }
+.medidor { margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.medidor svg { display: block; width: 100%; max-width: 150px; height: auto; }
+.medidor .seg { fill: none; stroke: var(--borde); stroke-width: 9; stroke-linecap: round; }
+.medidor .seg.lleno { stroke: var(--c); animation: seg-enciende .28s ease both; animation-delay: calc(250ms + var(--n, 0) * 140ms + var(--i) * 32ms); }
+@keyframes seg-enciende { from { stroke: var(--borde); } }
+.medidor-valor { display: flex; flex-direction: column; margin-top: -1.9rem; line-height: 1.1; }
+.medidor-valor strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.medidor-valor span { font-size: .72rem; color: var(--texto-suave); }
+.medidor figcaption { display: flex; flex-direction: column; gap: .15rem; margin-top: .55rem; font-size: .85rem; }
+.medidor figcaption .estado-plan { font-size: .76rem; }
+@media (max-width: 380px) { .medidores { gap: .35rem; } .medidor-valor strong { font-size: 1rem; } }
+@media (prefers-reduced-motion: reduce) { .medidor .seg.lleno { animation: none; } }
+.tarjeta-cifra strong { white-space: nowrap; }
+@media (max-width: 760px) {
+    .franja { gap: .75rem; }
+    .franja .tarjeta-cifra { padding: 1rem; }
+    .tarjeta-cifra strong { font-size: clamp(1rem, 4.4vw, 1.35rem); }
+}

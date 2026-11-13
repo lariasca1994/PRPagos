@@ -27,9 +27,11 @@ import com.prpagos.datos.Sesion;
 
 /**
  * Ventana principal: misma estructura que las páginas de la web (base.html).
- * Barra superior con la marca, el botón de tema y el menú en el mismo orden
- * (Dashboard · Presupuesto · Consultar registros · Nuevo registro · Perfil · Usuarios
- * (admin) · Salir), el contenido al centro con un ancho máximo y el pie.
+ * Menú lateral con la marca y las opciones en el mismo orden (Dashboard ·
+ * Presupuesto · Consultar registros · Nuevo registro · Perfil · Usuarios
+ * (admin)), y abajo el tema, Salir y "Compactar menú"; el contenido al centro
+ * con un ancho máximo y el pie. Cada cambio de pantalla lleva la transición
+ * de la web (Efectos.transicion).
  *
  * La sesión la controla el servidor, igual que en la web: 6 horas sin uso
  * (cada petición renueva el plazo) y como máximo 8 horas. Cuando el plazo del
@@ -53,7 +55,10 @@ public class VentanaPrincipal extends JFrame {
 
     private final CardLayout tarjetas = new CardLayout();
     private final JPanel contenido = new JPanel(tarjetas);
-    private final Map<String, JButton> menu = new LinkedHashMap<>();
+    private MenuLateral menuLateral;
+    /** Orden del menú: la pantalla nueva entra desde el lado hacia donde se navega. */
+    private static final java.util.List<String> ORDEN =
+            java.util.List.of(DASHBOARD, PRESUPUESTO, CONSULTA, EDITAR, NUEVO, PERFIL, USUARIOS);
     private final PanelConsulta consulta;
     private final PanelPago nuevo;
     private final PanelPago editar;
@@ -98,9 +103,11 @@ public class VentanaPrincipal extends JFrame {
         }
 
         JPanel raiz = new JPanel(new BorderLayout());
-        raiz.add(barra(), BorderLayout.NORTH);
-        raiz.add(contenido, BorderLayout.CENTER);
-        raiz.add(pie(), BorderLayout.SOUTH);
+        raiz.add(menuLateral(), BorderLayout.WEST);
+        JPanel zona = new JPanel(new BorderLayout());
+        zona.add(contenido, BorderLayout.CENTER);
+        zona.add(pie(), BorderLayout.SOUTH);
+        raiz.add(zona, BorderLayout.CENTER);
         setContentPane(raiz);
 
         // Si el servidor da la sesión por cerrada (en cualquier petición), se vuelve al ingreso.
@@ -113,85 +120,44 @@ public class VentanaPrincipal extends JFrame {
         vigilancia.start();
 
         mostrar(DASHBOARD);
+        javax.swing.SwingUtilities.invokeLater(menuLateral::entrar);
     }
 
     Sesion sesion() {
         return sesion;
     }
 
-    private JPanel barra() {
-        JPanel barra = new JPanel(new BorderLayout());
-        Tema.alCambiar(() -> {
-            barra.setBackground(Tema.c().superficie());
-            barra.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 1, 0, Tema.c().borde()),
-                    BorderFactory.createEmptyBorder(12, 28, 12, 28)));
-        });
-        JPanel marca = Ui.fila(12);
-        marca.add(Ui.marca());
-        marca.add(Ui.botonTema());
-        barra.add(marca, BorderLayout.WEST);
-
-        JPanel nav = new JPanel(new FilaQueSeParte(FlowLayout.RIGHT, 20, 0));
-        nav.setOpaque(false);
-        menu.put(DASHBOARD, opcion("Dashboard", () -> ir(DASHBOARD)));
-        menu.put(PRESUPUESTO, opcion("Presupuesto", () -> ir(PRESUPUESTO)));
-        menu.put(CONSULTA, opcion("Consultar registros", () -> ir(CONSULTA)));
-        menu.put(NUEVO, opcion("Nuevo registro", () -> ir(NUEVO)));
-        menu.put(PERFIL, opcion("Perfil", () -> ir(PERFIL)));
-        menu.put(USUARIOS, opcion("Usuarios (admin)", () -> ir(USUARIOS)));
-        menu.values().forEach(nav::add);
-        nav.add(opcion("Salir (" + sesion.nombre() + ")", () -> cerrarSesion(CIERRE_SALIR, true)));
-        barra.add(nav, BorderLayout.EAST);
-        // En ventanas angostas (tablet de pie) el menú baja debajo de la marca, como la web.
-        barra.addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentResized(java.awt.event.ComponentEvent e) {
-                java.awt.Insets m = barra.getInsets();
-                int disponible = barra.getWidth() - m.left - m.right;
-                int enUnaFila = marca.getPreferredSize().width + 24 + ((FilaQueSeParte) nav.getLayout()).anchoEnUnaFila(nav);
-                boolean abajo = disponible < enUnaFila;
-                Object lugar = ((BorderLayout) barra.getLayout()).getConstraints(nav);
-                if (abajo == BorderLayout.SOUTH.equals(lugar)) {
-                    return;
-                }
-                barra.remove(nav);
-                ((FlowLayout) nav.getLayout()).setAlignment(abajo ? FlowLayout.LEFT : FlowLayout.RIGHT);
-                nav.setBorder(abajo ? BorderFactory.createEmptyBorder(8, -20, 0, 0) : null);
-                barra.add(nav, abajo ? BorderLayout.SOUTH : BorderLayout.EAST);
-                barra.revalidate();
-                barra.repaint();
-            }
-        });
+    /**
+     * Menú lateral (igual que la web): mismas opciones y orden, extendido o
+     * compacto, con el tema, Salir y "Compactar menú" abajo.
+     */
+    private MenuLateral menuLateral() {
+        java.awt.Rectangle pantalla = getGraphicsConfiguration() == null ? null : getGraphicsConfiguration().getBounds();
+        boolean tableta = pantalla != null && pantalla.width <= 1024;
+        menuLateral = new MenuLateral(sesion.nombre(), tableta);
+        menuLateral.opcion(DASHBOARD, "Dashboard", "dashboard", () -> ir(DASHBOARD));
+        menuLateral.opcion(PRESUPUESTO, "Presupuesto", "presupuesto", () -> ir(PRESUPUESTO));
+        menuLateral.opcion(CONSULTA, "Consultar registros", "registros", () -> ir(CONSULTA));
+        menuLateral.opcion(NUEVO, "Nuevo registro", "nuevo", () -> ir(NUEVO));
+        menuLateral.opcion(PERFIL, "Perfil", "perfil", () -> ir(PERFIL));
+        menuLateral.opcion(USUARIOS, "Usuarios (admin)", "usuarios", () -> ir(USUARIOS));
+        menuLateral.opcionPie("Cambiar tema", "tema", Tema::alternar);
+        menuLateral.opcionPie("Salir", "salir", () -> cerrarSesion(CIERRE_SALIR, true));
+        menuLateral.opcionPie("Compactar menú", "alternar", menuLateral::alternar);
         Tema.alCambiar(this::marcarMenu);
-        return barra;
+        return menuLateral;
     }
 
-    private JButton opcion(String texto, Runnable accion) {
-        JButton b = new JButton(texto);
-        b.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setFocusPainted(false);
-        b.addActionListener(e -> accion.run());
-        b.setForeground(Tema.c().textoSuave());
-        return b;
-    }
-
-    /** La sección actual en azul, en negrita y subrayada (.nav-principal a.activo). */
+    /** La sección actual en el menú (editar un registro marca "Consultar registros"). */
     private void marcarMenu() {
-        if (sesion == null) {
+        if (sesion == null || menuLateral == null) {
             return;
         }
-        menu.get(USUARIOS).setVisible(sesion.admin());
-        menu.forEach((clave, boton) -> {
-            boolean activo = clave.equals(actual) || (EDITAR.equals(actual) && CONSULTA.equals(clave));
-            boton.setForeground(activo ? Tema.c().plataforma() : Tema.c().textoSuave());
-            boton.setFont(boton.getFont().deriveFont(activo ? Font.BOLD : Font.PLAIN));
-            boton.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createEmptyBorder(6, 2, 0, 2),
-                    BorderFactory.createMatteBorder(0, 0, 2, 0,
-                            activo ? Tema.c().plataforma() : new Color(0, 0, 0, 0))));
-        });
+        menuLateral.visible(USUARIOS, sesion.admin());
+        if (actual != null) {
+            menuLateral.marcar(EDITAR.equals(actual) ? CONSULTA : actual);
+        }
+        menuLateral.repaint();
     }
 
     private JScrollPane desplazable(JPanel panel) {
@@ -315,6 +281,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     private void mostrar(String seccion) {
+        String anterior = actual;
         actual = seccion;
         switch (seccion) {
             case CONSULTA -> consulta.recargar();
@@ -325,9 +292,26 @@ public class VentanaPrincipal extends JFrame {
             case USUARIOS -> usuarios.recargar();
             default -> { }
         }
-        tarjetas.show(contenido, seccion);
+        cambiarTarjeta(anterior, seccion);
         marcarMenu();
         arriba(seccion);
+    }
+
+    /** Cambia de pantalla con la transición de la web: la anterior sale y la nueva entra. */
+    private void cambiarTarjeta(String anterior, String seccion) {
+        if (anterior == null || anterior.equals(seccion)) {
+            tarjetas.show(contenido, seccion);
+            return;
+        }
+        int dir = ORDEN.indexOf(seccion) >= ORDEN.indexOf(anterior) ? 1 : -1;
+        Efectos.transicion(contenido, dir, Efectos.Modo.AVANZA, () -> tarjetas.show(contenido, seccion));
+    }
+
+    /** Tras la pantalla de mantenimiento: la sección actual vuelve a cargar sus datos (con GET). */
+    void recargarActual() {
+        if (actual != null && !EDITAR.equals(actual) && !NUEVO.equals(actual)) {
+            mostrar(actual);
+        }
     }
 
     private void arriba(String seccion) {
@@ -346,8 +330,9 @@ public class VentanaPrincipal extends JFrame {
 
     /** El presupuesto de un año y mes concretos (enlace del dashboard). */
     void verPresupuesto(int anio, int mes) {
+        String anterior = actual;
         actual = PRESUPUESTO;
-        tarjetas.show(contenido, PRESUPUESTO);
+        cambiarTarjeta(anterior, PRESUPUESTO);
         marcarMenu();
         arriba(PRESUPUESTO);
         presupuesto.abrir(anio, mes);
@@ -355,8 +340,9 @@ public class VentanaPrincipal extends JFrame {
 
     void editar(Pago pago) {
         editar.cargar(pago);
+        String anterior = actual;
         actual = EDITAR;
-        tarjetas.show(contenido, EDITAR);
+        cambiarTarjeta(anterior, EDITAR);
         marcarMenu();
         arriba(EDITAR);
     }

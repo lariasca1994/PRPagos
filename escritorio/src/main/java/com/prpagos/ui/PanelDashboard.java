@@ -68,6 +68,12 @@ class PanelDashboard extends JPanel {
     private final JLabel balance = cifra();
     private final JLabel ahorro = cifra();
     private final JLabel movimientos = new JLabel();
+    // Variación frente al mes anterior (flecha + texto), como .variacion en la web.
+    private final JLabel varIngresos = new JLabel(" ");
+    private final JLabel varGastos = new JLabel(" ");
+    private final JLabel varBalance = new JLabel(" ");
+    /** Las cifras cuentan y las gráficas crecen al cargar (no al cambiar de tema). */
+    private boolean animar;
     private final JPanel graficaMeses = contenedorGrafica(300);
     private final JPanel graficaCategorias = contenedorGrafica(280);
     private final JPanel graficaPlan = contenedorGrafica(280);
@@ -110,9 +116,9 @@ class PanelDashboard extends JPanel {
         JPanel tarjetas = new JPanel(new GridLayout(1, 4, 14, 0));
         tarjetas.setOpaque(false);
         tarjetas.setAlignmentX(LEFT_ALIGNMENT);
-        tarjetas.add(tarjetaCifra("Ingresos", ingresos, null));
-        tarjetas.add(tarjetaCifra("Gastos", gastos, null));
-        tarjetas.add(tarjetaCifra("Balance", balance, null));
+        tarjetas.add(tarjetaDestacada("Ingresos", ingresos, varIngresos));
+        tarjetas.add(tarjetaCifra("Gastos", gastos, varGastos));
+        tarjetas.add(tarjetaCifra("Balance", balance, varBalance));
         tarjetas.add(tarjetaCifra("Ahorro del mes", ahorro, movimientos));
         tarjetas.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
         add(Ui.adaptable(tarjetas, 4, 170));
@@ -199,6 +205,18 @@ class PanelDashboard extends JPanel {
         return t;
     }
 
+    /** Ingresos: tarjeta destacada en el rojo del proyecto, todo en blanco (.cifra-destacada). */
+    static JPanel tarjetaDestacada(String titulo, JLabel valor, JLabel pie) {
+        JPanel t = tarjetaCifra(titulo, valor, pie);
+        Tema.alCambiar(() -> {
+            ((Ui.Redondeado) t).colores(Tema.c().acento(), Tema.c().acento());
+            for (Component c : t.getComponents()) {
+                c.setForeground(Color.WHITE);
+            }
+        });
+        return t;
+    }
+
     static JPanel contenedorGrafica(int alto) {
         JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
@@ -222,7 +240,11 @@ class PanelDashboard extends JPanel {
         aviso.ocultar();
         OpcionMes elegido = (OpcionMes) selectorMes.getSelectedItem();
         String mes = elegido == null ? "" : elegido.valor();
-        Tarea.ejecutar(this, () -> Api.get("/api/dashboard", Map.of("mes", mes)), this::dibujar,
+        Tarea.ejecutar(this, () -> Api.get("/api/dashboard", Map.of("mes", mes)), v -> {
+                    animar = true;
+                    dibujar(v);
+                    animar = false;
+                },
                 e -> aviso.error(Ui.mensajeError("cargar el dashboard").apply(e)));
     }
 
@@ -257,21 +279,33 @@ class PanelDashboard extends JPanel {
 
         Tema.Paleta p = Tema.c();
         JsonObject t = Json.objeto(v, "tarjetas");
-        ingresos.setText(Json.texto(t, "ingresos"));
-        ingresos.setForeground(p.plataforma());
-        gastos.setText(Json.texto(t, "gastos"));
+        cifra(ingresos, Json.texto(t, "ingresos"));
+        ingresos.setForeground(Color.WHITE);
+        cifra(gastos, Json.texto(t, "gastos"));
         gastos.setForeground(p.acento());
-        balance.setText(Json.texto(t, "balance"));
+        cifra(balance, Json.texto(t, "balance"));
         balance.setForeground(Json.logico(t, "balance_positivo") ? p.exitoTexto() : p.acento());
-        ahorro.setText(Json.texto(t, "ahorro"));
+        cifra(ahorro, Json.texto(t, "ahorro"));
         movimientos.setText(Json.texto(t, "movimientos"));
+        List<JsonObject> s = Json.lista(v, "serie");
+        if (s.size() >= 2) {
+            JsonObject act = s.get(s.size() - 1);
+            JsonObject ant = s.get(s.size() - 2);
+            double ia = Json.numero(act, "ingresos");
+            double ga = Json.numero(act, "gastos");
+            double ib = Json.numero(ant, "ingresos");
+            double gb = Json.numero(ant, "gastos");
+            GraficasAnimadas.variacion(varIngresos, ia, ib, true, true);
+            GraficasAnimadas.variacion(varGastos, ga, gb, false, false);
+            GraficasAnimadas.variacion(varBalance, ia - ga, ib - gb, true, false);
+        }
 
         tituloCategorias.setText(Json.texto(v, "titulo_categorias"));
         tituloPlanGrafica.setText(Json.texto(v, "titulo_plan_mes"));
         tituloPlanTabla.setText(Json.texto(v, "titulo_plan"));
 
         List<JsonObject> serie = Json.lista(v, "serie");
-        alHacerClic(mostrar(graficaMeses, graficaMeses(v)), i -> elegirMes(Json.texto(serie.get(i), "mes")));
+        alHacerClic(mostrarBarras(v), i -> elegirMes(Json.texto(serie.get(i), "mes")));
         List<JsonObject> categorias = Json.lista(v, "categorias");
         ayudaCategorias.setVisible(!categorias.isEmpty());
         if (categorias.isEmpty()) {
@@ -285,13 +319,75 @@ class PanelDashboard extends JPanel {
             alHacerClic(mostrar(graficaCategorias, graficaCategorias(categorias)),
                     i -> ventana.verRegistros(Json.objeto(categorias.get(i), "filtro")));
         }
-        mostrar(graficaPlan, graficaPlan(Json.lista(v, "plan")));
+        // Plan 50/30/20: medidores por segmentos con el % usado y el estado del servidor.
+        graficaPlan.removeAll();
+        graficaPlan.add(GraficasAnimadas.medidores(Json.lista(v, "plan")));
+        graficaPlan.revalidate();
+        graficaPlan.repaint();
         llenarTablaPlan(Json.lista(v, "plan"));
+    }
+
+    /** La cifra cuenta desde cero al cargar (no al cambiar de tema). */
+    private void cifra(JLabel l, String texto) {
+        if (animar) {
+            GraficasAnimadas.contar(l, texto);
+        } else {
+            l.setText(texto);
+        }
+    }
+
+    /** Ingresos vs. gastos: barras redondeadas que crecen y píldoras del mes elegido. */
+    private ChartPanel mostrarBarras(JsonObject v) {
+        List<JsonObject> s = Json.lista(v, "serie");
+        JFreeChart g = graficaMeses(v);
+        GraficasAnimadas.Barras barras = new GraficasAnimadas.Barras(s.size());
+        BarRenderer r = (BarRenderer) g.getCategoryPlot().getRenderer();
+        r.setBarPainter(barras);
+        r.setMaximumBarWidth(0.07);
+        // Como la web: máximo 5 divisiones en el eje, con montos cortos ("$ 2,0 M").
+        NumberAxis eje = (NumberAxis) g.getCategoryPlot().getRangeAxis();
+        double maximo = 1;
+        for (JsonObject m : s) {
+            maximo = Math.max(maximo, Math.max(Json.numero(m, "ingresos"), Json.numero(m, "gastos")));
+        }
+        double paso = Math.pow(10, Math.floor(Math.log10(maximo / 3)));
+        double f = maximo / 3 / paso;
+        paso *= f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+        eje.setTickUnit(new org.jfree.chart.axis.NumberTickUnit(paso, FORMATO_CORTO));
+        eje.setNumberFormatOverride(FORMATO_CORTO);
+        eje.setUpperMargin(0.22);
+        List<Double> ultimos = new ArrayList<>();
+        if (!s.isEmpty()) {
+            ultimos.add(Json.numero(s.get(s.size() - 1), "ingresos"));
+            ultimos.add(Json.numero(s.get(s.size() - 1), "gastos"));
+        }
+        graficaMeses.removeAll();
+        GraficasAnimadas.PanelConPildoras panel = new GraficasAnimadas.PanelConPildoras(g, barras, ultimos, s.size());
+        configurar(panel);
+        graficaMeses.add(panel);
+        graficaMeses.revalidate();
+        graficaMeses.repaint();
+        if (animar && !Efectos.reducir()) {
+            barras.crecer = 0;
+            Efectos.animar(1100, Efectos.SUAVE, k -> {
+                barras.crecer = k;
+                g.fireChartChanged();
+            }, null);
+        }
+        return panel;
     }
 
     static ChartPanel mostrar(JPanel contenedor, JFreeChart grafica) {
         contenedor.removeAll();
         ChartPanel panel = new ChartPanel(grafica, false, false, false, false, true);
+        configurar(panel);
+        contenedor.add(panel);
+        contenedor.revalidate();
+        contenedor.repaint();
+        return panel;
+    }
+
+    static void configurar(ChartPanel panel) {
         panel.setOpaque(false);
         panel.setMouseWheelEnabled(false);
         panel.setPopupMenu(null);
@@ -299,10 +395,6 @@ class PanelDashboard extends JPanel {
         panel.setMinimumDrawHeight(150);
         panel.setMaximumDrawWidth(4000);
         panel.setMaximumDrawHeight(3000);
-        contenedor.add(panel);
-        contenedor.revalidate();
-        contenedor.repaint();
-        return panel;
     }
 
     /** Ayuda pequeña bajo el título de una gráfica (.texto-ayuda). */
@@ -345,6 +437,24 @@ class PanelDashboard extends JPanel {
         public StringBuffer format(double numero, StringBuffer destino, FieldPosition pos) {
             String texto = miles.format(Math.abs(Math.round(numero))).replace(',', '.').replace(' ', '.');
             return destino.append(numero < 0 ? "-$ " : "$ ").append(texto);
+        }
+
+        @Override
+        public StringBuffer format(long numero, StringBuffer destino, FieldPosition pos) {
+            return format((double) numero, destino, pos);
+        }
+
+        @Override
+        public Number parse(String fuente, ParsePosition pos) {
+            return null;
+        }
+    };
+
+    /** "$ 2,0 M" en el eje de las barras, como dashboard.js. */
+    static final NumberFormat FORMATO_CORTO = new NumberFormat() {
+        @Override
+        public StringBuffer format(double numero, StringBuffer destino, FieldPosition pos) {
+            return destino.append(GraficasAnimadas.corto(numero));
         }
 
         @Override
@@ -431,10 +541,18 @@ class PanelDashboard extends JPanel {
         plot.setShadowPaint(null);
         plot.setLabelGenerator(null);
         plot.setDefaultSectionOutlinePaint(Tema.c().superficie());
-        plot.setDefaultSectionOutlineStroke(new BasicStroke(2f));
+        plot.setDefaultSectionOutlineStroke(new BasicStroke(3f));
+        plot.setSectionDepth(0.32);
+        double total = 0;
         for (JsonObject c : categorias) {
             plot.setSectionPaint(Json.texto(c, "nombre"), color(Json.texto(c, "color")));
+            total += Json.numero(c, "total");
         }
+        // Total del mes al centro del anillo, como el plugin "centro" de dashboard.js.
+        plot.setCenterTextMode(org.jfree.chart.plot.CenterTextMode.FIXED);
+        plot.setCenterText(GraficasAnimadas.corto(total));
+        plot.setCenterTextFont(new JLabel().getFont().deriveFont(Font.BOLD, 15f));
+        plot.setCenterTextColor(Tema.c().texto());
         return g;
     }
 

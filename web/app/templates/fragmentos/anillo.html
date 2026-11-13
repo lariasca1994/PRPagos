@@ -1,0 +1,6 @@
+{# Tiempo que le queda al código: modo "app" (cambia cada 30 s) o "correo"
+   (vence en {{ minutos }} minutos). acceso.js lo actualiza cada segundo. #}
+<p class="anillo" data-anillo="{{ modo_anillo }}" data-minutos="{{ minutos or '' }}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="anillo-fondo" cx="12" cy="12" r="9"/><circle class="anillo-valor" cx="12" cy="12" r="9" pathLength="1"/></svg>
+    <span data-anillo-texto>{% if modo_anillo == "correo" %}El código vence en {{ minutos }} minutos{% else %}El código de tu app cambia cada 30 s{% endif %}</span>
+</p>
