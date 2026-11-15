@@ -26,7 +26,8 @@ def enviar(destino: str, nombre: str, asunto: str, html: str) -> None:
         raise ErrorCorreo("El envío de correos no está configurado (BREVO_API_KEY y BREVO_REMITENTE).")
     cuerpo = json.dumps({
         "sender": {"name": NOMBRE_REMITENTE, "email": settings.brevo_remitente},
-        "to": [{"email": destino, "name": nombre}],
+        # Brevo responde 400 si "name" va vacío.
+        "to": [{"email": destino, "name": nombre.strip()} if nombre and nombre.strip() else {"email": destino}],
         "subject": asunto,
         "htmlContent": html,
     }).encode("utf-8")
