@@ -257,7 +257,7 @@ public class VentanaPrincipal extends JFrame {
     private JPanel pie() {
         JPanel pie = new JPanel(new FlowLayout(FlowLayout.CENTER));
         pie.setBorder(BorderFactory.createEmptyBorder(10, 0, 14, 0));
-        JLabel texto = new JLabel("Simulador de pagos — proyecto de portafolio de Luis Felipe Arias.");
+        JLabel texto = new JLabel("Simulador de pagos — proyecto de portafolio de Luis F. A..");
         texto.setFont(texto.getFont().deriveFont(12.5f));
         Tema.alCambiar(() -> texto.setForeground(Tema.c().textoSuave()));
         pie.add(texto);
