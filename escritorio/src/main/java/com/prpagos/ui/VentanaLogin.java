@@ -154,7 +154,7 @@ public class VentanaLogin extends JFrame {
         centro = new JPanel(new GridBagLayout());
         centro.setOpaque(false);
         centro.add(formularios);
-        JTextArea pie = Ui.suave("Simulador de pagos — proyecto de portafolio de Luis F. A..");
+        JTextArea pie = Ui.suave("Simulador de pagos — proyecto de portafolio de Luis F. A.");
         pie.setFont(pie.getFont().deriveFont(12f));
         lado.add(barra, BorderLayout.NORTH);
         lado.add(centro, BorderLayout.CENTER);
