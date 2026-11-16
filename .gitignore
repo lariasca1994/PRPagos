@@ -60,3 +60,14 @@ docs/*.xlsx
 # Restos locales del antiguo despliegue en OCI (identificadores de infraestructura)
 web/route-rules.json
 web/security-list-ids.json
+
+# Configuración de red y de máquina: solo local, nunca en el repositorio
+web/egress-rules.json
+web/ingress-rules.json
+web/route-rules.json
+web/shape-config.json
+web/salida.txt
+# Notas internas (cambios técnicos y publicación en la Store): solo local
+CHANGELOG-migracion.md
+docs/CHANGELOG.md
+docs/STORE.md

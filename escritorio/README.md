@@ -1,299 +1,41 @@
-# PRPagos Escritorio
+# Simulador de pagos · versión de escritorio
 
-<p>
-  <a href="https://prpagos-web-1087929107584.us-east4.run.app"><img src="../docs/demo-badge.svg" alt="Abrir la demo en vivo" height="32"></a>
-  <a href="https://frontend-nine-topaz-99.vercel.app"><img src="https://portafolio-status.onrender.com/api/status/prpagos/badge.svg" alt="Estado en vivo del proyecto" height="32"></a>
-  <a href="https://d4i3vsgw7xwmh.cloudfront.net"><img src="https://portafolio-status.onrender.com/api/status/prpagos/qa-badge.svg" alt="Fecha y resultado de la última prueba E2E" height="32"></a>
-</p>
+Aplicación de Windows en Java Swing (FlatLaf y JFreeChart) del [Simulador de pagos](../README.md).
+Se publica como **PRPagos.exe** con Java incluido, en instalador o versión portable, y se actualiza
+sola. No guarda datos ni claves: todo lo pide al servidor de la versión web.
 
-![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![FastAPI](https://img.shields.io/badge/API_PRPagos-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white)
+> 📘 **[Manual de usuario](../docs/MANUAL-ESCRITORIO.md)**: cómo usar cada pantalla, paso a paso y con imágenes.
 
-## Contenido
+**Descargar:** [última versión](https://github.com/lariasca1994/PRPagos/releases/latest).
 
-1. [Presentación](#1-presentación)
-2. [Estructura del proyecto](#2-estructura-del-proyecto)
-3. [Arquitectura](#3-arquitectura)
-4. [Plataformas y su función](#4-plataformas-y-su-función)
-5. [Cómo usar la plataforma](#5-cómo-usar-la-plataforma)
-6. [Instalación para pruebas](#6-instalación-para-pruebas)
-7. [Autor y licencia](#7-autor-y-licencia)
-
----
-
-## 1. Presentación
-
-Versión de escritorio de PRPagos, construida con Java Swing: el mismo gestor
-de presupuesto de la web (ingresos, gastos, plan 50/30/20, dashboard y
-resúmenes por correo) como aplicación de Windows.
-
-**Un solo origen de datos y una sola lógica:** la aplicación de escritorio no
-se conecta a la base ni guarda claves. Pide todo a la **API de la web**
-(`/api/...`, en Google Cloud Run), igual que el navegador pide las páginas. Las
-reglas, los cálculos, los mensajes y los datos son exactamente los mismos en la
-web, la PWA y el escritorio; aquí solo se dibujan (JFreeChart en lugar de
-Chart.js).
-
-Se distribuye como **PRPagos.exe** con Java incluido —instalador o versión
-portable— en [GitHub Releases](https://github.com/lariasca1994/PRPagos/releases/latest):
-**se instala y se usa**, sin configurar nada, y se **actualiza sola** cuando se
-publica una versión nueva.
-
-Ver el [`README.md`](../README.md) de la raíz para la descripción general del
-proyecto y [`CHANGELOG-migracion.md`](../CHANGELOG-migracion.md) para el
-detalle de la migración.
-
-### En pocas palabras
-
-- **Qué hace:** registra ingresos y gastos por categoría, muestra el mes en un
-  dashboard frente al plan 50/30/20 y envía el resumen por correo. Cada persona
-  ve solo lo suyo, con la misma cuenta de la web.
-- **Qué lo hace interesante:** es un cliente delgado de la misma API que usa la
-  web: no duplica reglas ni datos, no lleva secretos dentro del instalador y aun
-  así ofrece Windows Hello, actualización automática verificada y la misma
-  apariencia que la web.
-- **Cómo probarlo:** descarga la [última versión](https://github.com/lariasca1994/PRPagos/releases/latest),
-  ábrela y crea una cuenta (o usa la de la web). Para probar sin instalar nada,
-  usa la [demo web](https://prpagos-web-1087929107584.us-east4.run.app).
-
-### Demo en vivo
-
-La versión de escritorio se ejecuta en el equipo de cada usuario.
-**Descarga:** [última versión](https://github.com/lariasca1994/PRPagos/releases/latest).
-**Instalar desde Microsoft Store:** próximamente (paquete MSIX listo; ver
-[docs/STORE.md](../docs/STORE.md) y la [política de privacidad](../docs/PRIVACIDAD.md)).
-
-**Versión web (los mismos datos):** [abrir la demo en vivo](https://prpagos-web-1087929107584.us-east4.run.app)
-
-### Funcionalidades
-
-**Presupuesto**
-- Ingresos y gastos con tipo, monto, fecha (con calendario), categoría y concepto
-- Categorías sugeridas y propias, cada una de gasto en un grupo del plan
-- Plan 50/30/20 con porcentajes editables en Perfil
-- **Dashboard** por mes con los mismos gráficos y cifras de la web: barras de 6
-  meses, anillo de categorías y barras del plan con su estado
-- **Presupuesto** por categoría y mes con los mismos datos y gráficos de la web (como una hoja de presupuesto anual), comparado con
-  los registros: tarjetas, gastos presupuestados vs. reales del año, distribución frente
-  al plan, mayores gastos, estado por categoría y resumen de los 12 meses
-- Interactivo: un mes de las gráficas abre ese mes, una categoría abre sus registros y
-  cada registro nuevo avisa cómo va el presupuesto de su categoría
-- Consulta con filtros (tipo, concepto, montos, fechas y categoría), totales y CSV
-
-**Resúmenes por correo**
-- Botones **Enviarme el resumen semanal / del mes**: el servidor arma y envía el
-  mismo correo que desde la web
-- Los envíos programados (viernes y día 29) los hace el servidor, aunque la
-  aplicación esté cerrada
-
-**Cuentas y seguridad**
-- Ingreso en dos pasos obligatorio (app autenticadora o código por correo, a elección), el mismo de la web
-- Códigos de respaldo y código por correo si se pierde el teléfono
-- **Llaves de acceso con Windows Hello** (PIN, huella o rostro): la misma llave de
-  Edge o Chrome en ese Windows; se agregan desde Perfil
-- **Perfil** con datos, plan, categorías, autenticador, códigos, llaves y contraseña
-- Bloqueo temporal ante intentos fallidos repetidos
-- Sesión que se cierra sola por inactividad o por tiempo máximo, con el mensaje del motivo
-
-**Aplicación de Windows**
-- **PRPagos.exe** con Java incluido: instalador automático por usuario (sin
-  preguntas ni permisos elevados de Windows, con desinstalador en Aplicaciones
-  instaladas) o versión portable, con el ícono de la app; sin configuración
-- **Actualización automática y obligatoria**: comprueba al abrir y cada hora;
-  cuando hay versión nueva, la instala y vuelve a abrir la aplicación
-- Misma portada animada, menú y colores que la web, en tema claro y oscuro
-
-### Stack
-
-| Capa | Tecnología |
-|---|---|
-| Interfaz | Java Swing con FlatLaf (tema claro y oscuro) y JFreeChart |
-| Lenguaje | Java 17 (el ejecutable incluye su propio Java) |
-| Datos y reglas | API JSON de la web (`/api/...`) con `java.net.http` y Gson |
-| Sesión | La misma sesión de la web |
-| Verificación en dos pasos | TOTP en el servidor; QR del autenticador con ZXing |
-| Llaves de acceso | Windows Hello; la firma la verifica el servidor |
-| Distribución | jpackage + Inno Setup (instalador automático con desinstalador) → GitHub Releases; actualización verificada |
-
----
-
-## 2. Estructura del proyecto
+## Estructura
 
 ```
-escritorio/
-├── empaquetar.ps1      Compila y arma PRPagos.exe con jpackage (y el instalador)
-├── instalador.iss      Instalador automático con desinstalador (Inno Setup)
-├── lib/                FlatLaf, ZXing, JFreeChart, JNA y Gson
-├── resources/          Ícono de la aplicación (el mismo de la web)
-└── src/main/
-    ├── java/com/prpagos/
-    │   ├── cliente/         Api (único acceso a los datos: la API de la web) y Json
-    │   ├── datos/           Sesion y Pago, tal como los entrega la API
-    │   ├── seguridad/       WindowsHello (llaves de acceso)
-    │   ├── actualizaciones/ Actualizador y comprobación periódica de versiones
-    │   └── ui/              Portada, ventana principal y paneles (Dashboard,
-    │                        Presupuesto, Consulta, Registro, Perfil), Tema y componentes
-    └── resources/           Script que instala las actualizaciones
+src/main/java/com/prpagos/
+├── ui/                Ventanas y componentes
+├── cliente/           Acceso a la API del servidor
+└── actualizaciones/   Actualización automática
+lib/                   Bibliotecas (FlatLaf, JFreeChart, Gson)
+resources/             Íconos e imágenes
+empaquetar.ps1         Arma PRPagos.exe (y el instalador)
 ```
 
-El escritorio no contiene SQL, reglas de negocio, plantillas de correo ni
-claves: todo eso vive solo en el servidor (`../web/app/servicios/`).
+## Compilar y ejecutar
 
----
-
-## 3. Arquitectura
-
-<p align="center">
-  <img src="../docs/arquitectura-escritorio.svg" alt="Diagrama de arquitectura: las ventanas Swing de PRPagos Escritorio usan el cliente de la API, que habla por HTTPS con la API de PRPagos Web en Google Cloud Run; la web es la única que accede a Oracle y a Brevo. Windows Hello firma las llaves de acceso y el Actualizador descarga las versiones nuevas de GitHub Releases" width="100%">
-</p>
-
-- La aplicación corre en el **equipo del usuario**; la ventana de inicio es
-  `com.prpagos.ui.VentanaLogin`.
-- **cliente.Api** es el único acceso a los datos: llama por HTTPS a la API de la
-  web con el token de la sesión y lo renueva con cada respuesta. Si el servidor
-  da la sesión por cerrada, la ventana vuelve al ingreso con su mensaje. Si la
-  dirección del servidor deja de responder, consulta la vigente en
-  `escritorio/servidor.json` del repositorio, la guarda y sigue funcionando (así
-  las instalaciones nunca se quedan sin actualizaciones si la web cambia de lugar).
-- El **Dashboard** recibe la vista ya calculada y formateada (la misma de la web)
-  y la dibuja con JFreeChart.
-- **WindowsHello** muestra la ventana de Windows (PIN, huella o rostro) y arma la
-  respuesta como un navegador; el servidor la verifica.
-- El **Actualizador** consulta la última versión publicada, la descarga de
-  **GitHub Releases**, la verifica y obliga a instalarla: la aplicación se reinicia ya actualizada.
-
-### Seguridad
-
-- **Sin secretos en el equipo:** el instalador no lleva contraseña de la base,
-  wallet ni claves; solo la dirección pública de la web. Aunque alguien copie la
-  aplicación, no obtiene acceso a los datos.
-- **Una sola seguridad:** contraseñas, verificación en dos pasos,
-  códigos de respaldo, bloqueos, llaves de acceso y sesiones se validan en el
-  servidor, igual que para la web.
-- **Sesión:** la misma de la web; nunca se guarda en disco.
-- **Llaves de acceso:** Windows Hello, verificadas en el servidor.
-- **Actualizaciones verificadas:** solo se instalan desde GitHub y después de
-  comprobar que son las publicadas. Si algo falla, se conserva la versión instalada.
-
----
-
-## 4. Plataformas y su función
-
-| Plataforma | Función en el proyecto |
-|---|---|
-| ![Java](https://img.shields.io/badge/Java_Swing-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white) | La aplicación corre en el equipo de cada usuario como PRPagos.exe, con su propio Java. |
-| ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Aloja la web y su API, de donde el escritorio toma todos los datos, reglas y mensajes. |
-| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Oracle Autonomous Database guarda cuentas, registros, categorías y planes; solo el servidor se conecta a ella. |
-| ![GitHub](https://img.shields.io/badge/GitHub_Releases-181717?style=for-the-badge&logo=github&logoColor=white) | GitHub Actions compila y publica cada versión (instalador y portable); de ahí se actualizan las aplicaciones instaladas. |
-
----
-
-## 5. Cómo usar la plataforma
-
-El paso a paso con capturas de cada pantalla, incluida la instalación, está en
-el **[Manual de escritorio](../docs/MANUAL-ESCRITORIO.md)**. En resumen:
-
-La ventana tiene la misma barra que la web: **Dashboard**, **Presupuesto**,
-**Consultar registros**, **Nuevo registro**, **Perfil** y **Salir**, y el botón ◐ para
-cambiar entre tema claro y oscuro.
-
-### 5.1 Instalar
-
-1. Descarga de [Releases](https://github.com/lariasca1994/PRPagos/releases/latest)
-   el instalador `Simulador-de-pagos-<versión>.exe` o el portable `Simulador-de-pagos-escritorio-<versión>.zip`.
-   El instalador es automático: no hace preguntas, crea los accesos directos y abre
-   la aplicación.
-2. Abre **Simulador de pagos** desde el acceso directo. No hace falta configurar nada; las
-   versiones nuevas se instalan solas.
-3. Para desinstalar: **Configuración → Aplicaciones instaladas → Simulador de pagos**, o
-   **Desinstalar Simulador de pagos** en el menú Inicio.
-
-### 5.2 Crear una cuenta e ingresar
-
-1. En la portada, pulsa **Regístrate**: correo, nombre completo y contraseña. La
-   misma cuenta sirve en la web.
-2. Ingresa con **Correo** y **Contraseña**; la primera vez elige **App
-   autenticadora** (escanea el QR) o **Código por correo**, y guarda los 10
-   **códigos de respaldo**.
-3. Las siguientes veces, escribe el código de 6 dígitos (o uno de respaldo), o
-   pulsa **Ingresar con llave de acceso** si agregaste este equipo en Perfil.
-
-### 5.3 Dashboard, registros y Perfil
-
-- **Dashboard:** elige el mes; cifras, gráficas, plan 50/30/20 y botones de resumen por correo.
-- **Presupuesto:** monto por categoría y mes frente a lo registrado, con gráficas y resumen del año.
-- **Nuevo registro:** tipo, monto, fecha, categoría y concepto.
-- **Consultar registros:** filtros, totales, **Modificar** y **Exportar a CSV**.
-- **Perfil:** nombre y resúmenes, plan, categorías, autenticador, códigos de respaldo, llaves de acceso y contraseña.
-
-### 5.4 Recuperar el acceso
-
-- **Perdí mi autenticador** (paso del código, siempre visible): un código de respaldo, o un código
-  al correo para configurar un autenticador nuevo y recibir códigos de respaldo nuevos.
-- Los correos y la app autenticadora muestran el nombre **Simulador de pagos**.
-- **Eliminar mi cuenta** (Perfil): borra para siempre la cuenta y todos sus datos tras la
-  contraseña, un código del segundo factor y escribir ELIMINAR; cierra la sesión y avisa por correo.
-- **Códigos de respaldo:** al cambiar la contraseña en Perfil, al restablecerla con "Olvidé mi
-  contraseña" y al configurar un autenticador nuevo se generan 10 nuevos y se anulan los anteriores;
-  tras restablecerla se muestran en el siguiente ingreso, después del código.
-- **Olvidé mi contraseña** (portada): solo el correo; llega un enlace de un solo uso que abre
-  la página web para escribir la contraseña nueva. Al guardarla se cierran las sesiones abiertas
-  y la verificación en dos pasos sigue activa.
-
----
-
-## 6. Instalación para pruebas
-
-### Requisitos
-
-- JDK 17 o superior (para compilar; el ejecutable trae su propio Java)
-- Las librerías de `lib/` (ya incluidas en el repositorio): FlatLaf, ZXing,
-  JFreeChart, JNA y Gson
-- Conexión a internet (o la web corriendo en local, ver abajo)
-
-### Ejecución
-
-Desde un IDE (Eclipse o VS Code): importar el proyecto, agregar todos los
-`.jar` de `lib/` al classpath y ejecutar `com.prpagos.ui.VentanaLogin`.
-
-Desde consola (PowerShell, parado en `escritorio/`):
+Con JDK 17 o superior, desde `escritorio/` (PowerShell):
 
 ```powershell
 javac --release 17 -encoding UTF-8 -d bin -cp "lib\*" (Get-ChildItem -Recurse -Path src -Filter *.java | % FullName)
 java --enable-native-access=ALL-UNNAMED -cp "bin;lib\*" com.prpagos.ui.VentanaLogin
 ```
 
-En Linux o macOS el separador del classpath es `:` en lugar de `;`.
+Por defecto usa la web de producción; para probarla con la web local, ejecútala con
+`PRPAGOS_URL=http://localhost:8000`.
 
-Por defecto usa la web de producción. Para probar contra la web en local
-(`uvicorn` en `web/`), indica su dirección con la variable `PRPAGOS_URL` o con
-`-Dprpagos.url=http://localhost:8000`.
+Para armar el ejecutable: `.\empaquetar.ps1` (portable) o `.\empaquetar.ps1 -Instalador`
+(requiere Inno Setup 6).
 
-Para armar el ejecutable (JDK 17+ con jpackage):
+## Autor
 
-```powershell
-.\empaquetar.ps1                  # build\dist\PRPagos\PRPagos.exe (portable)
-.\empaquetar.ps1 -Instalador      # además, el instalador .exe (requiere Inno Setup 6)
-```
-
-### Despliegue
-
-Todo sale de GitHub. Cada push a `main` que toque el escritorio ejecuta
-[`.github/workflows/escritorio.yml`](../.github/workflows/escritorio.yml), que:
-
-1. Compila y empaqueta con `empaquetar.ps1` en un runner de Windows.
-2. Publica el Release `escritorio-v1.0.<n>` con el instalador y el portable.
-3. Registra la versión y la huella SHA-256 en el servidor, de donde la leen las
-   aplicaciones instaladas para actualizarse.
-
----
-
-## 7. Autor y licencia
-
-> 📘 **[Manual de escritorio](../docs/MANUAL-ESCRITORIO.md)**: cómo instalar y usar la aplicación campo por campo, qué datos se ingresan y qué garantiza en seguridad.
-
-**Luis F. A.**
-[GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1)
-
-Licencia: MIT.
+**Luis F. A.** · [GitHub](https://github.com/lariasca1994) · [LinkedIn](https://linkedin.com/in/lfac1) ·
+Licencia [MIT](../LICENSE)
