@@ -1,417 +1,313 @@
-# 📘 Manual de usuario · PRPagos Web
+# 📘 Manual de usuario · Simulador de pagos (web)
 
-Guía para usar la **versión web** paso a paso: qué significa cada campo, qué datos se ingresan y
-qué protege la plataforma. La versión de escritorio tiene su propio manual
-([MANUAL-ESCRITORIO.md](MANUAL-ESCRITORIO.md)); las dos usan las mismas cuentas y los mismos datos.
-Para la parte técnica vuelve al [README](../README.md).
+## 1. Portada
 
-**Demo web:** [PRPagos (Google Cloud Run)](https://prpagos-web-1087929107584.us-east4.run.app)
+![Portada del Simulador de pagos: cada peso, con su plan](img/manual-web/01-portada.png)
+
+| | |
+|---|---|
+| **Producto** | Simulador de pagos (PRPagos), versión web |
+| **Documento** | Manual de usuario |
+| **Versión** | 2.0 · noviembre de 2026 |
+| **Dirigido a** | Personas que quieren llevar su presupuesto personal |
+| **Dirección** | [Simulador de pagos](https://prpagos-web-1087929107584.us-east4.run.app) |
+| **Autor** | Luis F. A. |
+
+La aplicación de Windows tiene su propio manual: [MANUAL-ESCRITORIO.md](MANUAL-ESCRITORIO.md). Las
+dos usan la misma cuenta y los mismos datos.
 
 ## Contenido
 
-1. [Proyecto: objetivos y alcances](#1-proyecto-objetivos-y-alcances)
-2. [Glosario](#2-glosario)
-3. [Plataformas, base de datos y servicios](#3-plataformas-base-de-datos-y-servicios)
-4. [Paso a paso](#4-paso-a-paso)
-5. [Seguridad: tu información protegida](#5-seguridad-tu-información-protegida)
-6. [Agradecimientos](#6-agradecimientos)
+1. [Portada](#1-portada)
+2. [Introducción](#2-introducción)
+3. [Objetivo](#3-objetivo)
+4. [Alcance](#4-alcance)
+5. [Acceso al sistema](#5-acceso-al-sistema)
+6. [Pantalla principal](#6-pantalla-principal)
+7. [Navegación](#7-navegación)
+8. [Funcionalidades](#8-funcionalidades)
+9. [Gestión de perfil](#9-gestión-de-perfil)
+10. [Mensajes frecuentes](#10-mensajes-frecuentes)
+11. [Preguntas frecuentes](#11-preguntas-frecuentes)
+12. [Glosario](#12-glosario)
 
 ---
 
-## 1. Proyecto: objetivos y alcances
+## 2. Introducción
 
-### Objetivo
+El **Simulador de pagos** registra tus ingresos y gastos por categoría y los compara con el **plan
+50/30/20**: la mitad de lo que recibes para necesidades, un 30 % para deseos y un 20 % para ahorro
+y deudas. Un dashboard te muestra cómo va el mes, la pantalla **Presupuesto** te deja planear mes a
+mes y cada semana y cada mes te llega un resumen por correo.
 
-Gestor de presupuesto personal: registras tus **ingresos y gastos** por categoría, los comparas
-con el **plan 50/30/20** (50 % necesidades, 30 % deseos, 20 % ahorro y deudas) en un dashboard con
-gráficas, y recibes un **resumen por correo** cada viernes (la semana) y cada día 29 (el mes; en
-febrero, el último día). Las reglas de negocio viven en procedimientos almacenados de Oracle,
-compartidos con la versión de escritorio.
+Este manual explica cada pantalla, paso a paso y con imágenes.
 
-### Alcance: qué necesitas y qué esperar
+![Cómo funciona el Simulador de pagos: personas, aplicación, plataforma e información](img/manual-web/00-como-funciona.svg)
 
-- Solo necesitas un navegador; también se puede **instalar como app** (PWA) desde el navegador, en
-  el celular o en el computador. Al abrirla desde su ícono muestra una **animación de entrada** breve (1 a 1,6 s) (sube el recibo, se escriben sus líneas y aparece el escudo con el check); en el navegador no aparece, y si el equipo tiene activado "reducir movimiento" se muestra sin animar.
-- Un **correo real**: es tu usuario y ahí llegan los resúmenes y los códigos de recuperación.
-- Una **app autenticadora** en el celular (Google Authenticator, Microsoft Authenticator, Authy…):
-  la verificación en dos pasos es obligatoria. Se configura una sola vez y sirve también en la
-  versión de escritorio.
+## 3. Objetivo
 
-### Límites
+Que cualquier persona pueda, sin conocimientos técnicos:
 
-- **Registra solo datos de ejemplo**: es un proyecto de portafolio, no un servicio financiero.
-- Los porcentajes del plan se pueden cambiar, pero siempre son tres grupos que suman 100.
-- Si pierdes el teléfono necesitas un **código de respaldo** o acceso a tu **correo** para volver a
-  entrar (ver 4.13).
+- Crear su cuenta e ingresar de forma segura.
+- Registrar sus ingresos y gastos en segundos.
+- Consultar, corregir y exportar sus registros.
+- Saber si el mes va dentro de su plan y planear el presupuesto de cada categoría.
 
-## 2. Glosario
+## 4. Alcance
 
-Palabras técnicas que aparecen en este manual, explicadas en lenguaje simple.
+**Incluye:** registro e ingreso con verificación en dos pasos, llaves de acceso (huella, rostro o
+PIN), ingresos y gastos con categorías, dashboard del mes, presupuesto por categoría, consulta con
+filtros y exportación a CSV, resúmenes por correo, tema claro y oscuro, y uso en celular, tablet y
+computador.
+
+**No incluye:** conexión con bancos ni pagos reales: los montos los escribes tú.
+
+**Qué necesitas:** un navegador actualizado, conexión a internet, un correo propio y una app
+autenticadora en el celular (o acceso a tu correo para recibir códigos).
+
+## 5. Acceso al sistema
+
+### 5.1 Crear una cuenta
+
+En la portada pulsa **Regístrate**.
+
+![Formulario para crear una cuenta con sus campos numerados](img/manual-web/02-registro.png)
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Correo | Tu correo real: es tu usuario y ahí llegan los avisos |
+| 2 | Nombre completo | Tu nombre, como quieres verlo en la aplicación |
+| 3 | Contraseña | Mínimo 8 caracteres |
+| 4 | Repite la contraseña | La misma contraseña |
+| 5 | Crear cuenta | Crea la cuenta y te lleva a configurar la verificación en dos pasos |
+
+La primera vez eliges cómo recibir el código de la verificación en dos pasos: con una **app
+autenticadora** (escaneas un código QR; recomendado) o con un **código por correo**. Al activarla
+recibes tus **códigos de respaldo**: guárdalos, sirven si pierdes el teléfono.
+
+### 5.2 Iniciar sesión
+
+![Formulario de inicio de sesión con sus elementos numerados](img/manual-web/03-ingreso.png)
+
+| # | Elemento | Qué hace |
+|:-:|---|---|
+| 1 | Correo | El correo de tu cuenta |
+| 2 | Contraseña | Tu contraseña |
+| 3 | Continuar | Comprueba tus datos y pasa al código de verificación |
+| 4 | Olvidé mi contraseña | Abre la recuperación de contraseña (5.4) |
+| 5 | Regístrate | Crea una cuenta nueva (5.1) |
+
+Si ya agregaste una llave de acceso (9.4), **Ingresar con llave de acceso** te deja entrar con tu
+huella, rostro o PIN, sin contraseña ni código.
+
+### 5.3 Verificación en dos pasos
+
+![Pantalla del código de verificación con sus elementos numerados](img/manual-web/04-verificacion.png)
+
+| # | Elemento | Qué hace |
+|:-:|---|---|
+| 1 | Código de 6 dígitos | El código de tu app (o de tu correo), o uno de tus códigos de respaldo |
+| 2 | Ingresar | Confirma el código y abre el dashboard |
+| 3 | Perdí mi autenticador | Te envía un código al correo de tu cuenta para configurar un autenticador nuevo |
+
+### 5.4 Recuperar la contraseña
+
+![Pantalla para pedir el enlace de recuperación](img/manual-web/05-recuperar.png)
+
+| # | Elemento | Qué hace |
+|:-:|---|---|
+| 1 | Correo | El correo de tu cuenta |
+| 2 | Enviar enlace | Envía un enlace para crear una contraseña nueva (vence pronto y sirve una sola vez) |
+
+Al guardar la contraseña nueva se cierran las sesiones abiertas y la verificación en dos pasos
+sigue activa.
+
+## 6. Pantalla principal
+
+El **Dashboard** muestra cómo va el mes.
+
+![Dashboard con sus partes numeradas](img/manual-web/06-pantalla-principal.png)
+
+| # | Elemento | Qué hace |
+|:-:|---|---|
+| 1 | Menú | Lleva a Dashboard, Presupuesto, Consultar registros, Nuevo registro y Perfil |
+| 2 | Mes | Elige el mes que quieres revisar |
+| 3 | Cifras del mes | Ingresos, gastos, balance y porcentaje de ahorro, comparados con el mes anterior |
+| 4 | Gráficas | Ingresos vs. gastos de los últimos 6 meses (toca un mes para abrirlo), gastos por categoría (toca una para ver sus registros) y avance del plan 50/30/20 |
+
+## 7. Navegación
+
+En el computador el menú está a la izquierda. **Compactar menú** lo reduce a íconos; al pie están tu
+nombre, **Cambiar tema** y **Salir**.
+
+![Menú lateral compacto](img/manual-web/07-navegacion.png)
+
+En la tablet en vertical las gráficas se acomodan una debajo de otra. En el celular el menú pasa a
+una barra inferior; **Más** abre Perfil y Salir.
+
+| Tablet en vertical | Celular con la barra inferior |
+|:-:|:-:|
+| ![Dashboard en una tablet en vertical](img/manual-web/08-navegacion-tablet.png) | ![Dashboard en el celular con la barra inferior](img/manual-web/09-navegacion-movil.png) |
+
+El tema oscuro se activa con **Cambiar tema** (o el botón ◐) y la aplicación lo recuerda:
+
+![Dashboard en tema oscuro](img/manual-web/22-tema-oscuro.png)
+
+## 8. Funcionalidades
+
+### 8.1 Crear: registrar un ingreso o un gasto
+
+En el menú pulsa **Nuevo registro**.
+
+![Formulario de nuevo registro con sus campos numerados](img/manual-web/10-crear.png)
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Tipo | **Gasto** o **Ingreso** |
+| 2 | Monto | El valor, sin puntos de miles ni signo $ (los decimales pueden ir con coma) |
+| 3 | Fecha | El día del movimiento |
+| 4 | Categoría | Se filtra según el tipo; las de gasto muestran su grupo del plan (opcional) |
+| 5 | Concepto | Una descripción corta, hasta 100 caracteres |
+| 6 | Guardar | Registra el movimiento |
+
+Al guardar, el aviso te dice cómo va el presupuesto de esa categoría en el mes.
+
+### 8.2 Consultar: buscar y exportar registros
+
+![Consulta de registros con sus elementos numerados](img/manual-web/11-consultar.png)
+
+| # | Elemento | Qué hace |
+|:-:|---|---|
+| 1 | Tipo | Todos, solo ingresos o solo gastos (también puedes filtrar por concepto, montos y categoría) |
+| 2 | Desde / Hasta | El rango de fechas |
+| 3 | Buscar | Aplica los filtros; **Limpiar** los quita |
+| 4 | Totales | Ingresos, gastos y balance de lo que cumple los filtros |
+| 5 | Modificar | Abre el registro para corregirlo (8.3) |
+| 6 | Exportar a CSV | Descarga la consulta para abrirla en Excel |
+
+### 8.3 Modificar: corregir un registro
+
+![Formulario para modificar un registro con sus campos numerados](img/manual-web/12-modificar.png)
+
+Son los mismos campos de 8.1 con los valores actuales: cambia lo que necesites y pulsa **Guardar
+cambios** (6).
+
+### 8.4 Reportar: presupuesto y resúmenes
+
+**Presupuesto** compara lo que planeaste con lo que registraste, categoría por categoría.
+
+![Presupuesto del mes con sus partes numeradas](img/manual-web/13-reportar.png)
+
+| # | Elemento | Qué hace |
+|:-:|---|---|
+| 1 | Mes y año | El periodo que planeas o revisas |
+| 2 | Cifras del mes | Ingresos y gastos registrados frente a lo presupuestado, lo que queda y el porcentaje usado |
+| 3 | Gráficas | Presupuestado vs. real de los 12 meses, distribución frente al plan y mayores gastos |
+
+Más abajo está la **tabla del mes**: escribe el presupuesto de cada categoría y elige si se aplica
+solo a ese mes, hasta diciembre o a todo el año; **Copiar el presupuesto del mes anterior** te ahorra
+volver a escribirlo.
+
+**Resúmenes por correo:** cada viernes te llega el resumen de la semana y cada día 29 (en febrero,
+el último día) el del mes. Al final del dashboard puedes pedirlos al momento:
+
+![Botones para pedir los resúmenes por correo](img/manual-web/14-reportar-correo.png)
+
+## 9. Gestión de perfil
+
+En el menú pulsa **Perfil**. Ahí también ajustas los porcentajes de tu **plan 50/30/20** y creas
+tus propias **categorías**.
+
+### 9.1 Tus datos
+
+![Tarjeta con tus datos](img/manual-web/15-perfil.png)
+
+Cambia tu nombre y activa o desactiva los resúmenes por correo; pulsa **Guardar datos**.
+
+### 9.2 Cambiar contraseña
+
+![Formulario de cambio de contraseña con sus campos numerados](img/manual-web/16-contrasena.png)
+
+| # | Campo | Qué escribir |
+|:-:|---|---|
+| 1 | Contraseña actual | Tu contraseña de hoy |
+| 2 | Nueva contraseña | Mínimo 8 caracteres |
+| 3 | Repite la nueva contraseña | La misma contraseña nueva |
+| 4 | Código de la app o de respaldo | Un código vigente, para confirmar que eres tú |
+| 5 | Guardar contraseña | Guarda el cambio y te muestra códigos de respaldo nuevos (los anteriores dejan de servir) |
+
+### 9.3 Verificación en dos pasos
+
+![Tarjeta de verificación en dos pasos](img/manual-web/17-seguridad.png)
+
+Muestra tus métodos activos. Puedes **agregar el código por correo** (o la app, si empezaste con el
+correo), elegir cuál se pide por defecto y **cambiar el autenticador** si cambias de teléfono. En
+la tarjeta **Códigos de respaldo** ves cuántos te quedan y generas nuevos.
+
+### 9.4 Llaves de acceso
+
+![Tarjeta de llaves de acceso](img/manual-web/18-llaves.png)
+
+Con una llave de acceso entras con Windows Hello, tu huella, tu rostro o el PIN del dispositivo.
+Escribe un nombre para el dispositivo y un código vigente, y pulsa **Agregar este dispositivo**. Si
+pierdes un dispositivo, elimina su llave aquí.
+
+### 9.5 Eliminar mi cuenta
+
+![Tarjeta para eliminar la cuenta](img/manual-web/19-eliminar-cuenta.png)
+
+Borra para siempre tu cuenta y todos tus datos. Pide tu contraseña, un código vigente y la palabra
+**ELIMINAR**. No se puede deshacer; al terminar te llega un correo de confirmación.
+
+## 10. Mensajes frecuentes
+
+| Mensaje | Qué significa | Qué hacer |
+|---|---|---|
+| Usuario o contraseña incorrectos | Los datos no coinciden | Revísalos o usa **Olvidé mi contraseña** |
+| Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo. | La cuenta se bloqueó un rato por seguridad | Espera unos minutos |
+| Código incorrecto o ya usado | El código venció o ya se usó | Escribe el código que muestra la app ahora |
+| El código no coincide. Revisa que la hora del teléfono sea la correcta. | La hora del teléfono está desfasada | Activa la hora automática del teléfono |
+| Ese correo ya tiene una cuenta | Ya existe una cuenta con ese correo | Ingresa o recupera la contraseña |
+| Monto inválido | El monto no es un número | Escríbelo sin puntos ni signo $ |
+| Escribe el concepto | Falta la descripción | Escribe una descripción corta |
+| Los tres porcentajes deben sumar 100 | El plan no suma 100 % | Ajusta los porcentajes |
+| Registro guardado | El movimiento quedó registrado | Míralo en **Consultar registros** |
+| Tu sesión se cerró tras 6 horas de inactividad. Ingresa de nuevo. | La sesión venció por seguridad | Ingresa otra vez |
+| Página no encontrada | La dirección no existe | Vuelve con el menú |
+| Sin conexión | Tu equipo no tiene internet | La pantalla reintenta sola |
+
+| Página no encontrada | Sin conexión |
+|:-:|:-:|
+| ![Página no encontrada](img/manual-web/20-no-encontrada.png) | ![Pantalla sin conexión](img/manual-web/21-sin-conexion.png) |
+
+## 11. Preguntas frecuentes
+
+**¿Lo que registro en la web aparece en la aplicación de Windows?** Sí, al instante: las dos usan la
+misma cuenta y los mismos datos.
+
+**¿Tengo que configurar el autenticador dos veces?** No. Es uno solo por cuenta y sirve en la web y
+en el escritorio; lo mismo los códigos de respaldo.
+
+**¿Quién ve mis registros?** Solo tú.
+
+**¿Puedo dejar de recibir los correos?** Sí: en **Perfil → Tus datos** desmarca la casilla de
+resúmenes y guarda.
+
+**¿Se puede instalar como aplicación?** Sí: en Chrome o Edge, **Instalar aplicación**; en iPhone,
+Safari → **Compartir → Agregar a inicio**.
+
+**¿Dónde pido ayuda o reporto un problema?** Telegram [@lfac6](https://t.me/lfac6), WhatsApp
+[@carraian160](https://wa.me/carraian160) o [ariascluisf@hotmail.com](mailto:ariascluisf@hotmail.com).
+
+## 12. Glosario
 
 | Término | Qué significa |
 |---|---|
-| **Plan 50/30/20** | Regla para repartir los ingresos del mes: 50 % a necesidades, 30 % a deseos y 20 % a ahorro y pago de deudas. |
-| **Categoría** | Clasificación de un ingreso o gasto (Mercado, Vivienda, Salario…). Cada categoría de gasto pertenece a un grupo del plan. |
-| **Balance** | Ingresos menos gastos del periodo. |
-| **Dashboard** | Pantalla de resumen con cifras y gráficas del mes. |
-| **Base de datos** | Lugar donde la aplicación guarda la información de forma ordenada y permanente. |
-| **Cifrado / TLS / HTTPS** | Protección que codifica la información mientras viaja, para que nadie en el camino pueda leerla. |
-| **Contraseña cifrada (hash)** | La contraseña no se guarda tal cual, sino como una "huella" de la que no se puede recuperar el texto original. |
-| **Llave de acceso (passkey)** | Forma de ingresar sin contraseña ni código: el dispositivo la desbloquea con Windows Hello, la huella, el rostro o el PIN. La huella nunca sale del dispositivo. |
-| **Código de respaldo** | Código de un solo uso (formato `ABCD-EFGH`) para entrar si no tienes el teléfono. |
-| **Cookie** | Pequeño dato que el navegador guarda para recordar tu sesión en ese sitio. |
-| **CSV** | Archivo de texto con datos en columnas, que se abre en Excel o Google Sheets. |
-| **JWT** | Tipo de token firmado digitalmente: si alguien lo altera, el servidor lo rechaza. |
-| **Nube** | Servidores de una empresa (Google, Oracle…) donde la aplicación funciona sin depender de un computador propio. |
-| **PWA (app instalable)** | Página web que se puede instalar en el celular o el computador y abrir como una app. |
-| **TOTP (código de verificación)** | Código de 6 dígitos que cambia cada 30 segundos en tu app autenticadora; se pide además de la contraseña. |
-| **Sesión** | El tiempo en que la aplicación te reconoce después de iniciar sesión, sin pedirte la contraseña de nuevo. |
-
-## 3. Plataformas, base de datos y servicios
-
-| Plataforma | Tipo | Qué hace en el proyecto |
-|---|---|---|
-| ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Nube | Corre la versión web (FastAPI + Jinja2 + Chart.js) en un contenedor Docker. |
-| ![Oracle](https://img.shields.io/badge/Oracle_DB-F80000?style=for-the-badge&logo=oracle&logoColor=white) | Base de datos | Oracle Autonomous Database guarda cuentas, registros, categorías y planes, y ejecuta los procedimientos almacenados con las reglas de negocio y la auditoría. Conexión por TLS con Wallet. |
-| ![Brevo](https://img.shields.io/badge/Brevo-0B996E?style=for-the-badge&logo=brevo&logoColor=white) | Correo | Envía los resúmenes semanales y mensuales y los códigos de recuperación. |
-| ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white) | Automatización | Despliega la web y programa cada día la tarea de los resúmenes por correo. |
-| ![qa-evidencia](https://img.shields.io/badge/qa--evidencia-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) | Pruebas automatizadas | Prueba la versión web automáticamente y publica la evidencia. |
-
-## 4. Paso a paso
-
-En las tablas, `#` es el orden en que aparece cada campo en la pantalla, de arriba hacia abajo.
-
-### 4.1 Portada
-
-![Portada de PRPagos Web](img/manual-web/01-portada.png)
-
-La portada es el inicio de sesión (paso 1: correo y contraseña). Desde ahí eliges **Regístrate** u
-**Olvidé mi contraseña**. El botón ◐ cambia entre tema claro y oscuro, y la aplicación recuerda tu
-elección.
-
-| # | Campo | Qué escribir |
-|:-:|---|---|
-| 1 | Correo | Tu correo |
-| 2 | Contraseña | Tu contraseña |
-| 3 | Continuar | Pasa al código de verificación |
-| 4 | Ingresar con llave de acceso | Entra directo con Windows Hello, la huella, el rostro o el PIN del dispositivo, sin contraseña ni código (ver 4.15) |
-
-### 4.2 Crear una cuenta
-
-![Formulario de registro](img/manual-web/02-registro.png)
-
-| # | Campo | Qué escribir | Reglas |
-|:-:|---|---|---|
-| 1 | Correo | Tu correo real; es tu usuario | Forma `nombre@dominio.com` y único |
-| 2 | Nombre completo | Tu nombre | Aparece en tu perfil y en los correos |
-| 3 | Contraseña | Tu contraseña | Mínimo 8 caracteres |
-| 4 | Repite la contraseña | La misma | Debe coincidir |
-| 5 | Crear cuenta | Botón | Crea la cuenta; sirve en la web y en el escritorio |
-
-### 4.3 Configurar la verificación en dos pasos (solo la primera vez)
-
-La primera vez eliges cómo recibir el código de la verificación en dos pasos (es obligatoria):
-
-| Método | Cómo funciona |
-|---|---|
-| **App autenticadora** (recomendado) | Escaneas el código QR con Google Authenticator, Microsoft Authenticator u otra app; la app muestra un código nuevo cada 30 segundos, incluso sin internet. Los pasos están abajo. |
-| **Código por correo** | Te llega un código de 6 dígitos que vence en pocos minutos y sirve una sola vez. Escríbelo y pulsa **Activar e ingresar**; recibes tus **códigos de respaldo**. |
-
-En **Perfil → Verificación en dos pasos** agregas el método que no elegiste y escoges cuál se pide
-por defecto; con los dos activos, la pantalla del código ofrece **Usar un código por correo** o
-**Usar la app autenticadora**. Es la misma cuenta en la web y en el escritorio.
-
-
-![Configuración del autenticador con código QR](img/manual-web/03-configurar.png)
-
-| # | Campo | Qué hacer |
-|:-:|---|---|
-| 1 | Código QR | Escanéalo con tu app autenticadora |
-| 2 | Clave | La misma información, para escribirla a mano si no puedes escanear |
-| 3 | Código de 6 dígitos | El que muestra la app para **Simulador de pagos** |
-| 4 | Activar e ingresar | Guarda el autenticador y muestra tus **códigos de respaldo** (ver 4.12) |
-
-En la app autenticadora la cuenta aparece como **Simulador de pagos**. Si la configuraste antes
-con otro nombre, sigue funcionando igual: el nombre cambia solo si vuelves a configurarla.
-
-Si ya lo configuraste en la versión de escritorio, este paso no aparece.
-
-### 4.4 Iniciar sesión (paso 2: código)
-
-![Código de verificación](img/manual-web/04-codigo.png)
-
-| # | Campo | Qué escribir |
-|:-:|---|---|
-| 1 | Código de 6 dígitos | El código actual de tu app (cambia cada 30 segundos) o un código de respaldo |
-| 2 | Ingresar | Abre el **Dashboard** |
-| 3 | Perdí mi autenticador | Siempre visible: te envía un código al correo para configurar un autenticador nuevo (ver 4.13) |
-
-La sesión se cierra sola tras un tiempo **sin uso** o al cumplir su **duración máxima**, con un mensaje que
-explica el motivo.
-
-### 4.5 Dashboard
-
-![Dashboard con cifras y gráficas del mes](img/manual-web/05-dashboard.png)
-
-| # | Parte | Qué muestra |
-|:-:|---|---|
-| 1 | Selector de mes | El mes que quieres revisar (por defecto, el actual) |
-| 2 | Ingresos · Gastos · Balance | Totales del mes; el balance sale en verde si es positivo y en rojo si es negativo |
-| 3 | Ahorro del mes | Qué porcentaje de los ingresos no se gastó, y cuántos movimientos hubo |
-| 4 | Ingresos vs. gastos | Barras de los últimos 6 meses, para ver la tendencia; **toca un mes** para abrirlo |
-| 5 | Gastos por categoría | Anillo con el peso de cada categoría en el mes; **toca una** para ver sus registros |
-| 6 | Plan 50/30/20 | Presupuesto de cada grupo (calculado sobre los ingresos del mes) frente a lo real. **Ver el presupuesto detallado por categoría** abre la pantalla Presupuesto en ese mes |
-| 7 | Tabla del plan | Presupuesto, real, % usado y estado: **Dentro del plan**, **Excedido**, **Meta cumplida** o **Por debajo de la meta** (ahorro) |
-| 8 | Resúmenes por correo | **Enviarme el resumen semanal** o **del mes** para recibirlo al momento |
-
-El mismo dashboard en tema oscuro:
-
-![Dashboard en tema oscuro](img/manual-web/06-dashboard-oscuro.png)
-
-### 4.6 Presupuesto
-
-Planea cuánto vas a recibir y gastar **en cada categoría, mes a mes**, y compáralo con lo que
-registras. Es el mismo esquema de una hoja de presupuesto anual (ingresos, gastos fijos y
-variables, ahorro y lo que **queda**), pero conectado a tus registros: no tienes que pasar nada a
-mano.
-
-![Presupuesto del mes: tarjetas, gráfica del año y mayores gastos](img/manual-web/15-presupuesto.png)
-
-| # | Parte | Qué muestra o qué haces |
-|:-:|---|---|
-| 1 | Mes y año | El periodo que planeas (año anterior, actual o siguiente) |
-| 2 | Ingresos · Gastos | Lo **registrado** en el mes y, debajo, lo **presupuestado** |
-| 3 | Quedan | Ingresos menos gastos (el ahorro cuenta como gasto: ya tiene destino), real y presupuestado |
-| 4 | Presupuesto de gastos usado | Qué porcentaje del presupuesto de gastos ya se usó y si vas **Dentro del presupuesto** o **Excedido** |
-| 5 | Gastos presupuestados vs. reales | Barras de los 12 meses; **toca un mes** para abrirlo |
-| 6 | Distribución del presupuesto | Cómo se reparten los ingresos presupuestados entre Necesidades, Deseos, Ahorro y deudas y lo **sin asignar** |
-| 7 | Mayores gastos | Los 5 gastos más grandes del mes y su peso; **toca uno** para abrirlo, o **Ver todos los registros del mes** |
-| 8 | Tabla del mes | Una fila por categoría, agrupadas como el plan 50/30/20. Escribe el monto en **Presupuesto** (con o sin puntos de miles; vacío = sin presupuesto). **Real**, **Usado** (con barra) y **Estado** salen de tus registros. **Toca el nombre** de una categoría para ver sus movimientos del mes |
-| 9 | Meta del plan | En cada grupo: qué parte de los ingresos presupuestados le diste frente a la meta de tu plan 50/30/20 |
-| 10 | Aplicar a · Guardar presupuesto | Guarda **solo este mes**, **de este mes a diciembre** o **todo el año** |
-| 11 | Copiar el presupuesto del mes anterior | Deja el mes igual al anterior, para ajustar solo lo que cambia |
-| 12 | Resumen del año | Presupuestado y real de cada mes (ingresos, gastos y quedan) con el total; **toca un mes** para abrirlo |
-
-![Presupuesto completo: tabla por categoría y resumen del año](img/manual-web/16-presupuesto-tabla.png)
-
-Estados: en ingresos, **Cumplido** o **Por debajo de lo previsto**; en gastos, **Dentro del
-presupuesto**, **Excedido** o **Sin presupuesto**; en ahorro, **Meta cumplida** o **Por debajo de la
-meta**. Al guardar un registro con categoría, el aviso te dice cómo va su presupuesto, por
-ejemplo: *Registro guardado · Mercado en septiembre 2026: $ 657.000,00 de $ 900.000,00 (73 %) ·
-Dentro del presupuesto*.
-
-### 4.7 Registrar un ingreso o un gasto
-
-![Formulario de nuevo registro](img/manual-web/07-nuevo.png)
-
-| # | Campo | Qué escribir | Reglas |
-|:-:|---|---|---|
-| 1 | Tipo | **Ingreso** o **Gasto** | Obligatorio |
-| 2 | Monto | Valor, sin puntos de miles ni signo `$` (los decimales pueden ir con coma) | Número válido |
-| 3 | Fecha | Día del movimiento | Obligatoria |
-| 4 | Categoría | Se filtra según el tipo; las de gasto muestran su grupo del plan | Opcional (**Sin categoría**) |
-| 5 | Concepto | Descripción breve | Obligatorio, hasta 100 caracteres |
-| 6 | Guardar | Botón | Registra el movimiento a tu nombre |
-
-### 4.8 Consultar y exportar
-
-![Consulta de registros con filtros](img/manual-web/08-consulta.png)
-
-| # | Campo | Qué escribir |
-|:-:|---|---|
-| 1 | Tipo | Todos, solo ingresos o solo gastos |
-| 2 | Concepto contiene | Parte del concepto que buscas |
-| 3 | Monto mínimo / máximo | Rango de valores |
-| 4 | Desde / Hasta | Rango de fechas |
-| 5 | Categoría | Una categoría, **Sin categoría** o todas |
-| 6 | Buscar | Aplica los filtros (**Limpiar** los quita). Un campo vacío no filtra |
-| 7 | Totales | Ingresos, gastos y balance de lo que cumple los filtros |
-| 8 | Modificar | Abre el registro para corregirlo |
-| 9 | Exportar a CSV | Descarga la consulta (ID, tipo, monto, fecha, categoría y concepto) |
-
-Solo ves **tus** registros.
-
-### 4.9 Modificar un registro
-
-![Formulario de modificación](img/manual-web/09-editar.png)
-
-Los mismos campos de 4.7 con los valores actuales. **Guardar cambios** aplica la corrección y queda
-en la auditoría. Si te equivocaste de registro, corrígelo: las cuentas de usuario no eliminan
-registros.
-
-### 4.10 Perfil
-
-![Pantalla Perfil](img/manual-web/10-perfil.png)
-
-| # | Sección | Qué puedes hacer |
-|:-:|---|---|
-| 1 | Tus datos | Cambiar tu nombre y activar o desactivar los **resúmenes por correo** |
-| 2 | Plan 50/30/20 | Ajustar los porcentajes de Necesidades, Deseos y Ahorro y deudas (deben sumar 100) |
-| 3 | Categorías | Ver las sugeridas y **agregar** las tuyas (nombre, tipo y grupo del plan); las tuyas se pueden eliminar si no tienen registros |
-| 4 | Verificación en dos pasos | Muestra tus métodos; **Agregar código por correo** (escribe el código que llega y pulsa **Activar código por correo**), **Agregar app autenticadora** o **Cambiar autenticador** (con un código vigente: de la app, del correo o de respaldo), **Pedir … por defecto** y **Enviarme un código por correo** para confirmar cambios |
-| 5 | Códigos de respaldo | Cuántos te quedan y **Generar códigos nuevos** (anula los anteriores) |
-| 6 | Llaves de acceso | Ver tus dispositivos con llave, **agregar este dispositivo** o eliminar uno (ver 4.15) |
-| 7 | Cambiar contraseña | Contraseña actual, la nueva dos veces y un código de la app o de respaldo. Al guardar ves tus **códigos de respaldo nuevos**; los anteriores dejan de servir |
-| 8 | Eliminar mi cuenta | Borra la cuenta y todos sus datos para siempre (ver abajo) |
-
-#### Eliminar mi cuenta
-
-![Tarjeta Eliminar mi cuenta en Perfil](img/manual-web/18-eliminar-cuenta.png)
-
-Al final de **Perfil** está la tarjeta **Eliminar mi cuenta**. Borra **de forma definitiva** tu
-cuenta y todos tus datos: registros, categorías, plan, presupuestos, envíos de resúmenes, llaves de
-acceso, códigos de respaldo y eventos de seguridad. **No se puede deshacer.**
-
-| # | Campo | Qué escribir |
-|:-:|---|---|
-| 1 | Contraseña actual | Tu contraseña |
-| 2 | Código de la app, del correo o de respaldo | Un código vigente de tu verificación en dos pasos (si usas el correo, pídelo con **Enviarme un código por correo**) |
-| 3 | Escribe ELIMINAR para confirmar | La palabra `ELIMINAR`, en mayúsculas |
-| 4 | Eliminar mi cuenta | Pide una última confirmación y borra todo |
-
-Al terminar se cierra la sesión (también en la aplicación de escritorio), vuelves al ingreso con el aviso y te
-llega el correo **Tu cuenta fue eliminada**. Si te equivocas en la contraseña o en el código, no
-se borra nada (y cuenta como intento fallido). Las cuentas de administración no se eliminan desde
-el perfil.
-
-### 4.11 Resúmenes por correo
-
-- **Semanal:** cada viernes, con los ingresos, gastos y balance de los 7 días que terminan ese
-  viernes (de sábado a viernes).
-- **Mensual:** cada día 29 (en febrero, el último día), con lo que va del mes: totales,
-  categorías y el plan 50/30/20.
-- Se envían a las 08:00 (hora de Colombia) a las cuentas con los resúmenes activados en **Perfil**.
-- Los botones del dashboard te los envían al momento; el contenido es idéntico al que envía la
-  versión de escritorio.
-
-### 4.12 Códigos de respaldo
-
-![Códigos de respaldo](img/manual-web/11-codigos-respaldo.png)
-
-Aparecen al activar el autenticador y cada vez que generas nuevos en **Perfil**. Son 10, cada uno
-sirve **una sola vez** y no se vuelven a mostrar: guárdalos impresos o en tu gestor de contraseñas.
-Sirven para ingresar (en lugar del código de 6 dígitos) o cambiar de autenticador.
-
-**Códigos nuevos que anulan los anteriores.** En estos casos se generan 10 códigos nuevos y todos
-los anteriores dejan de servir en ese mismo momento:
-
-- Cambias la contraseña en **Perfil**: los nuevos se muestran al guardar.
-- Restableces la contraseña con **Olvidé mi contraseña**: se muestran en tu siguiente ingreso, después
-  del código de tu app o de tu correo (nunca llegan por correo).
-- Configuras un autenticador nuevo con **Perdí mi autenticador**: se muestran al activarlo.
-
-### 4.13 Perdí mi autenticador
-
-![Código enviado al correo](img/manual-web/12-perdi-telefono.png)
-
-1. Inicia sesión con tu correo y contraseña.
-2. En el paso del código, si tienes un **código de respaldo**, escríbelo y entra directamente.
-3. Si no, pulsa **Perdí mi autenticador** (siempre está visible): llega al correo de tu cuenta un
-   código de 6 dígitos, aunque no hayas activado el código por correo. Vence en pocos minutos y
-   hay un límite de envíos.
-4. Escríbelo en **Código del correo** y pulsa **Verificar y configurar autenticador**: escaneas el
-   QR con la app del teléfono nuevo y recibes **códigos de respaldo nuevos** (los anteriores dejan
-   de servir).
-
-### 4.14 Olvidé mi contraseña
-
-![Formulario de Olvidé mi contraseña](img/manual-web/13-recuperar.png)
-
-| # | Campo | Qué hacer |
-|:-:|---|---|
-| 1 | Correo | El correo de tu cuenta |
-| 2 | Enviar enlace | Te envía un enlace de un solo uso que vence en poco tiempo |
-
-Por seguridad, la respuesta es la misma aunque el correo no tenga cuenta. Abre el enlace del
-correo y, en **Crear contraseña nueva**, escribe la nueva contraseña (mínimo 8 caracteres) y
-repítela. Al guardarla se cierran las sesiones abiertas en la web y en el escritorio, el enlace
-deja de servir y tu verificación en dos pasos sigue activa: el próximo ingreso pide el código.
-Tus códigos de respaldo anteriores también se anulan: después de ese código verás los nuevos.
-
-### 4.15 Llaves de acceso (Windows Hello, huella o PIN)
-
-![Sección Llaves de acceso en Perfil](img/manual-web/14-llaves.png)
-
-Con una llave de acceso entras sin escribir la contraseña ni el código: el dispositivo te pide
-Windows Hello, la huella, el rostro o su PIN. Funciona en Edge o Chrome en Windows, en Android
-(navegador o app instalada) y en iPhone.
-
-**Agregar este dispositivo** (en **Perfil → Llaves de acceso**):
-
-| # | Campo | Qué escribir |
-|:-:|---|---|
-| 1 | Nombre del dispositivo | Un nombre para reconocerlo (por ejemplo, "Portátil" o "Celular") |
-| 2 | Código de la app o de respaldo | Un código vigente, para confirmar que eres tú |
-| 3 | Agregar este dispositivo | El dispositivo pide tu huella, rostro o PIN y guarda la llave |
-
-**Ingresar:** en la portada pulsa **Ingresar con llave de acceso** y confirma con tu huella,
-rostro o PIN. Abre el **Dashboard** directamente.
-
-- Cada dispositivo necesita su propia llave (en Android, Google puede sincronizarla entre tus
-  dispositivos). Una llave creada en Edge sirve también en la app de escritorio del mismo Windows.
-- Si pierdes un dispositivo, elimina su llave en **Perfil**. La contraseña + código y los códigos
-  de respaldo siguen funcionando.
-
-### 4.16 Preguntas frecuentes
-
-**¿Tengo que configurar el autenticador dos veces, en la web y en el escritorio?** No. Es uno solo
-por cuenta: el que configures en una versión sirve en la otra. Lo mismo con los códigos de respaldo.
-
-**¿Lo que registro en la web aparece en la app de escritorio?** Sí, al instante: la app de
-escritorio pide los datos a este mismo servidor, así que muestra las mismas cifras y gráficas.
-
-**¿Cómo instalo la app en el celular?** En Chrome o Edge, menú ⋮ → **Instalar aplicación** (en
-iPhone, Safari → Compartir → **Agregar a inicio**).
-
-**¿Puedo dejar de recibir los correos?** Sí: en **Perfil → Tus datos**, desmarca la casilla de
-resúmenes y guarda.
-
-## 5. Seguridad: tu información protegida
-
-Tu confianza es lo primero: la plataforma solo pide los datos necesarios para funcionar, los
-protege y no los comparte con terceros.
-
-### Qué datos se guardan y dónde
-
-| Dato | Para qué se usa | Dónde se guarda | Quién lo ve |
-|---|---|---|---|
-| Correo y nombre | Identificar tu cuenta, enviarte los resúmenes y recuperar el acceso | Oracle Autonomous Database | Solo tú |
-| Contraseña | Iniciar sesión | Oracle, solo su huella con sal | Nadie la ve en texto plano |
-| Clave del autenticador | Verificar tus códigos | Oracle, cifrada | Nadie |
-| Códigos de respaldo y código por correo | Recuperar el acceso | Oracle, solo su huella | Nadie los ve después de mostrarlos |
-| Ingresos, gastos, categorías y plan | Tu presupuesto | Oracle, marcados con tu cuenta | Solo tú |
-| Llaves de acceso | Ingresar con huella, rostro o PIN | Oracle, solo la clave pública y un contador | Nadie: la huella y la clave privada nunca salen de tu dispositivo |
-| Sesión | Mantenerte conectado | Cookie en tu navegador | Firmada, invisible para JavaScript |
-
-### Cómo se protege tu información
-
-- **Cada quien ve solo lo suyo:** dashboard, consulta, exportación, edición y correos filtran por la
-  cuenta que inició sesión. Cambiar el número del registro en la URL no abre registros ajenos.
-- **Verificación en dos pasos obligatoria**, a elección: app autenticadora (TOTP) o código por correo (vence en pocos minutos y sirve una vez): sin el código de tu app o de tu correo (o uno de respaldo), la
-  contraseña sola no basta para entrar ni cambiar la contraseña. Un código no
-  se puede usar dos veces.
-- **Llaves de acceso (WebAuthn):** exigen la verificación del dispositivo (huella, rostro o PIN),
-  solo sirven en el sitio de PRPagos (no se pueden usar en una página falsa) y cada firma se
-  comprueba en el servidor con la clave pública guardada. Agregar una pide un código vigente.
-- **Recuperación controlada:** el enlace de "Olvidé mi contraseña" y el código de "Perdí mi
-  autenticador" llegan solo al correo de la cuenta, vencen pronto y sirven una vez; los códigos de
-  respaldo también sirven una sola vez. Cada solicitud y cada uso quedan en la auditoría.
-- **Contraseñas protegidas:** solo se guarda su huella con sal, nunca la contraseña.
-- **Bloqueo temporal** ante intentos fallidos repetidos, en la web y en el escritorio a la vez.
-- **Registro de eventos de seguridad:** ingresos, intentos fallidos, bloqueos y cambios de
-  contraseña quedan registrados (nunca contraseñas ni códigos) y se depuran solos.
-- **Sesión segura** que se cierra sola por inactividad o por tiempo máximo, con un mensaje que
-  explica el motivo.
-- **Reglas de negocio en la base:** las operaciones pasan por procedimientos almacenados de Oracle
-  con auditoría, y las consultas usan parámetros (sin concatenar texto del usuario en el SQL).
-- **Conexión cifrada a la base.**
-- **Secretos fuera del repositorio:** las credenciales nunca están en el código.
-- **Al día en seguridad:** el runtime, el sistema y las dependencias se mantienen con los últimos
-  parches y se revisan periódicamente.
-
-## 6. Agradecimientos
-
-A mi familia, por su apoyo incondicional, su paciencia y por creer en cada proyecto incluso cuando
-apenas era una idea. Este trabajo también es de ustedes.
-
-Y a ti, que usas esta plataforma: cada prueba, comentario y sugerencia ayuda a que siga mejorando.
+| **Balance** | Ingresos menos gastos |
+| **Categoría** | Grupo de un movimiento: mercado, vivienda, salario… |
+| **Código de respaldo** | Código de un solo uso para entrar si no tienes el teléfono |
+| **CSV** | Archivo de tabla que se abre en Excel u hojas de cálculo |
+| **Llave de acceso** | Forma de entrar con tu huella, rostro o PIN, sin contraseña |
+| **Plan 50/30/20** | Reparto de los ingresos: 50 % necesidades, 30 % deseos, 20 % ahorro y deudas |
+| **Presupuesto** | Lo que planeas recibir o gastar en cada categoría |
+| **Verificación en dos pasos** | Además de la contraseña, se pide un código que solo tú puedes recibir |

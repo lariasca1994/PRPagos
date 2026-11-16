@@ -46,7 +46,7 @@ public class PanelMarca extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(48, 56, 48, 56));
         setOpaque(true);
 
-        JLabel etiqueta = new JLabel("PRESUPUESTO PERSONAL · ORACLE");
+        JLabel etiqueta = new JLabel("PRESUPUESTO PERSONAL · WEB Y ESCRITORIO");
         etiqueta.setFont(etiqueta.getFont().deriveFont(Font.BOLD, 11.5f));
 
         titular.setFont(new Font("Georgia", Font.BOLD, 36));
