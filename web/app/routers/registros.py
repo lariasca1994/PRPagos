@@ -13,11 +13,23 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from ..dependencias import UsuarioActual, exigir_admin, exigir_login
+from ..finanzas import moneda
 from ..servicios import ErrorServicio
 from ..servicios import registros as servicio
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _fecha(valor) -> str:
+    """2026-09-27 (fecha o texto ISO) -> 27/09/2026, como se escribe en Colombia."""
+    texto = str(valor or "")[:10]
+    partes = texto.split("-")
+    return f"{partes[2]}/{partes[1]}/{partes[0]}" if len(partes) == 3 else texto
+
+
+templates.env.filters["moneda"] = moneda
+templates.env.filters["fecha"] = _fecha
 
 
 def _redirigir(ruta: str, mensaje: str, exito: bool = False) -> RedirectResponse:

@@ -53,11 +53,12 @@
 </form>
 
 <p class="totales-registros">
-    Ingresos: <strong class="cifra-ingreso">{{ "%.2f"|format(ingresos) }}</strong>
-    · Gastos: <strong class="cifra-gasto">{{ "%.2f"|format(gastos) }}</strong>
-    · Balance: <strong>{{ "%.2f"|format(balance) }}</strong>
+    Ingresos: <strong class="cifra-ingreso">{{ ingresos|moneda }}</strong>
+    · Gastos: <strong class="cifra-gasto">{{ gastos|moneda }}</strong>
+    · Balance: <strong>{{ balance|moneda }}</strong>
 </p>
 
+<div class="tabla-contenedor">
 <table class="tabla">
     <thead>
         <tr>
@@ -77,8 +78,8 @@
             <td>{{ r.id_pago }}</td>
             {% if usuario.es_admin %}<td>{{ r.nombre }} ({{ r.usuario }})</td>{% endif %}
             <td><span class="etiqueta-tipo tipo-{{ r.tipo|lower }}">{{ tipos[r.tipo] }}</span></td>
-            <td>{{ "%.2f"|format(r.monto) }}</td>
-            <td>{{ r.fecha }}</td>
+            <td class="sin-corte">{{ r.monto|moneda }}</td>
+            <td class="sin-corte">{{ r.fecha|fecha }}</td>
             <td>{{ r.categoria }}</td>
             <td>{{ r.concepto }}</td>
             <td class="acciones">
@@ -95,6 +96,7 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 
 <p>
     <a class="boton boton-secundario"

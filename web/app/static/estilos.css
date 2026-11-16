@@ -410,3 +410,13 @@ input:focus, textarea:focus, select:focus {
     .franja .tarjeta-cifra { padding: 1rem; }
     .tarjeta-cifra strong { font-size: clamp(1rem, 4.4vw, 1.35rem); }
 }
+
+/* Tablet y ventanas medianas: las gráficas van una debajo de otra para que los medidores y la
+   dona tengan espacio (en dos columnas el valor del medidor se montaba sobre el arco). */
+@media (max-width: 1100px) { .rejilla-graficas { grid-template-columns: 1fr; } }
+
+/* Tabla de registros: montos y fechas en una línea, y la celda de acciones como celda de tabla
+   (con display:flex se salía de la tabla y cortaba "Eliminar"). */
+.sin-corte { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabla td.acciones { display: table-cell; white-space: nowrap; }
+.tabla td.acciones > * + * { margin-left: .75rem; }
