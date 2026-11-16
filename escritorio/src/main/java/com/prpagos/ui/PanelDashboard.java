@@ -142,7 +142,7 @@ class PanelDashboard extends JPanel {
         plan.add(tituloPlanTabla);
         plan.add(Ui.espacio(6));
         JTextArea ayudaPlan = Ui.suave("Presupuesto calculado sobre los ingresos del mes. Los porcentajes se cambian en Perfil.");
-        ayudaPlan.setFont(ayudaPlan.getFont().deriveFont(12.5f));
+        ayudaPlan.setFont(ayudaPlan.getFont().deriveFont(12f));
         plan.add(ayudaPlan);
         plan.add(Ui.espacio(6));
         plan.add(Ui.enlace("Ver el presupuesto detallado por categoría", e -> {
@@ -163,7 +163,7 @@ class PanelDashboard extends JPanel {
         correos.add(Ui.espacio(6));
         JTextArea ayuda = Ui.suave("Cada viernes recibes el resumen de la semana y cada día 29 (en febrero, el último "
                 + "día) el resumen general del mes. Puedes pedirlos ahora:");
-        ayuda.setFont(ayuda.getFont().deriveFont(12.5f));
+        ayuda.setFont(ayuda.getFont().deriveFont(12f));
         correos.add(ayuda);
         correos.add(Ui.espacio(10));
         JPanel botones = Ui.fila(12);
@@ -191,13 +191,13 @@ class PanelDashboard extends JPanel {
         JPanel t = Ui.tarjeta();
         t.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
         JLabel l = new JLabel(titulo);
-        l.setFont(l.getFont().deriveFont(12.5f));
+        l.setFont(l.getFont().deriveFont(12f));
         Tema.alCambiar(() -> l.setForeground(Tema.c().textoSuave()));
         t.add(l);
         t.add(Ui.espacio(4));
         t.add(valor);
         if (pie != null) {
-            pie.setFont(pie.getFont().deriveFont(11.5f));
+            pie.setFont(pie.getFont().deriveFont(12f));
             Tema.alCambiar(() -> pie.setForeground(Tema.c().textoSuave()));
             t.add(Ui.espacio(2));
             t.add(pie);
@@ -400,7 +400,7 @@ class PanelDashboard extends JPanel {
     /** Ayuda pequeña bajo el título de una gráfica (.texto-ayuda). */
     static JTextArea ayuda(String texto) {
         JTextArea a = Ui.suave(texto);
-        a.setFont(a.getFont().deriveFont(12.5f));
+        a.setFont(a.getFont().deriveFont(12f));
         return a;
     }
 
@@ -470,7 +470,7 @@ class PanelDashboard extends JPanel {
 
     static void estilo(JFreeChart g) {
         Tema.Paleta p = Tema.c();
-        Font fuente = new JLabel().getFont().deriveFont(11.5f);
+        Font fuente = new JLabel().getFont().deriveFont(12f);
         g.setBackgroundPaint(p.superficie());
         g.setAntiAlias(true);
         g.setTextAntiAlias(true);

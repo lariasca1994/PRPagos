@@ -85,7 +85,7 @@ class PanelConsulta extends JPanel {
         JPanel cabecera = new JPanel(new BorderLayout(16, 0));
         cabecera.setOpaque(false);
         cabecera.add(Ui.titulo("Consultar registros", 26f), BorderLayout.WEST);
-        notaAdmin.setFont(notaAdmin.getFont().deriveFont(12.5f));
+        notaAdmin.setFont(notaAdmin.getFont().deriveFont(12f));
         Tema.alCambiar(() -> notaAdmin.setForeground(Tema.c().textoSuave()));
         JPanel centro = new JPanel(new java.awt.GridBagLayout());
         centro.setOpaque(false);
@@ -152,7 +152,7 @@ class PanelConsulta extends JPanel {
     private JPanel campoConEtiqueta(String texto, Component campo) {
         JPanel p = Ui.columna();
         JLabel l = Ui.etiqueta(texto);
-        l.setFont(l.getFont().deriveFont(Font.PLAIN, 12.5f));
+        l.setFont(l.getFont().deriveFont(Font.PLAIN, 12f));
         Tema.alCambiar(() -> l.setForeground(Tema.c().textoSuave()));
         p.add(l);
         p.add(campo);
@@ -162,7 +162,7 @@ class PanelConsulta extends JPanel {
     private JPanel tablaEnTarjeta() {
         tabla.setFillsViewportHeight(true);
         tabla.getTableHeader().setReorderingAllowed(false);
-        tabla.getTableHeader().setFont(tabla.getTableHeader().getFont().deriveFont(Font.BOLD, 12.5f));
+        tabla.getTableHeader().setFont(tabla.getTableHeader().getFont().deriveFont(Font.BOLD, 12f));
         tabla.setIntercellSpacing(new Dimension(0, 1));
         ((DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer())
                 .setHorizontalAlignment(JLabel.LEFT);

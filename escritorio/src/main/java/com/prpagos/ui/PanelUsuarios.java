@@ -65,7 +65,7 @@ class PanelUsuarios extends JPanel {
     private JPanel tablaEnTarjeta() {
         tabla.setFillsViewportHeight(true);
         tabla.getTableHeader().setReorderingAllowed(false);
-        tabla.getTableHeader().setFont(tabla.getTableHeader().getFont().deriveFont(Font.BOLD, 12.5f));
+        tabla.getTableHeader().setFont(tabla.getTableHeader().getFont().deriveFont(Font.BOLD, 12f));
         tabla.setIntercellSpacing(new Dimension(0, 1));
         ((DefaultTableCellRenderer) tabla.getTableHeader().getDefaultRenderer())
                 .setHorizontalAlignment(JLabel.LEFT);

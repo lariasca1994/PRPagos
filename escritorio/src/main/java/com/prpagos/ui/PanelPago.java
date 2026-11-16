@@ -81,7 +81,7 @@ class PanelPago extends JPanel {
         JButton guardar = Ui.primario(edicion ? "Guardar cambios" : "Guardar", e -> guardar());
         guardar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         concepto.addActionListener(e -> guardar());
-        gestionando.setFont(gestionando.getFont().deriveFont(12.5f));
+        gestionando.setFont(gestionando.getFont().deriveFont(12f));
         gestionando.setVisible(false);
         nota.setFont(nota.getFont().deriveFont(12f));
         categoria.setAlignmentX(LEFT_ALIGNMENT);
@@ -211,7 +211,8 @@ class PanelPago extends JPanel {
         nota.setText(admin ? NOTA_ADMIN : NOTA_USUARIO);
         (pago.esIngreso() ? ingreso : gasto).setSelected(true);
         pintarTipo();
-        monto.setText(String.format(Locale.ROOT, "%s", pago.monto()));
+        double valor = pago.monto();
+        monto.setText(valor == Math.rint(valor) ? String.format(Locale.ROOT, "%.0f", valor) : String.format(Locale.ROOT, "%.2f", valor));
         fecha.setFechaSeleccionada(pago.fecha());
         concepto.setText(pago.concepto());
         aviso.ocultar();

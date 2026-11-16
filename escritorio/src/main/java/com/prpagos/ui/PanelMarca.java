@@ -47,17 +47,17 @@ public class PanelMarca extends JPanel {
         setOpaque(true);
 
         JLabel etiqueta = new JLabel("PRESUPUESTO PERSONAL · WEB Y ESCRITORIO");
-        etiqueta.setFont(etiqueta.getFont().deriveFont(Font.BOLD, 11.5f));
+        etiqueta.setFont(etiqueta.getFont().deriveFont(Font.BOLD, 12f));
 
         titular.setFont(new Font("Georgia", Font.BOLD, 36));
 
         bajada = Ui.suave(
                 "Registra ingresos y gastos por categoría, sigue tu plan 50/30/20 en el dashboard y recibe "
                 + "un resumen por correo cada semana y cada mes. Cada usuario ve solo lo suyo.");
-        bajada.setFont(bajada.getFont().deriveFont(14.5f));
+        bajada.setFont(bajada.getFont().deriveFont(14f));
         bajada.setMaximumSize(new Dimension(460, 120));
 
-        puntos.setFont(puntos.getFont().deriveFont(13.5f));
+        puntos.setFont(puntos.getFont().deriveFont(13f));
 
         for (JComponent c : new JComponent[] {etiqueta, titular, bajada, puntos}) {
             c.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -229,7 +229,7 @@ public class PanelMarca extends JPanel {
             g2.drawLine(ANCHO, 0, ANCHO, ALTO);
 
             Font mono = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-            Font monoChica = mono.deriveFont(10.5f);
+            Font monoChica = mono.deriveFont(11f);
             int izq = 22;
             int der = ANCHO - 22;
             int y = 30;

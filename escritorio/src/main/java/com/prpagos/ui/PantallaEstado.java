@@ -404,7 +404,7 @@ final class PantallaEstado extends JPanel {
             g2.setColor(p.borde());
             g2.drawRoundRect(x, y, w, h, 18, 18);
             Font mono = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-            g2.setFont(mono.deriveFont(10.5f));
+            g2.setFont(mono.deriveFont(11f));
             g2.setColor(p.textoSuave());
             g2.drawString("SIMULADOR DE PAGOS", x + 16, y + 26);
             g2.setColor(acentoTexto());

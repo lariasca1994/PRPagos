@@ -280,12 +280,12 @@ final class GraficasAnimadas {
             g2.setFont(getFont().deriveFont(Font.BOLD, 19f));
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(usado, (float) (cx - fm.stringWidth(usado) / 2.0), (float) (cy - 4));
-            g2.setFont(getFont().deriveFont(11.5f));
+            g2.setFont(getFont().deriveFont(12f));
             fm = g2.getFontMetrics();
             g2.setColor(p.textoSuave());
             g2.drawString("usado", (float) (cx - fm.stringWidth("usado") / 2.0), (float) (cy + 12));
             g2.setColor(p.texto());
-            g2.setFont(getFont().deriveFont(Font.BOLD, 13.5f));
+            g2.setFont(getFont().deriveFont(Font.BOLD, 13f));
             fm = g2.getFontMetrics();
             g2.drawString(grupo, (float) (cx - fm.stringWidth(grupo) / 2.0), (float) (cy + 38));
             String icono = switch (clase) {

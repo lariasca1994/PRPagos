@@ -114,7 +114,7 @@ class PanelPerfil extends JPanel {
 
     private static JLabel pastilla() {
         JLabel l = new JLabel();
-        l.setFont(l.getFont().deriveFont(Font.BOLD, 12.5f));
+        l.setFont(l.getFont().deriveFont(Font.BOLD, 12f));
         l.setOpaque(true);
         l.setBorder(BorderFactory.createEmptyBorder(3, 12, 3, 12));
         return l;
@@ -122,7 +122,7 @@ class PanelPerfil extends JPanel {
 
     private static JTextArea ayuda(String texto) {
         JTextArea a = Ui.suave(texto);
-        a.setFont(a.getFont().deriveFont(12.5f));
+        a.setFont(a.getFont().deriveFont(12f));
         return a;
     }
 
@@ -427,7 +427,7 @@ class PanelPerfil extends JPanel {
         Tema.Paleta p = Tema.c();
         for (String e : new String[] {"Categoría", "Tipo", "Grupo", ""}) {
             JLabel l = new JLabel(e);
-            l.setFont(l.getFont().deriveFont(Font.BOLD, 12.5f));
+            l.setFont(l.getFont().deriveFont(Font.BOLD, 12f));
             l.setForeground(p.textoSuave());
             l.setBorder(BorderFactory.createEmptyBorder(6, 2, 6, 2));
             listaCategorias.add(l);
@@ -455,7 +455,7 @@ class PanelPerfil extends JPanel {
         Tema.Paleta p = Tema.c();
         for (String e : new String[] {"Dispositivo", "Agregada", "Último uso", ""}) {
             JLabel l = new JLabel(e);
-            l.setFont(l.getFont().deriveFont(Font.BOLD, 12.5f));
+            l.setFont(l.getFont().deriveFont(Font.BOLD, 12f));
             l.setForeground(p.textoSuave());
             l.setBorder(BorderFactory.createEmptyBorder(6, 2, 6, 2));
             listaLlaves.add(l);

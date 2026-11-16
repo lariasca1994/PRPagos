@@ -393,7 +393,7 @@ public class VentanaLogin extends JFrame {
     private JPanel formRespaldo() {
         rejillaRespaldo.setOpaque(false);
         JTextArea texto = Ui.suave(PanelPerfil.TEXTO_RESPALDO);
-        texto.setFont(texto.getFont().deriveFont(12.5f));
+        texto.setFont(texto.getFont().deriveFont(12f));
         return formulario(
                 encabezado("Verificación activada", "Guarda tus códigos de respaldo", Ui.suave(
                         "Si pierdes el teléfono, con uno de estos códigos podrás ingresar y configurar un "
@@ -414,7 +414,7 @@ public class VentanaLogin extends JFrame {
         JPanel cajaQr = new JPanel(new GridBagLayout());
         cajaQr.setOpaque(false);
         cajaQr.add(qr);
-        claveManual.setFont(claveManual.getFont().deriveFont(12.5f));
+        claveManual.setFont(claveManual.getFont().deriveFont(12f));
         JPanel filaClave = new JPanel(new GridBagLayout());
         filaClave.setOpaque(false);
         filaClave.add(claveManual);

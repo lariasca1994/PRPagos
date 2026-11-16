@@ -448,7 +448,7 @@ final class MenuLateral extends JPanel {
 
         void mostrar(String t, Point p) {
             texto = t;
-            FontMetrics fm = getFontMetrics(getFont().deriveFont(Font.BOLD, 12.5f));
+            FontMetrics fm = getFontMetrics(getFont().deriveFont(Font.BOLD, 12f));
             int w = fm.stringWidth(t) + 28;
             int h = 28;
             double destino = p.y - h / 2.0;
@@ -491,7 +491,7 @@ final class MenuLateral extends JPanel {
             flecha.lineTo(7, getHeight() / 2.0 + 5);
             g2.fill(flecha);
             g2.setColor(p.superficie());
-            g2.setFont(getFont().deriveFont(Font.BOLD, 12.5f));
+            g2.setFont(getFont().deriveFont(Font.BOLD, 12f));
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(texto, 16, (getHeight() + fm.getAscent() - fm.getDescent()) / 2f);
             g2.dispose();

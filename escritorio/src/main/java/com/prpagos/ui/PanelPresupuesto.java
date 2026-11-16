@@ -419,20 +419,20 @@ class PanelPresupuesto extends JPanel {
                     BorderFactory.createEmptyBorder(7, 0, 7, 0)));
             JPanel izquierda = Ui.columna();
             JLabel concepto = new JLabel(Json.texto(gasto, "concepto"));
-            concepto.setFont(concepto.getFont().deriveFont(Font.BOLD, 13.5f));
+            concepto.setFont(concepto.getFont().deriveFont(Font.BOLD, 13f));
             concepto.setForeground(p.texto());
-            JLabel detalle = new JLabel(Json.texto(gasto, "categoria") + " · " + Json.texto(gasto, "fecha"));
+            JLabel detalle = new JLabel(Json.texto(gasto, "categoria") + " · " + fechaCorta(Json.texto(gasto, "fecha")));
             detalle.setFont(detalle.getFont().deriveFont(12f));
             detalle.setForeground(p.textoSuave());
             izquierda.add(concepto);
             izquierda.add(detalle);
             JPanel derecha = Ui.columna();
             JLabel monto = new JLabel(Json.texto(gasto, "monto"), SwingConstants.RIGHT);
-            monto.setFont(monto.getFont().deriveFont(Font.BOLD, 13.5f));
+            monto.setFont(monto.getFont().deriveFont(Font.BOLD, 13f));
             monto.setForeground(p.acento());
             monto.setAlignmentX(RIGHT_ALIGNMENT);
             JLabel parte = new JLabel(Json.texto(gasto, "parte") + " del gasto", SwingConstants.RIGHT);
-            parte.setFont(parte.getFont().deriveFont(11.5f));
+            parte.setFont(parte.getFont().deriveFont(12f));
             parte.setForeground(p.textoSuave());
             parte.setAlignmentX(RIGHT_ALIGNMENT);
             derecha.add(monto);
@@ -646,7 +646,7 @@ class PanelPresupuesto extends JPanel {
                 color = Json.logico(f, "quedan_real_positivo") ? p.exitoTexto() : p.acento();
             }
             JLabel l = PanelDashboard.celda(Json.texto(f, claves[c]), color, estiloCelda);
-            l.setFont(l.getFont().deriveFont(12.5f));
+            l.setFont(l.getFont().deriveFont(12f));
             l.setOpaque(fondo != null);
             if (fondo != null) {
                 l.setBackground(fondo);
@@ -678,5 +678,11 @@ class PanelPresupuesto extends JPanel {
 
     private static String hex(Color c) {
         return String.format("#%06x", c.getRGB() & 0xFFFFFF);
+    }
+
+    /** 2026-09-02 -> 02/09/2026, como en la web. */
+    private static String fechaCorta(String iso) {
+        String[] p = iso == null ? new String[0] : iso.split("-");
+        return p.length == 3 ? p[2].substring(0, Math.min(2, p[2].length())) + "/" + p[1] + "/" + p[0] : String.valueOf(iso);
     }
 }

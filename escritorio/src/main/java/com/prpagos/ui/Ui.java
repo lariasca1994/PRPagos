@@ -75,7 +75,7 @@ public final class Ui {
     /** Etiqueta de un campo (label de los formularios). */
     public static JLabel etiqueta(String texto) {
         JLabel l = new JLabel(texto);
-        l.setFont(l.getFont().deriveFont(Font.BOLD, 12.5f));
+        l.setFont(l.getFont().deriveFont(Font.BOLD, 12f));
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         l.setBorder(BorderFactory.createEmptyBorder(10, 0, 4, 0));
         return l;
