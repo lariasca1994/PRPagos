@@ -311,12 +311,12 @@ class PanelConsulta extends JPanel {
                 ? new Object[] {"ID", "Usuario", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", "", ""}
                 : new Object[] {"ID", "Tipo", "Monto", "Fecha", "Categoría", "Concepto", ""});
         for (Pago p : resultado) {
-            String monto = String.format(Locale.ROOT, "%.2f", p.monto());
+            String monto = moneda(p.monto());
             if (admin) {
                 modelo.addRow(new Object[] {p.idPago(), p.duenoNombre() + " (" + p.duenoCorreo() + ")", p.tipoTexto(),
-                    monto, p.fecha().toString(), p.categoria(), p.concepto(), MODIFICAR, ELIMINAR});
+                    monto, fecha(p.fecha()), p.categoria(), p.concepto(), MODIFICAR, ELIMINAR});
             } else {
-                modelo.addRow(new Object[] {p.idPago(), p.tipoTexto(), monto, p.fecha().toString(), p.categoria(),
+                modelo.addRow(new Object[] {p.idPago(), p.tipoTexto(), monto, fecha(p.fecha()), p.categoria(),
                     p.concepto(), MODIFICAR});
             }
         }
@@ -332,10 +332,22 @@ class PanelConsulta extends JPanel {
         tabla.getColumnModel().getColumn(modelo.getColumnCount() - 1).setPreferredWidth(90);
         Tema.Paleta pal = Tema.c();
         total.setText("<html>Ingresos: <b style='color:" + hex(pal.plataforma()) + "'>"
-                + String.format(Locale.ROOT, "%.2f", ingresos) + "</b> &middot; Gastos: <b style='color:"
-                + hex(pal.acento()) + "'>" + String.format(Locale.ROOT, "%.2f", gastos)
-                + "</b> &middot; Balance: <b>" + String.format(Locale.ROOT, "%.2f", balance) + "</b></html>");
+                + moneda(ingresos) + "</b> &middot; Gastos: <b style='color:"
+                + hex(pal.acento()) + "'>" + moneda(gastos)
+                + "</b> &middot; Balance: <b>" + moneda(balance) + "</b></html>");
         revalidate();
+    }
+
+    /** $ 1.250.000,00: el mismo formato colombiano de la web. */
+    static String moneda(double valor) {
+        String texto = String.format(Locale.ROOT, "%,.2f", Math.abs(valor));
+        String colombiano = texto.replace(',', '_').replace('.', ',').replace('_', '.');
+        return (valor < 0 ? "-" : "") + "$ " + colombiano;
+    }
+
+    /** 27/09/2026, como se escribe en Colombia (igual que la web). */
+    static String fecha(java.time.LocalDate dia) {
+        return dia == null ? "" : dia.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     private void llenarCategorias(List<JsonObject> categorias) {
