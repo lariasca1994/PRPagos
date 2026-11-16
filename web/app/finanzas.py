@@ -55,6 +55,21 @@ def moneda(valor: float) -> str:
     return f"{signo}$ {entero.replace(',', '.')},{decimales}"
 
 
+def fecha_corta(valor) -> str:
+    """2026-09-27 (fecha o texto ISO) -> 27/09/2026, como se escribe en Colombia."""
+    texto = str(valor or "")[:10]
+    partes = texto.split("-")
+    return f"{partes[2]}/{partes[1]}/{partes[0]}" if len(partes) == 3 else texto
+
+
+def monto_editable(valor) -> str:
+    """Monto para un campo de texto: 257000.0 -> 257000; 1250.5 -> 1250.50."""
+    if valor in (None, ""):
+        return ""
+    numero = float(valor)
+    return f"{numero:.0f}" if numero == int(numero) else f"{numero:.2f}"
+
+
 def porcentaje(parte: float, total: float) -> str:
     return "0 %" if total <= 0 else f"{round(parte * 100 / total)} %"
 

@@ -12,11 +12,13 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from ..dependencias import UsuarioActual, exigir_login
+from ..finanzas import fecha_corta
 from ..servicios import ErrorServicio
 from ..servicios import presupuesto as servicio
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.filters["fecha"] = fecha_corta
 PREFIJO_MONTO = "monto_"
 
 

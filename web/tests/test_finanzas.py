@@ -148,3 +148,19 @@ def test_tarea_diaria_no_duplica_y_reintenta(monkeypatch):
     segundo = resumenes.tarea_diaria()                      # se repite: solo reintenta el fallido
     assert (segundo["enviados"], segundo["omitidos"], segundo["errores"]) == (1, 1, 0)
     assert resumenes.periodos_de_hoy(date(2026, 10, 15)) == []   # jueves, día 15: nada
+
+
+def test_fecha_corta_formato_colombiano():
+    from datetime import date
+
+    from app.finanzas import fecha_corta
+    assert fecha_corta("2026-09-27") == "27/09/2026"
+    assert fecha_corta(date(2026, 2, 3)) == "03/02/2026"
+    assert fecha_corta(None) == ""
+
+
+def test_monto_editable_sin_decimales_de_sobra():
+    from app.finanzas import monto_editable
+    assert monto_editable(257000.0) == "257000"
+    assert monto_editable(1250.5) == "1250.50"
+    assert monto_editable(None) == ""

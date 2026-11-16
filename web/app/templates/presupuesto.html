@@ -53,7 +53,7 @@
             <li>
                 <a href="/registros/{{ g.id_pago }}/editar">
                     <span class="mayor-concepto">{{ g.concepto }}</span>
-                    <span class="mayor-detalle">{{ g.categoria }} · {{ g.fecha }}</span>
+                    <span class="mayor-detalle">{{ g.categoria }} · {{ g.fecha|fecha }}</span>
                 </a>
                 <span class="mayor-monto">{{ g.monto }}<small>{{ g.parte }} del gasto</small></span>
             </li>

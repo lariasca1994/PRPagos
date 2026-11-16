@@ -13,7 +13,7 @@
 </fieldset>
 
 <label for="monto">Monto</label>
-<input type="text" id="monto" name="monto" inputmode="decimal" value="{{ registro.monto if registro else '' }}" required autofocus>
+<input type="text" id="monto" name="monto" inputmode="decimal" value="{{ registro.monto|monto_editable if registro else '' }}" required autofocus>
 
 <label for="fecha">Fecha</label>
 <input type="date" id="fecha" name="fecha" value="{{ registro.fecha if registro else hoy }}" required>
