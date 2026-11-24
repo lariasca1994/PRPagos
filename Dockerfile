@@ -1,7 +1,7 @@
 # Dockerfile para desplegar PRPagos (web) en Cloud Run.
 # El contexto de build es la RAÍZ del repo (A:\Github\PRPagos), no la carpeta web/,
 # porque necesitamos copiar tanto web/app/ como wallet/ (que están a un mismo nivel).
-FROM python:3.12.15-slim
+FROM python:3.12.16-slim
 # Seguridad en cada compilación: actualizaciones del sistema (Linux), pip al día (sus
 # CVE de octubre 2026) y almacén de certificados sin las raíces que firmaron los
 # intermedios comprometidos de eMudhra (emSign y Comodo "AAA Certificate Services").
